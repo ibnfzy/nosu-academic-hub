@@ -120,7 +120,7 @@ const StudentDashboard = ({ currentUser }) => {
   return (
     <div className="min-h-screen bg-background">
       {/* Header */}
-      <div className="bg-gradient-primary text-white py-8">
+      <div className="gradient-primary text-white py-8">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="flex items-center space-x-4">
             <div className="p-3 bg-white/20 rounded-lg">

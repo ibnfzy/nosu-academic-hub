@@ -7,6 +7,8 @@
  * Untuk production: USE_API = true (gunakan REST API endpoints)
  */
 
+import sampleData from './localData.js';
+
 const USE_API = false; // Set to true untuk menggunakan REST API
 
 const API_BASE_URL = 'http://localhost:3000/api'; // Ganti dengan URL backend
@@ -274,8 +276,7 @@ const apiService = {
   initializeData() {
     // Initialize with sample data if localStorage is empty
     if (!localStorage.getItem(STORAGE_KEYS.USERS)) {
-      const sampleData = require('./localData.js');
-      
+      // Muat sample data dari modul ESM
       localStorage.setItem(STORAGE_KEYS.USERS, JSON.stringify(sampleData.users));
       localStorage.setItem(STORAGE_KEYS.STUDENTS, JSON.stringify(sampleData.students));
       localStorage.setItem(STORAGE_KEYS.TEACHERS, JSON.stringify(sampleData.teachers));

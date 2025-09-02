@@ -105,7 +105,8 @@ const TeacherDashboard = ({ currentUser }) => {
       return;
     }
 
-    if (gradeForm.nilai < 0 || gradeForm.nilai > 100) {
+    const nilaiNumber = Number(gradeForm.nilai);
+    if (isNaN(nilaiNumber) || nilaiNumber < 0 || nilaiNumber > 100) {
       toast({
         title: "Error",
         description: "Nilai harus antara 0-100",
@@ -121,7 +122,7 @@ const TeacherDashboard = ({ currentUser }) => {
         kelasId: students.find(s => s.id === gradeForm.studentId)?.kelasId,
         tahunAjaran: '2024/2025',
         semester: 1,
-        nilai: parseFloat(gradeForm.nilai)
+        nilai: nilaiNumber
       };
 
       const result = await apiService.addGrade(currentUser.id, gradeData);
@@ -203,7 +204,7 @@ const TeacherDashboard = ({ currentUser }) => {
   return (
     <div className="min-h-screen bg-background">
       {/* Header */}
-      <div className="bg-gradient-accent text-white py-8">
+      <div className="gradient-accent text-white py-8">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="flex items-center space-x-4">
             <div className="p-3 bg-white/20 rounded-lg">
