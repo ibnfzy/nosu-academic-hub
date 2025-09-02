@@ -123,18 +123,18 @@ const StudentDashboard = ({ currentUser }) => {
       <div className="gradient-primary text-white py-8">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="flex items-center space-x-4">
-            <div className="p-3 bg-white/20 rounded-lg">
-              <User className="h-8 w-8" />
+            <div className="p-2 md:p-3 bg-white/20 rounded-lg">
+              <User className="h-6 w-6 md:h-8 md:w-8" />
             </div>
             <div>
-              <h1 className="text-2xl font-bold">Dashboard Siswa</h1>
-              <p className="opacity-90">Selamat datang, {currentUser?.nama}</p>
+              <h1 className="text-xl md:text-2xl font-bold">Dashboard Siswa</h1>
+              <p className="opacity-90 text-sm md:text-base">Selamat datang, {currentUser?.nama}</p>
             </div>
           </div>
         </div>
       </div>
 
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6 md:py-8">
         {/* Period Selector */}
         <Card className="mb-6 shadow-soft">
           <CardContent className="p-4">

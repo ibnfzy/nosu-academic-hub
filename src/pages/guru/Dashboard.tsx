@@ -207,20 +207,18 @@ const TeacherDashboard = ({ currentUser }) => {
       <div className="gradient-accent text-white py-8">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="flex items-center space-x-4">
-            <div className="p-3 bg-white/20 rounded-lg">
-              <GraduationCap className="h-8 w-8" />
+            <div className="p-2 md:p-3 bg-white/20 rounded-lg">
+              <GraduationCap className="h-6 w-6 md:h-8 md:w-8" />
             </div>
             <div>
-              <h1 className="text-2xl font-bold">
-                Dashboard {currentUser?.role === 'walikelas' ? 'Wali Kelas' : 'Guru'}
-              </h1>
-              <p className="opacity-90">Selamat datang, {currentUser?.nama}</p>
+              <h1 className="text-xl md:text-2xl font-bold">Dashboard Guru</h1>
+              <p className="opacity-90 text-sm md:text-base">Selamat datang, {currentUser?.nama}</p>
             </div>
           </div>
         </div>
       </div>
 
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6 md:py-8">
         {/* Quick Actions */}
         <div className="flex flex-wrap gap-4 mb-8">
           <Dialog open={showGradeDialog} onOpenChange={setShowGradeDialog}>

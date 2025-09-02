@@ -167,43 +167,6 @@ const apiService = {
     }
   },
 
-  // ============= WALIKELAS ENDPOINTS =============
-  async getClassGrades(walikelasId) {
-    if (USE_API) {
-      const response = await fetch(`${API_BASE_URL}/walikelas/${walikelasId}/kelas/nilai`);
-      return await response.json();
-    } else {
-      const teachers = JSON.parse(localStorage.getItem(STORAGE_KEYS.TEACHERS) || '[]');
-      const walikelas = teachers.find(t => t.id === walikelasId && t.role === 'walikelas');
-      
-      if (walikelas && walikelas.kelasId) {
-        const grades = JSON.parse(localStorage.getItem(STORAGE_KEYS.GRADES) || '[]');
-        return grades.filter(g => g.kelasId === walikelas.kelasId);
-      }
-      return [];
-    }
-  },
-
-  async verifyGrade(walikelasId, gradeId) {
-    if (USE_API) {
-      const response = await fetch(`${API_BASE_URL}/walikelas/${walikelasId}/verifikasi/${gradeId}`, {
-        method: 'PUT'
-      });
-      return await response.json();
-    } else {
-      const grades = JSON.parse(localStorage.getItem(STORAGE_KEYS.GRADES) || '[]');
-      const gradeIndex = grades.findIndex(g => g.id === gradeId);
-      
-      if (gradeIndex !== -1) {
-        grades[gradeIndex].verified = true;
-        grades[gradeIndex].verifiedAt = new Date().toISOString();
-        grades[gradeIndex].verifiedBy = walikelasId;
-        localStorage.setItem(STORAGE_KEYS.GRADES, JSON.stringify(grades));
-        return { success: true };
-      }
-      return { success: false, message: 'Grade not found' };
-    }
-  },
 
   // ============= ADMIN ENDPOINTS =============
   async getUsers() {
@@ -269,6 +232,155 @@ const apiService = {
       const filteredUsers = users.filter(u => u.id !== userId);
       localStorage.setItem(STORAGE_KEYS.USERS, JSON.stringify(filteredUsers));
       return { success: true };
+    }
+  },
+
+  async addUser(userData) {
+    return this.createUser(userData); // Use existing createUser method
+  },
+
+  // ============= ADMIN METHODS =============
+
+  async getSubjects() {
+    if (USE_API) {
+      const response = await fetch(`${API_BASE_URL}/admin/matapelajaran`);
+      return await response.json();
+    } else {
+      const subjects = JSON.parse(localStorage.getItem(STORAGE_KEYS.SUBJECTS) || '[]');
+      return subjects;
+    }
+  },
+
+  async getClasses() {
+    if (USE_API) {
+      const response = await fetch(`${API_BASE_URL}/admin/kelas`);
+      return await response.json();
+    } else {
+      const classes = JSON.parse(localStorage.getItem(STORAGE_KEYS.CLASSES) || '[]');
+      return classes;
+    }
+  },
+
+  // ============= WALIKELAS METHODS =============
+  async getClassStudents(walikelasId) {
+    if (USE_API) {
+      const response = await fetch(`${API_BASE_URL}/walikelas/${walikelasId}/kelas/siswa`);
+      return await response.json();
+    } else {
+      const students = JSON.parse(localStorage.getItem(STORAGE_KEYS.STUDENTS) || '[]');
+      return students.filter(s => s.kelasId === '1'); // Assuming walikelas manages kelas 1
+    }
+  },
+
+  async getClassGrades(walikelasId, tahun, semester) {
+    if (USE_API) {
+      const response = await fetch(`${API_BASE_URL}/walikelas/${walikelasId}/kelas/nilai?tahun=${tahun}&semester=${semester}`);
+      return await response.json();
+    } else {
+      const grades = JSON.parse(localStorage.getItem(STORAGE_KEYS.GRADES) || '[]');
+      return grades.filter(g => g.tahunAjaran === tahun && g.semester === semester);
+    }
+  },
+
+  async getClassAttendance(walikelasId, tahun, semester) {
+    if (USE_API) {
+      const response = await fetch(`${API_BASE_URL}/walikelas/${walikelasId}/kelas/kehadiran?tahun=${tahun}&semester=${semester}`);
+      return await response.json();
+    } else {
+      const attendance = JSON.parse(localStorage.getItem(STORAGE_KEYS.ATTENDANCE) || '[]');
+      return attendance.filter(a => a.tahunAjaran === tahun && a.semester === semester);
+    }
+  },
+
+  async addClassStudent(walikelasId, studentData) {
+    if (USE_API) {
+      const response = await fetch(`${API_BASE_URL}/walikelas/${walikelasId}/kelas/siswa`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(studentData)
+      });
+      return await response.json();
+    } else {
+      const students = JSON.parse(localStorage.getItem(STORAGE_KEYS.STUDENTS) || '[]');
+      const newStudent = { ...studentData, id: Date.now().toString(), createdAt: new Date().toISOString() };
+      students.push(newStudent);
+      localStorage.setItem(STORAGE_KEYS.STUDENTS, JSON.stringify(students));
+      
+      // Also add to users
+      const users = JSON.parse(localStorage.getItem(STORAGE_KEYS.USERS) || '[]');
+      users.push(newStudent);
+      localStorage.setItem(STORAGE_KEYS.USERS, JSON.stringify(users));
+      
+      return { success: true, data: { ...newStudent, password: undefined } };
+    }
+  },
+
+  async updateClassStudent(walikelasId, studentId, studentData) {
+    if (USE_API) {
+      const response = await fetch(`${API_BASE_URL}/walikelas/${walikelasId}/kelas/siswa/${studentId}`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(studentData)
+      });
+      return await response.json();
+    } else {
+      const students = JSON.parse(localStorage.getItem(STORAGE_KEYS.STUDENTS) || '[]');
+      const studentIndex = students.findIndex(s => s.id === studentId);
+      if (studentIndex !== -1) {
+        students[studentIndex] = { ...students[studentIndex], ...studentData, updatedAt: new Date().toISOString() };
+        localStorage.setItem(STORAGE_KEYS.STUDENTS, JSON.stringify(students));
+        
+        // Update in users too
+        const users = JSON.parse(localStorage.getItem(STORAGE_KEYS.USERS) || '[]');
+        const userIndex = users.findIndex(u => u.id === studentId);
+        if (userIndex !== -1) {
+          users[userIndex] = { ...users[userIndex], ...studentData, updatedAt: new Date().toISOString() };
+          localStorage.setItem(STORAGE_KEYS.USERS, JSON.stringify(users));
+        }
+        
+        return { success: true, data: { ...students[studentIndex], password: undefined } };
+      }
+      return { success: false, message: 'Student not found' };
+    }
+  },
+
+  async deleteClassStudent(walikelasId, studentId) {
+    if (USE_API) {
+      const response = await fetch(`${API_BASE_URL}/walikelas/${walikelasId}/kelas/siswa/${studentId}`, {
+        method: 'DELETE'
+      });
+      return await response.json();
+    } else {
+      const students = JSON.parse(localStorage.getItem(STORAGE_KEYS.STUDENTS) || '[]');
+      const filteredStudents = students.filter(s => s.id !== studentId);
+      localStorage.setItem(STORAGE_KEYS.STUDENTS, JSON.stringify(filteredStudents));
+      
+      // Delete from users too
+      const users = JSON.parse(localStorage.getItem(STORAGE_KEYS.USERS) || '[]');
+      const filteredUsers = users.filter(u => u.id !== studentId);
+      localStorage.setItem(STORAGE_KEYS.USERS, JSON.stringify(filteredUsers));
+      
+      return { success: true };
+    }
+  },
+
+  async verifyGrade(walikelasId, gradeId) {
+    if (USE_API) {
+      const response = await fetch(`${API_BASE_URL}/walikelas/${walikelasId}/verifikasi/${gradeId}`, {
+        method: 'PUT'
+      });
+      return await response.json();
+    } else {
+      const grades = JSON.parse(localStorage.getItem(STORAGE_KEYS.GRADES) || '[]');
+      const gradeIndex = grades.findIndex(g => g.id === gradeId);
+      if (gradeIndex !== -1) {
+        grades[gradeIndex].verified = true;
+        grades[gradeIndex].verifiedBy = walikelasId;
+        grades[gradeIndex].verifiedAt = new Date().toISOString();
+        localStorage.setItem(STORAGE_KEYS.GRADES, JSON.stringify(grades));
+        return { success: true, data: grades[gradeIndex] };
+      }
+      return { success: false, message: 'Grade not found' };
     }
   },
 

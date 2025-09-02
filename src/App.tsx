@@ -7,6 +7,8 @@ import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
 import Home from "./pages/Home";
 import StudentDashboard from "./pages/siswa/Dashboard";
 import TeacherDashboard from "./pages/guru/Dashboard";
+import AdminDashboard from "./pages/admin/Dashboard";
+import WalikelasDashboard from "./pages/walikelas/Dashboard";
 import NotFound from "./pages/NotFound";
 import apiService from './services/apiService';
 
@@ -89,8 +91,17 @@ const App = () => {
             <Route 
               path="/dashboard/guru" 
               element={
-                <ProtectedRoute allowedRoles={['guru', 'walikelas']}>
+                <ProtectedRoute allowedRoles={['guru']}>
                   <TeacherDashboard currentUser={currentUser} />
+                </ProtectedRoute>
+              } 
+            />
+
+            <Route 
+              path="/dashboard/walikelas" 
+              element={
+                <ProtectedRoute allowedRoles={['walikelas']}>
+                  <WalikelasDashboard currentUser={currentUser} />
                 </ProtectedRoute>
               } 
             />
@@ -99,12 +110,7 @@ const App = () => {
               path="/dashboard/admin" 
               element={
                 <ProtectedRoute allowedRoles={['admin']}>
-                  <div className="min-h-screen flex items-center justify-center bg-background">
-                    <div className="text-center">
-                      <h1 className="text-2xl font-bold mb-4">Dashboard Admin</h1>
-                      <p className="text-muted-foreground">Coming Soon - Dashboard Admin sedang dalam pengembangan</p>
-                    </div>
-                  </div>
+                  <AdminDashboard currentUser={currentUser} />
                 </ProtectedRoute>
               } 
             />
@@ -115,7 +121,7 @@ const App = () => {
               element={
                 currentUser ? (
                   <Navigate 
-                    to={`/dashboard/${currentUser.role === 'walikelas' ? 'guru' : currentUser.role}`} 
+                    to={`/dashboard/${currentUser.role}`} 
                     replace 
                   />
                 ) : (
