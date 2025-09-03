@@ -737,7 +737,7 @@ const AdminDashboard = ({ currentUser }) => {
                               <SelectValue placeholder="Pilih kelas" />
                             </SelectTrigger>
                             <SelectContent>
-                              <SelectItem value="">Semua Kelas</SelectItem>
+                              <SelectItem value="all">Semua Kelas</SelectItem>
                               {classes.map((kelas) => (
                                 <SelectItem key={kelas.id} value={kelas.id}>
                                   {kelas.nama}
@@ -785,7 +785,7 @@ const AdminDashboard = ({ currentUser }) => {
                           </TableCell>
                           {!isMobile && (
                             <TableCell className="text-muted-foreground">
-                              {subject.kelasId 
+                              {subject.kelasId && subject.kelasId !== 'all'
                                 ? classes.find(c => c.id === subject.kelasId)?.nama || '-'
                                 : 'Semua Kelas'
                               }
@@ -879,7 +879,7 @@ const AdminDashboard = ({ currentUser }) => {
                               <SelectValue placeholder="Pilih wali kelas" />
                             </SelectTrigger>
                             <SelectContent>
-                              <SelectItem value="">Belum Ditentukan</SelectItem>
+                              <SelectItem value="none">Belum Ditentukan</SelectItem>
                               {waliKelasList.map((guru) => (
                                 <SelectItem key={guru.id} value={guru.id}>
                                   {guru.nama}
@@ -927,7 +927,7 @@ const AdminDashboard = ({ currentUser }) => {
                           </TableCell>
                           {!isMobile && (
                             <TableCell className="text-muted-foreground">
-                              {classItem.walikelas 
+                              {classItem.walikelas && classItem.walikelas !== 'none'
                                 ? waliKelasList.find(g => g.id === classItem.walikelas)?.nama || '-'
                                 : 'Belum Ditentukan'
                               }
