@@ -2,7 +2,6 @@ import { useState, useEffect } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
-import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { 
   Dialog, 
@@ -20,11 +19,7 @@ import {
   SelectTrigger, 
   SelectValue 
 } from '@/components/ui/select';
-import { 
-  SidebarProvider, 
-  SidebarTrigger 
-} from '@/components/ui/sidebar';
-import { AdminSidebar } from '@/components/AdminSidebar';
+import { AdminNavbar } from '@/components/AdminNavbar';
 import {
   Shield,
   Users,
@@ -34,7 +29,10 @@ import {
   Edit,
   Trash2,
   Search,
-  Filter
+  Filter,
+  TrendingUp,
+  Award,
+  Calendar
 } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import apiService from '@/services/apiService';
@@ -45,7 +43,7 @@ const AdminDashboard = ({ currentUser }) => {
   const [subjects, setSubjects] = useState([]);
   const [classes, setClasses] = useState([]);
   const [loading, setLoading] = useState(false);
-  const [activeTab, setActiveTab] = useState('users');
+  const [activeSection, setActiveSection] = useState('users');
   const [showUserDialog, setShowUserDialog] = useState(false);
   const [showSubjectDialog, setShowSubjectDialog] = useState(false);
   const [showClassDialog, setShowClassDialog] = useState(false);
@@ -367,35 +365,14 @@ const AdminDashboard = ({ currentUser }) => {
   const waliKelasList = users.filter(u => u.role === 'walikelas');
 
   return (
-    <SidebarProvider>
-      <div className="min-h-screen flex w-full bg-background">
-        <AdminSidebar activeTab={activeTab} setActiveTab={setActiveTab} />
-        
-        <main className="flex-1">
-          {/* Header */}
-          <div className="bg-gradient-primary text-white py-4 md:py-6">
-            <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-              <div className="flex items-center justify-between">
-                <div className="flex items-center space-x-3">
-                  <SidebarTrigger className="text-white hover:bg-white/20" />
-                  <div className="flex items-center space-x-3">
-                    <div className="p-2 md:p-3 bg-white/20 rounded-lg">
-                      <Shield className="h-5 w-5 md:h-6 md:w-6" />
-                    </div>
-                    <div>
-                      <h1 className="text-lg md:text-xl font-bold">Dashboard Administrator</h1>
-                      <p className="opacity-90 text-xs md:text-sm">Selamat datang, {currentUser?.nama}</p>
-                    </div>
-                  </div>
-                </div>
-              </div>
-            </div>
-          </div>
+    <div className="min-h-screen bg-gradient-subtle">
+      {/* Admin Navbar */}
+      <AdminNavbar activeSection={activeSection} setActiveSection={setActiveSection} />
 
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6 md:py-8">
         {/* Stats Cards */}
-        <div className="grid grid-cols-2 md:grid-cols-4 gap-4 md:gap-6 mb-6 md:mb-8">
-          <Card className="shadow-soft">
+        <div className="grid grid-cols-2 md:grid-cols-4 gap-4 md:gap-6 mb-6 md:mb-8 animate-fade-in">
+          <Card className="shadow-elegant hover-scale transition-smooth bg-gradient-to-br from-primary/10 to-primary-glow/10 border-primary/20">
             <CardContent className="p-4 md:p-6">
               <div className="flex items-center space-x-3 md:space-x-4">
                 <div className="p-2 md:p-3 bg-primary/10 rounded-lg">
@@ -409,7 +386,7 @@ const AdminDashboard = ({ currentUser }) => {
             </CardContent>
           </Card>
 
-          <Card className="shadow-soft">
+          <Card className="shadow-elegant hover-scale transition-smooth bg-gradient-to-br from-accent/10 to-accent/20 border-accent/20">
             <CardContent className="p-4 md:p-6">
               <div className="flex items-center space-x-3 md:space-x-4">
                 <div className="p-2 md:p-3 bg-accent/10 rounded-lg">
@@ -423,7 +400,7 @@ const AdminDashboard = ({ currentUser }) => {
             </CardContent>
           </Card>
 
-          <Card className="shadow-soft">
+          <Card className="shadow-elegant hover-scale transition-smooth bg-gradient-to-br from-success/10 to-success/20 border-success/20">
             <CardContent className="p-4 md:p-6">
               <div className="flex items-center space-x-3 md:space-x-4">
                 <div className="p-2 md:p-3 bg-success/10 rounded-lg">
@@ -437,7 +414,7 @@ const AdminDashboard = ({ currentUser }) => {
             </CardContent>
           </Card>
 
-          <Card className="shadow-soft">
+          <Card className="shadow-elegant hover-scale transition-smooth bg-gradient-to-br from-warning/10 to-warning/20 border-warning/20">
             <CardContent className="p-4 md:p-6">
               <div className="flex items-center space-x-3 md:space-x-4">
                 <div className="p-2 md:p-3 bg-warning/10 rounded-lg">
@@ -455,28 +432,18 @@ const AdminDashboard = ({ currentUser }) => {
         </div>
 
         {/* Main Content */}
-        <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-6">
-          <TabsList className={`grid w-full ${isMobile ? 'grid-cols-1' : 'grid-cols-3'}`}>
-            <TabsTrigger value="users" className="flex items-center space-x-2">
-              <Users className="h-4 w-4" />
-              <span>Manajemen Users</span>
-            </TabsTrigger>
-            <TabsTrigger value="subjects" className="flex items-center space-x-2">
-              <BookOpen className="h-4 w-4" />
-              <span>Mata Pelajaran</span>
-            </TabsTrigger>
-            <TabsTrigger value="classes" className="flex items-center space-x-2">
-              <School className="h-4 w-4" />
-              <span>Manajemen Kelas</span>
-            </TabsTrigger>
-          </TabsList>
-
-          {/* Users Management Tab */}
-          <TabsContent value="users">
-            <Card className="shadow-soft">
-              <CardHeader>
+        <div className="animate-fade-in">
+          {activeSection === 'users' && (
+            <Card className="shadow-elegant bg-gradient-to-br from-background to-muted/20 border-primary/10">
+              <CardHeader className="bg-gradient-to-r from-primary/5 to-primary-glow/5 border-b border-primary/10">
                 <div className="flex flex-col md:flex-row justify-between items-start md:items-center space-y-4 md:space-y-0">
-                  <CardTitle>Manajemen Users</CardTitle>
+                  <div>
+                    <CardTitle className="flex items-center space-x-2">
+                      <Users className="h-5 w-5 text-primary" />
+                      <span>Manajemen Users</span>
+                    </CardTitle>
+                    <p className="text-sm text-muted-foreground mt-1">Kelola akun pengguna sistem</p>
+                  </div>
                   <Dialog open={showUserDialog} onOpenChange={setShowUserDialog}>
                     <DialogTrigger asChild>
                       <Button 
@@ -682,14 +649,19 @@ const AdminDashboard = ({ currentUser }) => {
                 </div>
               </CardContent>
             </Card>
-          </TabsContent>
+          )}
 
-          {/* Subjects Tab */}
-          <TabsContent value="subjects">
-            <Card className="shadow-soft">
-              <CardHeader>
+          {activeSection === 'subjects' && (
+            <Card className="shadow-elegant bg-gradient-to-br from-background to-muted/20 border-accent/10">
+              <CardHeader className="bg-gradient-to-r from-accent/5 to-accent/10 border-b border-accent/10">
                 <div className="flex flex-col md:flex-row justify-between items-start md:items-center space-y-4 md:space-y-0">
-                  <CardTitle>Manajemen Mata Pelajaran</CardTitle>
+                  <div>
+                    <CardTitle className="flex items-center space-x-2">
+                      <BookOpen className="h-5 w-5 text-accent" />
+                      <span>Manajemen Mata Pelajaran</span>
+                    </CardTitle>
+                    <p className="text-sm text-muted-foreground mt-1">Kelola mata pelajaran sekolah</p>
+                  </div>
                   <Dialog open={showSubjectDialog} onOpenChange={setShowSubjectDialog}>
                     <DialogTrigger asChild>
                       <Button 
@@ -816,14 +788,19 @@ const AdminDashboard = ({ currentUser }) => {
                 </div>
               </CardContent>
             </Card>
-          </TabsContent>
+          )}
 
-          {/* Classes Tab */}
-          <TabsContent value="classes">
-            <Card className="shadow-soft">
-              <CardHeader>
+          {activeSection === 'classes' && (
+            <Card className="shadow-elegant bg-gradient-to-br from-background to-muted/20 border-success/10">
+              <CardHeader className="bg-gradient-to-r from-success/5 to-success/10 border-b border-success/10">
                 <div className="flex flex-col md:flex-row justify-between items-start md:items-center space-y-4 md:space-y-0">
-                  <CardTitle>Manajemen Kelas</CardTitle>
+                  <div>
+                    <CardTitle className="flex items-center space-x-2">
+                      <School className="h-5 w-5 text-success" />
+                      <span>Manajemen Kelas</span>
+                    </CardTitle>
+                    <p className="text-sm text-muted-foreground mt-1">Kelola kelas dan wali kelas</p>
+                  </div>
                   <Dialog open={showClassDialog} onOpenChange={setShowClassDialog}>
                     <DialogTrigger asChild>
                       <Button 
@@ -958,12 +935,10 @@ const AdminDashboard = ({ currentUser }) => {
                 </div>
               </CardContent>
             </Card>
-          </TabsContent>
-        </Tabs>
-          </div>
-        </main>
+          )}
+        </div>
       </div>
-    </SidebarProvider>
+    </div>
   );
 };
 
