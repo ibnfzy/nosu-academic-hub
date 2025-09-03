@@ -20,6 +20,11 @@ import {
   SelectTrigger, 
   SelectValue 
 } from '@/components/ui/select';
+import { 
+  SidebarProvider, 
+  SidebarTrigger 
+} from '@/components/ui/sidebar';
+import { AdminSidebar } from '@/components/AdminSidebar';
 import {
   Shield,
   Users,
@@ -199,22 +204,193 @@ const AdminDashboard = ({ currentUser }) => {
     return matchesSearch && matchesRole;
   });
 
+  const handleSubjectSubmit = async (e) => {
+    e.preventDefault();
+    
+    if (!subjectForm.nama || !subjectForm.kode) {
+      toast({
+        title: "Error",
+        description: "Mohon lengkapi field wajib",
+        variant: "destructive"
+      });
+      return;
+    }
+
+    try {
+      const subjectData = {
+        ...subjectForm,
+        id: editingItem ? editingItem.id : Date.now().toString()
+      };
+
+      let result;
+      if (editingItem) {
+        result = await apiService.updateSubject(subjectData.id, subjectData);
+      } else {
+        result = await apiService.addSubject(subjectData);
+      }
+      
+      if (result.success) {
+        toast({
+          title: "Berhasil",
+          description: `Mata pelajaran berhasil ${editingItem ? 'diupdate' : 'ditambahkan'}`
+        });
+        
+        resetSubjectForm();
+        loadAdminData();
+      }
+    } catch (error) {
+      toast({
+        title: "Error",
+        description: `Gagal ${editingItem ? 'mengupdate' : 'menambahkan'} mata pelajaran`,
+        variant: "destructive"
+      });
+    }
+  };
+
+  const handleClassSubmit = async (e) => {
+    e.preventDefault();
+    
+    if (!classForm.nama || !classForm.tingkat) {
+      toast({
+        title: "Error",
+        description: "Mohon lengkapi field wajib",
+        variant: "destructive"
+      });
+      return;
+    }
+
+    try {
+      const classData = {
+        ...classForm,
+        id: editingItem ? editingItem.id : Date.now().toString()
+      };
+
+      let result;
+      if (editingItem) {
+        result = await apiService.updateClass(classData.id, classData);
+      } else {
+        result = await apiService.addClass(classData);
+      }
+      
+      if (result.success) {
+        toast({
+          title: "Berhasil",
+          description: `Kelas berhasil ${editingItem ? 'diupdate' : 'ditambahkan'}`
+        });
+        
+        resetClassForm();
+        loadAdminData();
+      }
+    } catch (error) {
+      toast({
+        title: "Error",
+        description: `Gagal ${editingItem ? 'mengupdate' : 'menambahkan'} kelas`,
+        variant: "destructive"
+      });
+    }
+  };
+
+  const handleDeleteSubject = async (subjectId) => {
+    if (window.confirm('Apakah Anda yakin ingin menghapus mata pelajaran ini?')) {
+      try {
+        const result = await apiService.deleteSubject(subjectId);
+        if (result.success) {
+          toast({
+            title: "Berhasil",
+            description: "Mata pelajaran berhasil dihapus"
+          });
+          loadAdminData();
+        }
+      } catch (error) {
+        toast({
+          title: "Error",
+          description: "Gagal menghapus mata pelajaran",
+          variant: "destructive"
+        });
+      }
+    }
+  };
+
+  const handleDeleteClass = async (classId) => {
+    if (window.confirm('Apakah Anda yakin ingin menghapus kelas ini?')) {
+      try {
+        const result = await apiService.deleteClass(classId);
+        if (result.success) {
+          toast({
+            title: "Berhasil",
+            description: "Kelas berhasil dihapus"
+          });
+          loadAdminData();
+        }
+      } catch (error) {
+        toast({
+          title: "Error",
+          description: "Gagal menghapus kelas",
+          variant: "destructive"
+        });
+      }
+    }
+  };
+
+  const resetSubjectForm = () => {
+    setSubjectForm({
+      nama: '',
+      kode: '',
+      kelasId: ''
+    });
+    setEditingItem(null);
+    setShowSubjectDialog(false);
+  };
+
+  const resetClassForm = () => {
+    setClassForm({
+      nama: '',
+      tingkat: '',
+      walikelas: ''
+    });
+    setEditingItem(null);
+    setShowClassDialog(false);
+  };
+
+  const editSubject = (subject) => {
+    setSubjectForm(subject);
+    setEditingItem(subject);
+    setShowSubjectDialog(true);
+  };
+
+  const editClass = (classItem) => {
+    setClassForm(classItem);
+    setEditingItem(classItem);
+    setShowClassDialog(true);
+  };
+
+  const waliKelasList = users.filter(u => u.role === 'walikelas');
+
   return (
-    <div className="min-h-screen bg-background">
-      {/* Header */}
-      <div className="bg-gradient-to-r from-purple-600 to-blue-600 text-white py-6 md:py-8">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="flex items-center space-x-4">
-            <div className="p-2 md:p-3 bg-white/20 rounded-lg">
-              <Shield className="h-6 w-6 md:h-8 md:w-8" />
-            </div>
-            <div>
-              <h1 className="text-xl md:text-2xl font-bold">Dashboard Administrator</h1>
-              <p className="opacity-90 text-sm md:text-base">Selamat datang, {currentUser?.nama}</p>
+    <SidebarProvider>
+      <div className="min-h-screen flex w-full bg-background">
+        <AdminSidebar activeTab={activeTab} setActiveTab={setActiveTab} />
+        
+        <main className="flex-1">
+          {/* Header */}
+          <div className="bg-gradient-primary text-white py-4 md:py-6">
+            <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+              <div className="flex items-center justify-between">
+                <div className="flex items-center space-x-3">
+                  <SidebarTrigger className="text-white hover:bg-white/20" />
+                  <div className="flex items-center space-x-3">
+                    <div className="p-2 md:p-3 bg-white/20 rounded-lg">
+                      <Shield className="h-5 w-5 md:h-6 md:w-6" />
+                    </div>
+                    <div>
+                      <h1 className="text-lg md:text-xl font-bold">Dashboard Administrator</h1>
+                      <p className="opacity-90 text-xs md:text-sm">Selamat datang, {currentUser?.nama}</p>
+                    </div>
+                  </div>
+                </div>
+              </div>
             </div>
           </div>
-        </div>
-      </div>
 
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6 md:py-8">
         {/* Stats Cards */}
@@ -512,12 +688,131 @@ const AdminDashboard = ({ currentUser }) => {
           <TabsContent value="subjects">
             <Card className="shadow-soft">
               <CardHeader>
-                <CardTitle>Manajemen Mata Pelajaran</CardTitle>
+                <div className="flex flex-col md:flex-row justify-between items-start md:items-center space-y-4 md:space-y-0">
+                  <CardTitle>Manajemen Mata Pelajaran</CardTitle>
+                  <Dialog open={showSubjectDialog} onOpenChange={setShowSubjectDialog}>
+                    <DialogTrigger asChild>
+                      <Button 
+                        className="bg-primary text-primary-foreground w-full md:w-auto"
+                        onClick={() => setEditingItem(null)}
+                      >
+                        <Plus className="h-4 w-4 mr-2" />
+                        Tambah Mata Pelajaran
+                      </Button>
+                    </DialogTrigger>
+                    <DialogContent className="max-w-md mx-4 md:max-w-lg">
+                      <DialogHeader>
+                        <DialogTitle>
+                          {editingItem ? 'Edit Mata Pelajaran' : 'Tambah Mata Pelajaran Baru'}
+                        </DialogTitle>
+                      </DialogHeader>
+                      <form onSubmit={handleSubjectSubmit} className="space-y-4">
+                        <div className="space-y-2">
+                          <Label>Nama Mata Pelajaran</Label>
+                          <Input
+                            value={subjectForm.nama}
+                            onChange={(e) => setSubjectForm(prev => ({ ...prev, nama: e.target.value }))}
+                            placeholder="Contoh: Matematika"
+                            required
+                          />
+                        </div>
+
+                        <div className="space-y-2">
+                          <Label>Kode Mata Pelajaran</Label>
+                          <Input
+                            value={subjectForm.kode}
+                            onChange={(e) => setSubjectForm(prev => ({ ...prev, kode: e.target.value }))}
+                            placeholder="Contoh: MTK"
+                            required
+                          />
+                        </div>
+
+                        <div className="space-y-2">
+                          <Label>Kelas (Opsional)</Label>
+                          <Select 
+                            value={subjectForm.kelasId}
+                            onValueChange={(value) => setSubjectForm(prev => ({ ...prev, kelasId: value }))}
+                          >
+                            <SelectTrigger>
+                              <SelectValue placeholder="Pilih kelas" />
+                            </SelectTrigger>
+                            <SelectContent>
+                              <SelectItem value="">Semua Kelas</SelectItem>
+                              {classes.map((kelas) => (
+                                <SelectItem key={kelas.id} value={kelas.id}>
+                                  {kelas.nama}
+                                </SelectItem>
+                              ))}
+                            </SelectContent>
+                          </Select>
+                        </div>
+
+                        <div className="flex flex-col md:flex-row gap-2">
+                          <Button type="submit" className="flex-1">
+                            {editingItem ? 'Update' : 'Simpan'}
+                          </Button>
+                          <Button 
+                            type="button" 
+                            variant="outline" 
+                            className="flex-1"
+                            onClick={resetSubjectForm}
+                          >
+                            Batal
+                          </Button>
+                        </div>
+                      </form>
+                    </DialogContent>
+                  </Dialog>
+                </div>
               </CardHeader>
               <CardContent>
-                <div className="text-center py-8">
-                  <BookOpen className="h-12 w-12 mx-auto mb-4 text-muted-foreground" />
-                  <p className="text-muted-foreground">Fitur manajemen mata pelajaran akan segera hadir</p>
+                <div className="overflow-x-auto">
+                  <Table>
+                    <TableHeader>
+                      <TableRow>
+                        <TableHead>Nama Mata Pelajaran</TableHead>
+                        <TableHead>Kode</TableHead>
+                        {!isMobile && <TableHead>Kelas</TableHead>}
+                        <TableHead>Aksi</TableHead>
+                      </TableRow>
+                    </TableHeader>
+                    <TableBody>
+                      {subjects.map((subject) => (
+                        <TableRow key={subject.id}>
+                          <TableCell className="font-medium">{subject.nama}</TableCell>
+                          <TableCell>
+                            <Badge variant="outline">{subject.kode}</Badge>
+                          </TableCell>
+                          {!isMobile && (
+                            <TableCell className="text-muted-foreground">
+                              {subject.kelasId 
+                                ? classes.find(c => c.id === subject.kelasId)?.nama || '-'
+                                : 'Semua Kelas'
+                              }
+                            </TableCell>
+                          )}
+                          <TableCell>
+                            <div className="flex space-x-2">
+                              <Button
+                                size="sm"
+                                variant="outline"
+                                onClick={() => editSubject(subject)}
+                              >
+                                <Edit className="h-3 w-3" />
+                              </Button>
+                              <Button
+                                size="sm"
+                                variant="outline"
+                                onClick={() => handleDeleteSubject(subject.id)}
+                              >
+                                <Trash2 className="h-3 w-3" />
+                              </Button>
+                            </div>
+                          </TableCell>
+                        </TableRow>
+                      ))}
+                    </TableBody>
+                  </Table>
                 </div>
               </CardContent>
             </Card>
@@ -527,19 +822,148 @@ const AdminDashboard = ({ currentUser }) => {
           <TabsContent value="classes">
             <Card className="shadow-soft">
               <CardHeader>
-                <CardTitle>Manajemen Kelas</CardTitle>
+                <div className="flex flex-col md:flex-row justify-between items-start md:items-center space-y-4 md:space-y-0">
+                  <CardTitle>Manajemen Kelas</CardTitle>
+                  <Dialog open={showClassDialog} onOpenChange={setShowClassDialog}>
+                    <DialogTrigger asChild>
+                      <Button 
+                        className="bg-primary text-primary-foreground w-full md:w-auto"
+                        onClick={() => setEditingItem(null)}
+                      >
+                        <Plus className="h-4 w-4 mr-2" />
+                        Tambah Kelas
+                      </Button>
+                    </DialogTrigger>
+                    <DialogContent className="max-w-md mx-4 md:max-w-lg">
+                      <DialogHeader>
+                        <DialogTitle>
+                          {editingItem ? 'Edit Kelas' : 'Tambah Kelas Baru'}
+                        </DialogTitle>
+                      </DialogHeader>
+                      <form onSubmit={handleClassSubmit} className="space-y-4">
+                        <div className="space-y-2">
+                          <Label>Nama Kelas</Label>
+                          <Input
+                            value={classForm.nama}
+                            onChange={(e) => setClassForm(prev => ({ ...prev, nama: e.target.value }))}
+                            placeholder="Contoh: XII IPA 1"
+                            required
+                          />
+                        </div>
+
+                        <div className="space-y-2">
+                          <Label>Tingkat</Label>
+                          <Select 
+                            value={classForm.tingkat}
+                            onValueChange={(value) => setClassForm(prev => ({ ...prev, tingkat: value }))}
+                            required
+                          >
+                            <SelectTrigger>
+                              <SelectValue placeholder="Pilih tingkat" />
+                            </SelectTrigger>
+                            <SelectContent>
+                              <SelectItem value="X">Kelas X</SelectItem>
+                              <SelectItem value="XI">Kelas XI</SelectItem>
+                              <SelectItem value="XII">Kelas XII</SelectItem>
+                            </SelectContent>
+                          </Select>
+                        </div>
+
+                        <div className="space-y-2">
+                          <Label>Wali Kelas (Opsional)</Label>
+                          <Select 
+                            value={classForm.walikelas}
+                            onValueChange={(value) => setClassForm(prev => ({ ...prev, walikelas: value }))}
+                          >
+                            <SelectTrigger>
+                              <SelectValue placeholder="Pilih wali kelas" />
+                            </SelectTrigger>
+                            <SelectContent>
+                              <SelectItem value="">Belum Ditentukan</SelectItem>
+                              {waliKelasList.map((guru) => (
+                                <SelectItem key={guru.id} value={guru.id}>
+                                  {guru.nama}
+                                </SelectItem>
+                              ))}
+                            </SelectContent>
+                          </Select>
+                        </div>
+
+                        <div className="flex flex-col md:flex-row gap-2">
+                          <Button type="submit" className="flex-1">
+                            {editingItem ? 'Update' : 'Simpan'}
+                          </Button>
+                          <Button 
+                            type="button" 
+                            variant="outline" 
+                            className="flex-1"
+                            onClick={resetClassForm}
+                          >
+                            Batal
+                          </Button>
+                        </div>
+                      </form>
+                    </DialogContent>
+                  </Dialog>
+                </div>
               </CardHeader>
               <CardContent>
-                <div className="text-center py-8">
-                  <School className="h-12 w-12 mx-auto mb-4 text-muted-foreground" />
-                  <p className="text-muted-foreground">Fitur manajemen kelas akan segera hadir</p>
+                <div className="overflow-x-auto">
+                  <Table>
+                    <TableHeader>
+                      <TableRow>
+                        <TableHead>Nama Kelas</TableHead>
+                        <TableHead>Tingkat</TableHead>
+                        {!isMobile && <TableHead>Wali Kelas</TableHead>}
+                        <TableHead>Aksi</TableHead>
+                      </TableRow>
+                    </TableHeader>
+                    <TableBody>
+                      {classes.map((classItem) => (
+                        <TableRow key={classItem.id}>
+                          <TableCell className="font-medium">{classItem.nama}</TableCell>
+                          <TableCell>
+                            <Badge variant="secondary">Kelas {classItem.tingkat}</Badge>
+                          </TableCell>
+                          {!isMobile && (
+                            <TableCell className="text-muted-foreground">
+                              {classItem.walikelas 
+                                ? waliKelasList.find(g => g.id === classItem.walikelas)?.nama || '-'
+                                : 'Belum Ditentukan'
+                              }
+                            </TableCell>
+                          )}
+                          <TableCell>
+                            <div className="flex space-x-2">
+                              <Button
+                                size="sm"
+                                variant="outline"
+                                onClick={() => editClass(classItem)}
+                              >
+                                <Edit className="h-3 w-3" />
+                              </Button>
+                              <Button
+                                size="sm"
+                                variant="outline"
+                                onClick={() => handleDeleteClass(classItem.id)}
+                              >
+                                <Trash2 className="h-3 w-3" />
+                              </Button>
+                            </div>
+                          </TableCell>
+                        </TableRow>
+                      ))}
+                    </TableBody>
+                  </Table>
                 </div>
               </CardContent>
             </Card>
           </TabsContent>
         </Tabs>
+          </div>
+        </main>
       </div>
-    </div>
+    </SidebarProvider>
   );
 };
 

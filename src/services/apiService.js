@@ -251,6 +251,58 @@ const apiService = {
     }
   },
 
+  async addSubject(subjectData) {
+    if (USE_API) {
+      const response = await fetch(`${API_BASE_URL}/admin/matapelajaran`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(subjectData)
+      });
+      return await response.json();
+    } else {
+      const subjects = JSON.parse(localStorage.getItem(STORAGE_KEYS.SUBJECTS) || '[]');
+      const newSubject = { ...subjectData, id: Date.now().toString(), createdAt: new Date().toISOString() };
+      subjects.push(newSubject);
+      localStorage.setItem(STORAGE_KEYS.SUBJECTS, JSON.stringify(subjects));
+      return { success: true, data: newSubject };
+    }
+  },
+
+  async updateSubject(subjectId, subjectData) {
+    if (USE_API) {
+      const response = await fetch(`${API_BASE_URL}/admin/matapelajaran/${subjectId}`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(subjectData)
+      });
+      return await response.json();
+    } else {
+      const subjects = JSON.parse(localStorage.getItem(STORAGE_KEYS.SUBJECTS) || '[]');
+      const subjectIndex = subjects.findIndex(s => s.id === subjectId);
+      
+      if (subjectIndex !== -1) {
+        subjects[subjectIndex] = { ...subjects[subjectIndex], ...subjectData, updatedAt: new Date().toISOString() };
+        localStorage.setItem(STORAGE_KEYS.SUBJECTS, JSON.stringify(subjects));
+        return { success: true, data: subjects[subjectIndex] };
+      }
+      return { success: false, message: 'Subject not found' };
+    }
+  },
+
+  async deleteSubject(subjectId) {
+    if (USE_API) {
+      const response = await fetch(`${API_BASE_URL}/admin/matapelajaran/${subjectId}`, {
+        method: 'DELETE'
+      });
+      return await response.json();
+    } else {
+      const subjects = JSON.parse(localStorage.getItem(STORAGE_KEYS.SUBJECTS) || '[]');
+      const filteredSubjects = subjects.filter(s => s.id !== subjectId);
+      localStorage.setItem(STORAGE_KEYS.SUBJECTS, JSON.stringify(filteredSubjects));
+      return { success: true };
+    }
+  },
+
   async getClasses() {
     if (USE_API) {
       const response = await fetch(`${API_BASE_URL}/admin/kelas`);
@@ -258,6 +310,58 @@ const apiService = {
     } else {
       const classes = JSON.parse(localStorage.getItem(STORAGE_KEYS.CLASSES) || '[]');
       return classes;
+    }
+  },
+
+  async addClass(classData) {
+    if (USE_API) {
+      const response = await fetch(`${API_BASE_URL}/admin/kelas`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(classData)
+      });
+      return await response.json();
+    } else {
+      const classes = JSON.parse(localStorage.getItem(STORAGE_KEYS.CLASSES) || '[]');
+      const newClass = { ...classData, id: Date.now().toString(), createdAt: new Date().toISOString() };
+      classes.push(newClass);
+      localStorage.setItem(STORAGE_KEYS.CLASSES, JSON.stringify(classes));
+      return { success: true, data: newClass };
+    }
+  },
+
+  async updateClass(classId, classData) {
+    if (USE_API) {
+      const response = await fetch(`${API_BASE_URL}/admin/kelas/${classId}`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(classData)
+      });
+      return await response.json();
+    } else {
+      const classes = JSON.parse(localStorage.getItem(STORAGE_KEYS.CLASSES) || '[]');
+      const classIndex = classes.findIndex(c => c.id === classId);
+      
+      if (classIndex !== -1) {
+        classes[classIndex] = { ...classes[classIndex], ...classData, updatedAt: new Date().toISOString() };
+        localStorage.setItem(STORAGE_KEYS.CLASSES, JSON.stringify(classes));
+        return { success: true, data: classes[classIndex] };
+      }
+      return { success: false, message: 'Class not found' };
+    }
+  },
+
+  async deleteClass(classId) {
+    if (USE_API) {
+      const response = await fetch(`${API_BASE_URL}/admin/kelas/${classId}`, {
+        method: 'DELETE'
+      });
+      return await response.json();
+    } else {
+      const classes = JSON.parse(localStorage.getItem(STORAGE_KEYS.CLASSES) || '[]');
+      const filteredClasses = classes.filter(c => c.id !== classId);
+      localStorage.setItem(STORAGE_KEYS.CLASSES, JSON.stringify(filteredClasses));
+      return { success: true };
     }
   },
 
