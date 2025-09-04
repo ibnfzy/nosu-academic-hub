@@ -40,7 +40,7 @@ import { useToast } from '@/hooks/use-toast';
 import apiService from '@/services/apiService';
 import { useIsMobile } from '@/hooks/use-mobile';
 
-const AdminDashboard = ({ currentUser }) => {
+const AdminDashboard = ({ currentUser, onLogout }) => {
   const [users, setUsers] = useState([]);
   const [subjects, setSubjects] = useState([]);
   const [classes, setClasses] = useState([]);
@@ -385,7 +385,11 @@ const AdminDashboard = ({ currentUser }) => {
   return (
     <div className="min-h-screen bg-gradient-subtle">
       {/* Admin Navbar */}
-      <AdminNavbar activeSection={activeSection} setActiveSection={setActiveSection} />
+      <AdminNavbar 
+        activeSection={activeSection} 
+        setActiveSection={setActiveSection}
+        onLogout={onLogout}
+      />
 
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6 md:py-8">
         {/* Stats Cards */}

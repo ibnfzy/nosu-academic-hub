@@ -110,7 +110,7 @@ const App = () => {
               path="/dashboard/admin" 
               element={
                 <ProtectedRoute allowedRoles={['admin']}>
-                  <AdminDashboard currentUser={currentUser} />
+                  <AdminDashboard currentUser={currentUser} onLogout={handleLogout} />
                 </ProtectedRoute>
               } 
             />

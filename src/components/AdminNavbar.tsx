@@ -6,6 +6,7 @@ import {
   Shield,
   BookOpen,
   School,
+  LogOut,
 } from 'lucide-react';
 
 const menuItems = [
@@ -50,9 +51,10 @@ const menuItems = [
 interface AdminNavbarProps {
   activeSection: string;
   setActiveSection: (section: string) => void;
+  onLogout: () => void;
 }
 
-export function AdminNavbar({ activeSection, setActiveSection }: AdminNavbarProps) {
+export function AdminNavbar({ activeSection, setActiveSection, onLogout }: AdminNavbarProps) {
   return (
     <nav className="bg-gradient-to-r from-primary via-primary-glow to-accent p-4 shadow-elegant">
       <div className="max-w-7xl mx-auto">
@@ -84,6 +86,17 @@ export function AdminNavbar({ activeSection, setActiveSection }: AdminNavbarProp
                 </Button>
               );
             })}
+            
+            {/* Logout Button */}
+            <Button
+              onClick={onLogout}
+              variant="ghost"
+              size="sm"
+              className="flex items-center space-x-2 transition-smooth w-full sm:w-auto text-white hover:bg-red-500/20 hover:text-white border border-white/20"
+            >
+              <LogOut className="h-4 w-4" />
+              <span className="font-medium">Logout</span>
+            </Button>
           </div>
         </div>
         
