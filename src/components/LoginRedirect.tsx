@@ -7,9 +7,7 @@ const LoginRedirect = ({ currentUser }) => {
   useEffect(() => {
     if (currentUser) {
       // Redirect ke dashboard sesuai role
-      const dashboardPath = currentUser.role === 'walikelas' 
-        ? '/dashboard/guru' 
-        : `/dashboard/${currentUser.role}`;
+      const dashboardPath = `/dashboard/${currentUser.role}`;
       
       navigate(dashboardPath, { replace: true });
     }
