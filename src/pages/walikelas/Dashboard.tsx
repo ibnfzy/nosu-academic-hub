@@ -41,6 +41,7 @@ const WalikelasaDashboard = ({ currentUser }) => {
   const [students, setStudents] = useState([]);
   const [grades, setGrades] = useState([]);
   const [attendance, setAttendance] = useState([]);
+  const [classInfo, setClassInfo] = useState(null);
   const [loading, setLoading] = useState(false);
   const [showStudentDialog, setShowStudentDialog] = useState(false);
   const [editingStudent, setEditingStudent] = useState(null);
@@ -78,13 +79,18 @@ const WalikelasaDashboard = ({ currentUser }) => {
   const loadWalikelasData = async () => {
     setLoading(true);
     try {
-      // Load class students and their data
-      const [studentsData, gradesData, attendanceData] = await Promise.all([
+      // Load class info and students data
+      const [classesData, studentsData, gradesData, attendanceData] = await Promise.all([
+        apiService.getClasses(),
         apiService.getClassStudents(currentUser.id),
         apiService.getClassGrades(currentUser.id, selectedPeriod.tahun, selectedPeriod.semester),
         apiService.getClassAttendance(currentUser.id, selectedPeriod.tahun, selectedPeriod.semester)
       ]);
 
+      // Find current user's class
+      const currentClass = classesData.find(cls => cls.walikelas === currentUser.id);
+      setClassInfo(currentClass);
+      
       setStudents(studentsData);
       setGrades(gradesData);
       setAttendance(attendanceData);
@@ -219,14 +225,31 @@ const WalikelasaDashboard = ({ currentUser }) => {
       {/* Header */}
       <div className="bg-gradient-to-r from-green-600 to-teal-600 text-white py-6 md:py-8">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="flex items-center space-x-4">
-            <div className="p-2 md:p-3 bg-white/20 rounded-lg">
-              <GraduationCap className="h-6 w-6 md:h-8 md:w-8" />
+          <div className="flex flex-col md:flex-row md:items-center md:justify-between space-y-4 md:space-y-0">
+            <div className="flex items-center space-x-4">
+              <div className="p-2 md:p-3 bg-white/20 rounded-lg">
+                <GraduationCap className="h-6 w-6 md:h-8 md:w-8" />
+              </div>
+              <div>
+                <h1 className="text-xl md:text-2xl font-bold">Dashboard Wali Kelas</h1>
+                <p className="opacity-90 text-sm md:text-base">Selamat datang, {currentUser?.nama}</p>
+              </div>
             </div>
-            <div>
-              <h1 className="text-xl md:text-2xl font-bold">Dashboard Wali Kelas</h1>
-              <p className="opacity-90 text-sm md:text-base">Selamat datang, {currentUser?.nama}</p>
-            </div>
+            
+            {/* Class Information */}
+            {classInfo && (
+              <div className="bg-white/10 backdrop-blur-sm rounded-lg px-4 py-3 border border-white/20">
+                <div className="text-center md:text-right">
+                  <h2 className="text-lg font-semibold">{classInfo.nama}</h2>
+                  <p className="text-sm opacity-90">
+                    Tingkat {classInfo.tingkat} - {classInfo.jurusan || 'Umum'}
+                  </p>
+                  <p className="text-xs opacity-75 mt-1">
+                    Total Siswa: {students.length} orang
+                  </p>
+                </div>
+              </div>
+            )}
           </div>
         </div>
       </div>
