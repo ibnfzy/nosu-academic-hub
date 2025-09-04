@@ -1,16 +1,37 @@
 import { Button } from '@/components/ui/button';
 import {
+  GraduationCap,
   Users,
+  UserCheck,
+  Shield,
   BookOpen,
   School,
 } from 'lucide-react';
 
 const menuItems = [
   { 
-    title: 'Users', 
+    title: 'Siswa', 
+    icon: GraduationCap,
+    id: 'siswa',
+    description: 'Kelola data siswa'
+  },
+  { 
+    title: 'Guru', 
     icon: Users,
-    id: 'users',
-    description: 'Kelola pengguna sistem'
+    id: 'guru',
+    description: 'Kelola data guru'
+  },
+  { 
+    title: 'Wali Kelas', 
+    icon: UserCheck,
+    id: 'walikelas',
+    description: 'Kelola data wali kelas'
+  },
+  { 
+    title: 'Admin', 
+    icon: Shield,
+    id: 'admin',
+    description: 'Kelola data administrator'
   },
   { 
     title: 'Mata Pelajaran', 

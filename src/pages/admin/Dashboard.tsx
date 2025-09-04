@@ -21,6 +21,8 @@ import {
 } from '@/components/ui/select';
 import { AdminNavbar } from '@/components/AdminNavbar';
 import {
+  GraduationCap,
+  UserCheck,
   Shield,
   Users,
   BookOpen,
@@ -43,7 +45,7 @@ const AdminDashboard = ({ currentUser }) => {
   const [subjects, setSubjects] = useState([]);
   const [classes, setClasses] = useState([]);
   const [loading, setLoading] = useState(false);
-  const [activeSection, setActiveSection] = useState('users');
+  const [activeSection, setActiveSection] = useState('siswa');
   const [showUserDialog, setShowUserDialog] = useState(false);
   const [showSubjectDialog, setShowSubjectDialog] = useState(false);
   const [showClassDialog, setShowClassDialog] = useState(false);
@@ -57,6 +59,7 @@ const AdminDashboard = ({ currentUser }) => {
     nama: '',
     role: '',
     email: '',
+    nis: '',
     nisn: '',
     nip: ''
   });
@@ -126,6 +129,7 @@ const AdminDashboard = ({ currentUser }) => {
     try {
       const userData = {
         ...userForm,
+        role: userForm.role || activeSection,
         id: editingItem ? editingItem.id : Date.now().toString()
       };
 
@@ -182,6 +186,7 @@ const AdminDashboard = ({ currentUser }) => {
       nama: '',
       role: '',
       email: '',
+      nis: '',
       nisn: '',
       nip: ''
     });
@@ -195,12 +200,25 @@ const AdminDashboard = ({ currentUser }) => {
     setShowUserDialog(true);
   };
 
-  const filteredUsers = users.filter(user => {
-    const matchesSearch = user.nama?.toLowerCase().includes(searchTerm.toLowerCase()) ||
-                         user.username?.toLowerCase().includes(searchTerm.toLowerCase());
-    const matchesRole = roleFilter === 'all' || user.role === roleFilter;
-    return matchesSearch && matchesRole;
-  });
+  const getCurrentRoleUsers = () => {
+    let targetRole;
+    switch(activeSection) {
+      case 'siswa': targetRole = 'siswa'; break;
+      case 'guru': targetRole = 'guru'; break;
+      case 'walikelas': targetRole = 'walikelas'; break;
+      case 'admin': targetRole = 'admin'; break;
+      default: return [];
+    }
+    
+    return users.filter(user => {
+      const matchesRole = user.role === targetRole;
+      const matchesSearch = user.nama?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+                           user.username?.toLowerCase().includes(searchTerm.toLowerCase());
+      return matchesRole && matchesSearch;
+    });
+  };
+
+  const filteredUsers = getCurrentRoleUsers();
 
   const handleSubjectSubmit = async (e) => {
     e.preventDefault();
@@ -433,16 +451,33 @@ const AdminDashboard = ({ currentUser }) => {
 
         {/* Main Content */}
         <div className="animate-fade-in">
-          {activeSection === 'users' && (
+          {['siswa', 'guru', 'walikelas', 'admin'].includes(activeSection) && (
             <Card className="shadow-elegant bg-gradient-to-br from-background to-muted/20 border-primary/10">
               <CardHeader className="bg-gradient-to-r from-primary/5 to-primary-glow/5 border-b border-primary/10">
                 <div className="flex flex-col md:flex-row justify-between items-start md:items-center space-y-4 md:space-y-0">
                   <div>
                     <CardTitle className="flex items-center space-x-2">
-                      <Users className="h-5 w-5 text-primary" />
-                      <span>Manajemen Users</span>
+                      {activeSection === 'siswa' && <GraduationCap className="h-5 w-5 text-primary" />}
+                      {activeSection === 'guru' && <Users className="h-5 w-5 text-primary" />}
+                      {activeSection === 'walikelas' && <UserCheck className="h-5 w-5 text-primary" />}
+                      {activeSection === 'admin' && <Shield className="h-5 w-5 text-primary" />}
+                      <span>
+                        Manajemen {
+                          activeSection === 'siswa' ? 'Siswa' :
+                          activeSection === 'guru' ? 'Guru' :
+                          activeSection === 'walikelas' ? 'Wali Kelas' :
+                          'Administrator'
+                        }
+                      </span>
                     </CardTitle>
-                    <p className="text-sm text-muted-foreground mt-1">Kelola akun pengguna sistem</p>
+                    <p className="text-sm text-muted-foreground mt-1">
+                      Kelola data {
+                        activeSection === 'siswa' ? 'siswa' :
+                        activeSection === 'guru' ? 'guru' :
+                        activeSection === 'walikelas' ? 'wali kelas' :
+                        'administrator'
+                      }
+                    </p>
                   </div>
                   <Dialog open={showUserDialog} onOpenChange={setShowUserDialog}>
                     <DialogTrigger asChild>
@@ -451,13 +486,28 @@ const AdminDashboard = ({ currentUser }) => {
                         onClick={() => setEditingItem(null)}
                       >
                         <Plus className="h-4 w-4 mr-2" />
-                        Tambah User
+                        Tambah {
+                          activeSection === 'siswa' ? 'Siswa' :
+                          activeSection === 'guru' ? 'Guru' :
+                          activeSection === 'walikelas' ? 'Wali Kelas' :
+                          'Admin'
+                        }
                       </Button>
                     </DialogTrigger>
                     <DialogContent className="max-w-md mx-4 md:max-w-lg">
                       <DialogHeader>
                         <DialogTitle>
-                          {editingItem ? 'Edit User' : 'Tambah User Baru'}
+                          {editingItem ? `Edit ${
+                            activeSection === 'siswa' ? 'Siswa' :
+                            activeSection === 'guru' ? 'Guru' :
+                            activeSection === 'walikelas' ? 'Wali Kelas' :
+                            'Admin'
+                          }` : `Tambah ${
+                            activeSection === 'siswa' ? 'Siswa' :
+                            activeSection === 'guru' ? 'Guru' :
+                            activeSection === 'walikelas' ? 'Wali Kelas' :
+                            'Admin'
+                          } Baru`}
                         </DialogTitle>
                       </DialogHeader>
                       <form onSubmit={handleUserSubmit} className="space-y-4">
@@ -499,19 +549,18 @@ const AdminDashboard = ({ currentUser }) => {
                         <div className="space-y-2">
                           <Label>Role</Label>
                           <Select 
-                            value={userForm.role}
+                            value={userForm.role || activeSection}
                             onValueChange={(value) => setUserForm(prev => ({ ...prev, role: value }))}
                             required
+                            disabled={!editingItem}
                           >
                             <SelectTrigger>
                               <SelectValue placeholder="Pilih role" />
                             </SelectTrigger>
                             <SelectContent>
-                              {roles.map((role) => (
-                                <SelectItem key={role.value} value={role.value}>
-                                  {role.label}
-                                </SelectItem>
-                              ))}
+                              <SelectItem value={activeSection}>
+                                {roles.find(r => r.value === activeSection)?.label}
+                              </SelectItem>
                             </SelectContent>
                           </Select>
                         </div>
@@ -528,18 +577,28 @@ const AdminDashboard = ({ currentUser }) => {
                           </div>
                         )}
 
-                        {userForm.role === 'siswa' && (
-                          <div className="space-y-2">
-                            <Label>NISN</Label>
-                            <Input
-                              value={userForm.nisn}
-                              onChange={(e) => setUserForm(prev => ({ ...prev, nisn: e.target.value }))}
-                              placeholder="Nomor NISN"
-                            />
-                          </div>
+                        {(userForm.role === 'siswa' || activeSection === 'siswa') && (
+                          <>
+                            <div className="space-y-2">
+                              <Label>NIS</Label>
+                              <Input
+                                value={userForm.nis}
+                                onChange={(e) => setUserForm(prev => ({ ...prev, nis: e.target.value }))}
+                                placeholder="Nomor Induk Siswa"
+                              />
+                            </div>
+                            <div className="space-y-2">
+                              <Label>NISN</Label>
+                              <Input
+                                value={userForm.nisn}
+                                onChange={(e) => setUserForm(prev => ({ ...prev, nisn: e.target.value }))}
+                                placeholder="Nomor Induk Siswa Nasional"
+                              />
+                            </div>
+                          </>
                         )}
 
-                        {(userForm.role === 'guru' || userForm.role === 'walikelas') && (
+                        {(userForm.role === 'guru' || userForm.role === 'walikelas' || activeSection === 'guru' || activeSection === 'walikelas') && (
                           <div className="space-y-2">
                             <Label>NIP</Label>
                             <Input
@@ -569,34 +628,23 @@ const AdminDashboard = ({ currentUser }) => {
                 </div>
               </CardHeader>
               <CardContent>
-                {/* Search and Filter */}
+                {/* Search */}
                 <div className="flex flex-col md:flex-row gap-4 mb-6">
                   <div className="flex-1">
                     <div className="relative">
                       <Search className="absolute left-3 top-3 h-4 w-4 text-muted-foreground" />
                       <Input
-                        placeholder="Cari user..."
+                        placeholder={`Cari ${
+                          activeSection === 'siswa' ? 'siswa' :
+                          activeSection === 'guru' ? 'guru' :
+                          activeSection === 'walikelas' ? 'wali kelas' :
+                          'admin'
+                        }...`}
                         value={searchTerm}
                         onChange={(e) => setSearchTerm(e.target.value)}
                         className="pl-9"
                       />
                     </div>
-                  </div>
-                  <div className="w-full md:w-48">
-                    <Select value={roleFilter} onValueChange={setRoleFilter}>
-                      <SelectTrigger>
-                        <Filter className="h-4 w-4 mr-2" />
-                        <SelectValue />
-                      </SelectTrigger>
-                      <SelectContent>
-                        <SelectItem value="all">Semua Role</SelectItem>
-                        {roles.map((role) => (
-                          <SelectItem key={role.value} value={role.value}>
-                            {role.label}
-                          </SelectItem>
-                        ))}
-                      </SelectContent>
-                    </Select>
                   </div>
                 </div>
 
@@ -607,7 +655,9 @@ const AdminDashboard = ({ currentUser }) => {
                       <TableRow>
                         <TableHead>Nama</TableHead>
                         <TableHead>Username</TableHead>
-                        <TableHead>Role</TableHead>
+                        {activeSection === 'siswa' && !isMobile && <TableHead>NIS</TableHead>}
+                        {activeSection === 'siswa' && !isMobile && <TableHead>NISN</TableHead>}
+                        {(activeSection === 'guru' || activeSection === 'walikelas') && !isMobile && <TableHead>NIP</TableHead>}
                         {!isMobile && <TableHead>Email</TableHead>}
                         <TableHead>Aksi</TableHead>
                       </TableRow>
@@ -617,11 +667,9 @@ const AdminDashboard = ({ currentUser }) => {
                         <TableRow key={user.id}>
                           <TableCell className="font-medium">{user.nama}</TableCell>
                           <TableCell>{user.username}</TableCell>
-                          <TableCell>
-                            <Badge variant="outline">
-                              {roles.find(r => r.value === user.role)?.label || user.role}
-                            </Badge>
-                          </TableCell>
+                          {activeSection === 'siswa' && !isMobile && <TableCell className="text-muted-foreground">{user.nis || '-'}</TableCell>}
+                          {activeSection === 'siswa' && !isMobile && <TableCell className="text-muted-foreground">{user.nisn || '-'}</TableCell>}
+                          {(activeSection === 'guru' || activeSection === 'walikelas') && !isMobile && <TableCell className="text-muted-foreground">{user.nip || '-'}</TableCell>}
                           {!isMobile && <TableCell className="text-muted-foreground">{user.email || '-'}</TableCell>}
                           <TableCell>
                             <div className="flex space-x-2">
