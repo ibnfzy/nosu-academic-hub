@@ -74,7 +74,11 @@ const TeacherDashboard = ({ currentUser }) => {
     setLoading(true);
     try {
       const subjectsData = await apiService.getTeacherSubjects(currentUser.id);
-      setSubjects(subjectsData);
+      // Normalize to array of subjectId strings
+      const subjectIds = Array.isArray(subjectsData)
+        ? subjectsData.map((s) => (typeof s === 'object' && s !== null ? s.subjectId : s)).filter(Boolean)
+        : [];
+      setSubjects(subjectIds);
       
       // TODO: Load students based on teacher's classes
       // For now, using sample data
