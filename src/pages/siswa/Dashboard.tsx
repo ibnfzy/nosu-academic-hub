@@ -2,7 +2,6 @@ import { useState, useEffect } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
-import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { 
   Select, 
   SelectContent, 
@@ -16,7 +15,6 @@ import {
   FileText,
   Calendar,
   BarChart3,
-  Download,
   TrendingUp,
   Clock
 } from 'lucide-react';
@@ -30,10 +28,12 @@ import {
   formatDate,
   printReport
 } from '@/utils/helpers';
+import SiswaNavbar from '@/components/SiswaNavbar';
 
-const StudentDashboard = ({ currentUser }) => {
+const StudentDashboard = ({ currentUser, onLogout }) => {
   const [grades, setGrades] = useState([]);
   const [attendance, setAttendance] = useState([]);
+  const [activeSection, setActiveSection] = useState('nilai');
   const [selectedPeriod, setSelectedPeriod] = useState({
     tahun: '2024/2025',
     semester: 1
@@ -134,6 +134,14 @@ const StudentDashboard = ({ currentUser }) => {
         </div>
       </div>
 
+      {/* Navigation */}
+      <SiswaNavbar 
+        activeSection={activeSection}
+        setActiveSection={setActiveSection}
+        onLogout={onLogout}
+        onPrintReport={handlePrintReport}
+      />
+
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6 md:py-8">
         {/* Period Selector */}
         <Card className="mb-6 shadow-soft">
@@ -145,33 +153,27 @@ const StudentDashboard = ({ currentUser }) => {
                   Pilih tahun ajaran dan semester yang ingin dilihat
                 </p>
               </div>
-              <div className="flex items-center space-x-4">
-                <Select 
-                  value={`${selectedPeriod.tahun}-${selectedPeriod.semester}`}
-                  onValueChange={(value) => {
-                    const [tahun, semester] = value.split('-');
-                    setSelectedPeriod({ tahun, semester: parseInt(semester) });
-                  }}
-                >
-                  <SelectTrigger className="w-64">
-                    <SelectValue />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {academicPeriods.map((period) => (
-                      <SelectItem 
-                        key={`${period.tahun}-${period.semester}`}
-                        value={`${period.tahun}-${period.semester}`}
-                      >
-                        {period.label}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-                <Button onClick={handlePrintReport} variant="outline">
-                  <Download className="h-4 w-4 mr-2" />
-                  Cetak Raport
-                </Button>
-              </div>
+              <Select 
+                value={`${selectedPeriod.tahun}-${selectedPeriod.semester}`}
+                onValueChange={(value) => {
+                  const [tahun, semester] = value.split('-');
+                  setSelectedPeriod({ tahun, semester: parseInt(semester) });
+                }}
+              >
+                <SelectTrigger className="w-full sm:w-64">
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  {academicPeriods.map((period) => (
+                    <SelectItem 
+                      key={`${period.tahun}-${period.semester}`}
+                      value={`${period.tahun}-${period.semester}`}
+                    >
+                      {period.label}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
             </div>
           </CardContent>
         </Card>
@@ -222,24 +224,9 @@ const StudentDashboard = ({ currentUser }) => {
         </div>
 
         {/* Main Content */}
-        <Tabs defaultValue="nilai" className="space-y-6">
-          <TabsList className="grid w-full grid-cols-3">
-            <TabsTrigger value="nilai" className="flex items-center space-x-2">
-              <FileText className="h-4 w-4" />
-              <span>Nilai</span>
-            </TabsTrigger>
-            <TabsTrigger value="kehadiran" className="flex items-center space-x-2">
-              <Calendar className="h-4 w-4" />
-              <span>Kehadiran</span>
-            </TabsTrigger>
-            <TabsTrigger value="matapelajaran" className="flex items-center space-x-2">
-              <BookOpen className="h-4 w-4" />
-              <span>Mata Pelajaran</span>
-            </TabsTrigger>
-          </TabsList>
-
-          {/* Nilai Tab */}
-          <TabsContent value="nilai">
+        <div className="space-y-6">
+          {/* Nilai Section */}
+          {activeSection === 'nilai' && (
             <Card className="shadow-soft">
               <CardHeader>
                 <CardTitle>Daftar Nilai</CardTitle>
@@ -291,10 +278,10 @@ const StudentDashboard = ({ currentUser }) => {
                 )}
               </CardContent>
             </Card>
-          </TabsContent>
+          )}
 
-          {/* Kehadiran Tab */}
-          <TabsContent value="kehadiran">
+          {/* Kehadiran Section */}
+          {activeSection === 'kehadiran' && (
             <Card className="shadow-soft">
               <CardHeader>
                 <CardTitle>Rekap Kehadiran</CardTitle>
@@ -363,10 +350,10 @@ const StudentDashboard = ({ currentUser }) => {
                 )}
               </CardContent>
             </Card>
-          </TabsContent>
+          )}
 
-          {/* Mata Pelajaran Tab */}
-          <TabsContent value="matapelajaran">
+          {/* Mata Pelajaran Section */}
+          {activeSection === 'matapelajaran' && (
             <Card className="shadow-soft">
               <CardHeader>
                 <CardTitle>Mata Pelajaran & Nilai</CardTitle>
@@ -425,8 +412,8 @@ const StudentDashboard = ({ currentUser }) => {
                 )}
               </CardContent>
             </Card>
-          </TabsContent>
-        </Tabs>
+          )}
+        </div>
       </div>
     </div>
   );

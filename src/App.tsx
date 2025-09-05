@@ -83,7 +83,7 @@ const App = () => {
               path="/dashboard/siswa" 
               element={
                 <ProtectedRoute allowedRoles={['siswa']}>
-                  <StudentDashboard currentUser={currentUser} />
+                  <StudentDashboard currentUser={currentUser} onLogout={handleLogout} />
                 </ProtectedRoute>
               } 
             />
