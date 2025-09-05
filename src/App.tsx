@@ -101,7 +101,7 @@ const App = () => {
               path="/dashboard/walikelas" 
               element={
                 <ProtectedRoute allowedRoles={['walikelas']}>
-                  <WalikelasDashboard currentUser={currentUser} />
+                  <WalikelasDashboard currentUser={currentUser} onLogout={handleLogout} />
                 </ProtectedRoute>
               } 
             />

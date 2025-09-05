@@ -2,7 +2,6 @@ import { useState, useEffect } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
-import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { 
   Dialog, 
@@ -36,8 +35,9 @@ import { useToast } from '@/hooks/use-toast';
 import apiService from '@/services/apiService';
 import { formatDate, getGradeColor, getAttendanceStatus } from '@/utils/helpers';
 import { useIsMobile } from '@/hooks/use-mobile';
+import WalikelasNavbar from '@/components/WalikelasNavbar';
 
-const WalikelasaDashboard = ({ currentUser }) => {
+const WalikelasaDashboard = ({ currentUser, onLogout }) => {
   const [students, setStudents] = useState([]);
   const [grades, setGrades] = useState([]);
   const [attendance, setAttendance] = useState([]);
@@ -46,6 +46,7 @@ const WalikelasaDashboard = ({ currentUser }) => {
   const [showStudentDialog, setShowStudentDialog] = useState(false);
   const [editingStudent, setEditingStudent] = useState(null);
   const [searchTerm, setSearchTerm] = useState('');
+  const [activeSection, setActiveSection] = useState('students');
   const [selectedPeriod, setSelectedPeriod] = useState({
     tahun: '2024/2025',
     semester: 1
@@ -254,6 +255,13 @@ const WalikelasaDashboard = ({ currentUser }) => {
         </div>
       </div>
 
+      {/* Navigation */}
+      <WalikelasNavbar 
+        activeSection={activeSection}
+        setActiveSection={setActiveSection}
+        onLogout={onLogout}
+      />
+
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6 md:py-8">
         {/* Period Selector */}
         <Card className="mb-6 shadow-soft">
@@ -350,30 +358,9 @@ const WalikelasaDashboard = ({ currentUser }) => {
         </div>
 
         {/* Main Content */}
-        <Tabs defaultValue="students" className="space-y-6">
-          <TabsList className={`grid w-full ${isMobile ? 'grid-cols-2' : 'grid-cols-4'}`}>
-            <TabsTrigger value="students" className="flex items-center space-x-2">
-              <Users className="h-4 w-4" />
-              <span className={isMobile ? 'text-xs' : ''}>Siswa</span>
-            </TabsTrigger>
-            <TabsTrigger value="grades" className="flex items-center space-x-2">
-              <CheckCircle className="h-4 w-4" />
-              <span className={isMobile ? 'text-xs' : ''}>Verifikasi Nilai</span>
-            </TabsTrigger>
-            <TabsTrigger value="attendance" className="flex items-center space-x-2">
-              <Calendar className="h-4 w-4" />
-              <span className={isMobile ? 'text-xs' : ''}>Kehadiran</span>
-            </TabsTrigger>
-            {!isMobile && (
-              <TabsTrigger value="reports" className="flex items-center space-x-2">
-                <BarChart3 className="h-4 w-4" />
-                <span>Laporan</span>
-              </TabsTrigger>
-            )}
-          </TabsList>
-
-          {/* Students Management Tab */}
-          <TabsContent value="students">
+        <div className="space-y-6">
+          {/* Students Management Section */}
+          {activeSection === 'students' && (
             <Card className="shadow-soft">
               <CardHeader>
                 <div className="flex flex-col md:flex-row justify-between items-start md:items-center space-y-4 md:space-y-0">
@@ -546,10 +533,10 @@ const WalikelasaDashboard = ({ currentUser }) => {
                 </div>
               </CardContent>
             </Card>
-          </TabsContent>
+          )}
 
-          {/* Grade Verification Tab */}
-          <TabsContent value="grades">
+          {/* Grades Verification Section */}
+          {activeSection === 'grades' && (
             <Card className="shadow-soft">
               <CardHeader>
                 <CardTitle>Verifikasi Nilai Siswa</CardTitle>
@@ -609,10 +596,10 @@ const WalikelasaDashboard = ({ currentUser }) => {
                 )}
               </CardContent>
             </Card>
-          </TabsContent>
+          )}
 
-          {/* Attendance Tab */}
-          <TabsContent value="attendance">
+          {/* Attendance Section */}
+          {activeSection === 'attendance' && (
             <Card className="shadow-soft">
               <CardHeader>
                 <CardTitle>Kehadiran Kelas</CardTitle>
@@ -661,10 +648,10 @@ const WalikelasaDashboard = ({ currentUser }) => {
                 )}
               </CardContent>
             </Card>
-          </TabsContent>
+          )}
 
-          {/* Reports Tab */}
-          <TabsContent value="reports">
+          {/* Reports Section */}
+          {activeSection === 'reports' && (
             <Card className="shadow-soft">
               <CardHeader>
                 <CardTitle>Laporan Kelas</CardTitle>
@@ -676,8 +663,8 @@ const WalikelasaDashboard = ({ currentUser }) => {
                 </div>
               </CardContent>
             </Card>
-          </TabsContent>
-        </Tabs>
+          )}
+        </div>
       </div>
     </div>
   );
