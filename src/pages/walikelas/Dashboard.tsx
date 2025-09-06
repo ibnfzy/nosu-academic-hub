@@ -29,11 +29,13 @@ import {
   Search,
   GraduationCap,
   BarChart3,
-  Clock
+  Clock,
+  FileText,
+  Printer
 } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import apiService from '@/services/apiService';
-import { formatDate, getGradeColor, getAttendanceStatus } from '@/utils/helpers';
+import { formatDate, getGradeColor, getAttendanceStatus, printReport } from '@/utils/helpers';
 import { useIsMobile } from '@/hooks/use-mobile';
 import WalikelasNavbar from '@/components/WalikelasNavbar';
 
@@ -220,6 +222,31 @@ const WalikelasaDashboard = ({ currentUser, onLogout }) => {
   const totalAttendance = attendance.length;
   const presentCount = attendance.filter(a => a.status === 'hadir').length;
   const attendancePercentage = totalAttendance > 0 ? Math.round((presentCount / totalAttendance) * 100) : 0;
+
+  // Get students with verified grades for reports
+  const studentsWithVerifiedGrades = students.filter(student => {
+    const studentGrades = grades.filter(grade => 
+      grade.studentId === student.id && grade.verified
+    );
+    return studentGrades.length > 0;
+  });
+
+  const handlePrintReport = (student) => {
+    const studentGrades = grades.filter(grade => 
+      grade.studentId === student.id && grade.verified
+    );
+    const studentAttendance = attendance.filter(att => att.studentId === student.id);
+    
+    const reportData = {
+      student,
+      grades: studentGrades,
+      attendance: studentAttendance,
+      tahunAjaran: selectedPeriod.tahun,
+      semester: selectedPeriod.semester
+    };
+    
+    printReport(reportData);
+  };
 
   return (
     <div className="min-h-screen bg-background">
@@ -654,13 +681,81 @@ const WalikelasaDashboard = ({ currentUser, onLogout }) => {
           {activeSection === 'reports' && (
             <Card className="shadow-soft">
               <CardHeader>
-                <CardTitle>Laporan Kelas</CardTitle>
+                <div className="flex flex-col md:flex-row justify-between items-start md:items-center space-y-4 md:space-y-0">
+                  <CardTitle>Laporan Raport Siswa</CardTitle>
+                  <div className="text-sm text-muted-foreground">
+                    <span className="font-medium">{studentsWithVerifiedGrades.length}</span> siswa siap cetak raport
+                  </div>
+                </div>
               </CardHeader>
               <CardContent>
-                <div className="text-center py-8">
-                  <BarChart3 className="h-12 w-12 mx-auto mb-4 text-muted-foreground" />
-                  <p className="text-muted-foreground">Fitur laporan akan segera hadir</p>
-                </div>
+                {studentsWithVerifiedGrades.length > 0 ? (
+                  <div className="space-y-4">
+                    {studentsWithVerifiedGrades.map((student) => {
+                      const studentGrades = grades.filter(grade => 
+                        grade.studentId === student.id && grade.verified
+                      );
+                      const verifiedSubjects = studentGrades.length;
+                      const averageGrade = studentGrades.length > 0 
+                        ? (studentGrades.reduce((sum, grade) => sum + parseFloat(grade.nilai), 0) / studentGrades.length).toFixed(1)
+                        : 0;
+                      
+                      return (
+                        <div 
+                          key={student.id}
+                          className="flex flex-col md:flex-row justify-between items-start md:items-center p-4 border border-border rounded-lg space-y-3 md:space-y-0"
+                        >
+                          <div className="flex-1">
+                            <div className="flex items-center space-x-3">
+                              <div className="p-2 bg-primary/10 rounded-lg">
+                                <FileText className="h-5 w-5 text-primary" />
+                              </div>
+                              <div>
+                                <h4 className="font-medium text-foreground">
+                                  {student.nama}
+                                </h4>
+                                <p className="text-sm text-muted-foreground">
+                                  NISN: {student.nisn}
+                                </p>
+                              </div>
+                            </div>
+                            <div className="flex flex-wrap items-center gap-2 mt-2 ml-11">
+                              <Badge variant="secondary" className="text-xs">
+                                {verifiedSubjects} Mata Pelajaran
+                              </Badge>
+                              <Badge variant="outline" className="text-xs">
+                                Rata-rata: {averageGrade}
+                              </Badge>
+                              <span className="text-xs text-muted-foreground">
+                                Periode: {selectedPeriod.tahun} - Semester {selectedPeriod.semester}
+                              </span>
+                            </div>
+                          </div>
+                          
+                          <div className="flex items-center space-x-2">
+                            <Button
+                              variant="outline"
+                              size="sm"
+                              onClick={() => handlePrintReport(student)}
+                              className="w-full md:w-auto"
+                            >
+                              <Printer className="h-4 w-4 mr-2" />
+                              Cetak Raport
+                            </Button>
+                          </div>
+                        </div>
+                      );
+                    })}
+                  </div>
+                ) : (
+                  <div className="text-center py-8">
+                    <FileText className="h-12 w-12 mx-auto mb-4 text-muted-foreground" />
+                    <p className="text-muted-foreground font-medium mb-2">Belum Ada Siswa dengan Nilai Terverifikasi</p>
+                    <p className="text-sm text-muted-foreground">
+                      Verifikasi nilai siswa terlebih dahulu untuk dapat mencetak raport
+                    </p>
+                  </div>
+                )}
               </CardContent>
             </Card>
           )}
