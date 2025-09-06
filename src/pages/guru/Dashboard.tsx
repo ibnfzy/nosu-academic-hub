@@ -41,6 +41,8 @@ const TeacherDashboard = ({ currentUser, onLogout }) => {
   const [loading, setLoading] = useState(false);
   const [showGradeDialog, setShowGradeDialog] = useState(false);
   const [showAttendanceDialog, setShowAttendanceDialog] = useState(false);
+  const [showStudentListDialog, setShowStudentListDialog] = useState(false);
+  const [selectedSubject, setSelectedSubject] = useState('');
   const [gradeForm, setGradeForm] = useState({
     studentId: '',
     subjectId: '',
@@ -204,6 +206,11 @@ const TeacherDashboard = ({ currentUser, onLogout }) => {
         variant: "destructive"
       });
     }
+  };
+
+  const handleViewStudentList = (subject) => {
+    setSelectedSubject(subject);
+    setShowStudentListDialog(true);
   };
 
   return (
@@ -436,6 +443,68 @@ const TeacherDashboard = ({ currentUser, onLogout }) => {
           </Dialog>
         </div>
 
+        {/* Student List Dialog */}
+        <Dialog open={showStudentListDialog} onOpenChange={setShowStudentListDialog}>
+          <DialogContent className="max-w-2xl">
+            <DialogHeader>
+              <DialogTitle>Daftar Siswa - Mata Pelajaran {selectedSubject}</DialogTitle>
+            </DialogHeader>
+            <div className="space-y-4 max-h-96 overflow-y-auto">
+              {students.length > 0 ? (
+                students.map((student) => (
+                  <div 
+                    key={student.id}
+                    className="flex justify-between items-center p-4 border border-border rounded-lg"
+                  >
+                    <div className="flex items-center space-x-4">
+                      <div className="p-2 bg-primary/10 rounded-lg">
+                        <Users className="h-5 w-5 text-primary" />
+                      </div>
+                      <div>
+                        <h4 className="font-medium text-foreground">{student.nama}</h4>
+                        <div className="flex items-center space-x-4 text-sm text-muted-foreground">
+                          <span>NISN: {student.nisn}</span>
+                          <span>Kelas: {student.kelasId}</span>
+                        </div>
+                      </div>
+                    </div>
+                    
+                    <div className="flex space-x-2">
+                      <Button 
+                        size="sm" 
+                        variant="outline"
+                        onClick={() => {
+                          setGradeForm(prev => ({ ...prev, studentId: student.id, subjectId: selectedSubject }));
+                          setShowStudentListDialog(false);
+                          setShowGradeDialog(true);
+                        }}
+                      >
+                        Input Nilai
+                      </Button>
+                      <Button 
+                        size="sm" 
+                        variant="outline"
+                        onClick={() => {
+                          setAttendanceForm(prev => ({ ...prev, studentId: student.id, subjectId: selectedSubject }));
+                          setShowStudentListDialog(false);
+                          setShowAttendanceDialog(true);
+                        }}
+                      >
+                        Input Kehadiran
+                      </Button>
+                    </div>
+                  </div>
+                ))
+              ) : (
+                <div className="text-center py-8">
+                  <Users className="h-12 w-12 mx-auto mb-4 text-muted-foreground" />
+                  <p className="text-muted-foreground">Belum ada data siswa untuk mata pelajaran ini</p>
+                </div>
+              )}
+            </div>
+          </DialogContent>
+        </Dialog>
+
         {/* Stats Cards */}
         <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
           <Card className="shadow-soft">
@@ -529,6 +598,18 @@ const TeacherDashboard = ({ currentUser, onLogout }) => {
                               Aktif
                             </Badge>
                           </div>
+                        </div>
+                        
+                        <div className="mt-4">
+                          <Button 
+                            variant="outline" 
+                            size="sm" 
+                            className="w-full"
+                            onClick={() => handleViewStudentList(subject)}
+                          >
+                            <Users className="h-4 w-4 mr-2" />
+                            Lihat Daftar Siswa
+                          </Button>
                         </div>
                       </div>
                     ))}
