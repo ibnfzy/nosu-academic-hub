@@ -256,6 +256,17 @@ const Home = ({ currentUser, onLogin, onLogout }) => {
           </Card>
         </section>
       </main>
+      
+      {/* Footer */}
+      <footer className="bg-muted/30 border-t border-border">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6">
+          <div className="text-center">
+            <p className="text-sm text-muted-foreground">
+              Developed by JULTDEV
+            </p>
+          </div>
+        </div>
+      </footer>
     </div>
   );
 };
