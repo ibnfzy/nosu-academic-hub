@@ -31,7 +31,8 @@ import {
   BarChart3,
   Clock,
   FileText,
-  Printer
+  Printer,
+  CheckSquare
 } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import apiService from '@/services/apiService';
@@ -190,6 +191,37 @@ const WalikelasaDashboard = ({ currentUser, onLogout }) => {
         description: "Gagal memverifikasi nilai",
         variant: "destructive"
       });
+    }
+  };
+
+  const handleVerifyAll = async () => {
+    if (unverifiedGrades.length === 0) return;
+    
+    if (window.confirm(`Apakah Anda yakin ingin memverifikasi semua ${unverifiedGrades.length} nilai yang belum diverifikasi?`)) {
+      setLoading(true);
+      try {
+        // Verify all unverified grades
+        const verifyPromises = unverifiedGrades.map(grade => 
+          apiService.verifyGrade(currentUser.id, grade.id)
+        );
+        
+        await Promise.all(verifyPromises);
+        
+        toast({
+          title: "Berhasil",
+          description: `${unverifiedGrades.length} nilai berhasil diverifikasi`
+        });
+        
+        loadWalikelasData();
+      } catch (error) {
+        toast({
+          title: "Error",
+          description: "Gagal memverifikasi beberapa nilai",
+          variant: "destructive"
+        });
+      } finally {
+        setLoading(false);
+      }
     }
   };
 
@@ -566,7 +598,19 @@ const WalikelasaDashboard = ({ currentUser, onLogout }) => {
           {activeSection === 'grades' && (
             <Card className="shadow-soft">
               <CardHeader>
-                <CardTitle>Verifikasi Nilai Siswa</CardTitle>
+                <div className="flex flex-col md:flex-row justify-between items-start md:items-center space-y-4 md:space-y-0">
+                  <CardTitle>Verifikasi Nilai Siswa</CardTitle>
+                  {unverifiedGrades.length > 0 && (
+                    <Button
+                      onClick={handleVerifyAll}
+                      disabled={loading}
+                      className="bg-success text-success-foreground w-full md:w-auto"
+                    >
+                      <CheckSquare className="h-4 w-4 mr-2" />
+                      Verifikasi Semua ({unverifiedGrades.length})
+                    </Button>
+                  )}
+                </div>
               </CardHeader>
               <CardContent>
                 {loading ? (
