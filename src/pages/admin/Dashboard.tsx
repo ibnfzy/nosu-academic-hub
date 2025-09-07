@@ -31,10 +31,11 @@ import {
   Edit,
   Trash2,
   Search,
-  Filter,
-  TrendingUp,
-  Award,
-  Calendar
+  Building2,
+  Trophy,
+  GraduationCap as Programs,
+  Link,
+  FileText
 } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import apiService from '@/services/apiService';
@@ -45,13 +46,23 @@ const AdminDashboard = ({ currentUser, onLogout }) => {
   const [subjects, setSubjects] = useState([]);
   const [classes, setClasses] = useState([]);
   const [loading, setLoading] = useState(false);
-  const [activeSection, setActiveSection] = useState('siswa');
+  const [activeSection, setActiveSection] = useState<string>('siswa');
   const [showUserDialog, setShowUserDialog] = useState(false);
   const [showSubjectDialog, setShowSubjectDialog] = useState(false);
   const [showClassDialog, setShowClassDialog] = useState(false);
+  const [showSchoolProfileDialog, setShowSchoolProfileDialog] = useState(false);
+  const [showAchievementDialog, setShowAchievementDialog] = useState(false);
+  const [showProgramDialog, setShowProgramDialog] = useState(false);
+  const [showRegistrationDialog, setShowRegistrationDialog] = useState(false);
   const [editingItem, setEditingItem] = useState(null);
   const [searchTerm, setSearchTerm] = useState('');
   const [roleFilter, setRoleFilter] = useState('all');
+  
+  // School management data
+  const [schoolProfile, setSchoolProfile] = useState([]);
+  const [achievements, setAchievements] = useState([]);
+  const [programs, setPrograms] = useState([]);
+  const [registrationLinks, setRegistrationLinks] = useState([]);
   
   const [userForm, setUserForm] = useState({
     username: '',
@@ -74,6 +85,41 @@ const AdminDashboard = ({ currentUser, onLogout }) => {
     nama: '',
     tingkat: '',
     walikelas: ''
+  });
+  
+  // School management forms
+  const [schoolProfileForm, setSchoolProfileForm] = useState({
+    nama: '',
+    alamat: '',
+    telepon: '',
+    email: '',
+    website: '',
+    kepalaSekolah: '',
+    visi: '',
+    misi: ''
+  });
+  
+  const [achievementForm, setAchievementForm] = useState({
+    judul: '',
+    deskripsi: '',
+    tanggal: '',
+    kategori: '',
+    tingkat: ''
+  });
+  
+  const [programForm, setProgramForm] = useState({
+    nama: '',
+    deskripsi: '',
+    durasi: '',
+    syarat: ''
+  });
+  
+  const [registrationForm, setRegistrationForm] = useState({
+    judul: '',
+    deskripsi: '',
+    link: '',
+    tahunAjaran: '',
+    batasPendaftaran: ''
   });
 
   const { toast } = useToast();
@@ -148,11 +194,12 @@ const AdminDashboard = ({ currentUser, onLogout }) => {
         
         resetUserForm();
         loadAdminData();
+        setShowUserDialog(false);
       }
     } catch (error) {
       toast({
         title: "Error",
-        description: `Gagal ${editingItem ? 'mengupdate' : 'menambahkan'} user`,
+        description: "Gagal menyimpan user",
         variant: "destructive"
       });
     }
@@ -191,7 +238,6 @@ const AdminDashboard = ({ currentUser, onLogout }) => {
       nip: ''
     });
     setEditingItem(null);
-    setShowUserDialog(false);
   };
 
   const editUser = (user) => {
@@ -199,26 +245,6 @@ const AdminDashboard = ({ currentUser, onLogout }) => {
     setEditingItem(user);
     setShowUserDialog(true);
   };
-
-  const getCurrentRoleUsers = () => {
-    let targetRole;
-    switch(activeSection) {
-      case 'siswa': targetRole = 'siswa'; break;
-      case 'guru': targetRole = 'guru'; break;
-      case 'walikelas': targetRole = 'walikelas'; break;
-      case 'admin': targetRole = 'admin'; break;
-      default: return [];
-    }
-    
-    return users.filter(user => {
-      const matchesRole = user.role === targetRole;
-      const matchesSearch = user.nama?.toLowerCase().includes(searchTerm.toLowerCase()) ||
-                           user.username?.toLowerCase().includes(searchTerm.toLowerCase());
-      return matchesRole && matchesSearch;
-    });
-  };
-
-  const filteredUsers = getCurrentRoleUsers();
 
   const handleSubjectSubmit = async (e) => {
     e.preventDefault();
@@ -253,14 +279,51 @@ const AdminDashboard = ({ currentUser, onLogout }) => {
         
         resetSubjectForm();
         loadAdminData();
+        setShowSubjectDialog(false);
       }
     } catch (error) {
       toast({
         title: "Error",
-        description: `Gagal ${editingItem ? 'mengupdate' : 'menambahkan'} mata pelajaran`,
+        description: "Gagal menyimpan mata pelajaran",
         variant: "destructive"
       });
     }
+  };
+
+  const handleDeleteSubject = async (subjectId) => {
+    if (window.confirm('Apakah Anda yakin ingin menghapus mata pelajaran ini?')) {
+      try {
+        const result = await apiService.deleteSubject(subjectId);
+        if (result.success) {
+          toast({
+            title: "Berhasil",
+            description: "Mata pelajaran berhasil dihapus"
+          });
+          loadAdminData();
+        }
+      } catch (error) {
+        toast({
+          title: "Error",
+          description: "Gagal menghapus mata pelajaran",
+          variant: "destructive"
+        });
+      }
+    }
+  };
+
+  const resetSubjectForm = () => {
+    setSubjectForm({
+      nama: '',
+      kode: '',
+      kelasId: ''
+    });
+    setEditingItem(null);
+  };
+
+  const editSubject = (subject) => {
+    setSubjectForm(subject);
+    setEditingItem(subject);
+    setShowSubjectDialog(true);
   };
 
   const handleClassSubmit = async (e) => {
@@ -296,34 +359,14 @@ const AdminDashboard = ({ currentUser, onLogout }) => {
         
         resetClassForm();
         loadAdminData();
+        setShowClassDialog(false);
       }
     } catch (error) {
       toast({
         title: "Error",
-        description: `Gagal ${editingItem ? 'mengupdate' : 'menambahkan'} kelas`,
+        description: "Gagal menyimpan kelas",
         variant: "destructive"
       });
-    }
-  };
-
-  const handleDeleteSubject = async (subjectId) => {
-    if (window.confirm('Apakah Anda yakin ingin menghapus mata pelajaran ini?')) {
-      try {
-        const result = await apiService.deleteSubject(subjectId);
-        if (result.success) {
-          toast({
-            title: "Berhasil",
-            description: "Mata pelajaran berhasil dihapus"
-          });
-          loadAdminData();
-        }
-      } catch (error) {
-        toast({
-          title: "Error",
-          description: "Gagal menghapus mata pelajaran",
-          variant: "destructive"
-        });
-      }
     }
   };
 
@@ -348,16 +391,6 @@ const AdminDashboard = ({ currentUser, onLogout }) => {
     }
   };
 
-  const resetSubjectForm = () => {
-    setSubjectForm({
-      nama: '',
-      kode: '',
-      kelasId: ''
-    });
-    setEditingItem(null);
-    setShowSubjectDialog(false);
-  };
-
   const resetClassForm = () => {
     setClassForm({
       nama: '',
@@ -365,13 +398,6 @@ const AdminDashboard = ({ currentUser, onLogout }) => {
       walikelas: ''
     });
     setEditingItem(null);
-    setShowClassDialog(false);
-  };
-
-  const editSubject = (subject) => {
-    setSubjectForm(subject);
-    setEditingItem(subject);
-    setShowSubjectDialog(true);
   };
 
   const editClass = (classItem) => {
@@ -380,152 +406,151 @@ const AdminDashboard = ({ currentUser, onLogout }) => {
     setShowClassDialog(true);
   };
 
-  const waliKelasList = users.filter(u => u.role === 'walikelas');
+  const getCurrentRoleUsers = () => {
+    let filteredUsers = users.filter(user => {
+      if (activeSection === 'admin' || activeSection === 'siswa' || activeSection === 'guru' || activeSection === 'walikelas') {
+        return user.role === activeSection;
+      }
+      return true;
+    });
+    
+    if (searchTerm) {
+      filteredUsers = filteredUsers.filter(user =>
+        user.nama?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+        user.username?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+        user.email?.toLowerCase().includes(searchTerm.toLowerCase())
+      );
+    }
+    
+    return filteredUsers;
+  };
+
+  const waliKelasList = users.filter(user => user.role === 'walikelas' || user.role === 'guru');
 
   return (
-    <div className="min-h-screen bg-gradient-subtle">
-      {/* Admin Navbar */}
+    <div className="min-h-screen bg-gradient-to-br from-background via-muted/20 to-background">
       <AdminNavbar 
-        activeSection={activeSection} 
+        activeSection={activeSection}
         setActiveSection={setActiveSection}
         onLogout={onLogout}
       />
+      
+      <div className="max-w-7xl mx-auto p-4 md:p-6 lg:p-8">
+        <div className="space-y-6">
+          {/* Statistics Cards */}
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+            <Card className="shadow-elegant bg-gradient-to-br from-primary/5 to-primary/10 border-primary/20">
+              <CardContent className="p-4">
+                <div className="flex items-center justify-between">
+                  <div>
+                    <p className="text-sm font-medium text-muted-foreground">Total Users</p>
+                    <p className="text-2xl font-bold text-primary">{users.length}</p>
+                  </div>
+                  <Users className="h-8 w-8 text-primary" />
+                </div>
+              </CardContent>
+            </Card>
 
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6 md:py-8">
-        {/* Stats Cards */}
-        <div className="grid grid-cols-2 md:grid-cols-4 gap-4 md:gap-6 mb-6 md:mb-8 animate-fade-in">
-          <Card className="shadow-elegant hover-scale transition-smooth bg-gradient-to-br from-primary/10 to-primary-glow/10 border-primary/20">
-            <CardContent className="p-4 md:p-6">
-              <div className="flex items-center space-x-3 md:space-x-4">
-                <div className="p-2 md:p-3 bg-primary/10 rounded-lg">
-                  <Users className="h-5 w-5 md:h-8 md:w-8 text-primary" />
+            <Card className="shadow-elegant bg-gradient-to-br from-success/5 to-success/10 border-success/20">
+              <CardContent className="p-4">
+                <div className="flex items-center justify-between">
+                  <div>
+                    <p className="text-sm font-medium text-muted-foreground">Mata Pelajaran</p>
+                    <p className="text-2xl font-bold text-success">{subjects.length}</p>
+                  </div>
+                  <BookOpen className="h-8 w-8 text-success" />
                 </div>
-                <div>
-                  <p className="text-lg md:text-2xl font-bold text-foreground">{users.length}</p>
-                  <p className="text-xs md:text-sm text-muted-foreground">Total Users</p>
-                </div>
-              </div>
-            </CardContent>
-          </Card>
+              </CardContent>
+            </Card>
 
-          <Card className="shadow-elegant hover-scale transition-smooth bg-gradient-to-br from-accent/10 to-accent/20 border-accent/20">
-            <CardContent className="p-4 md:p-6">
-              <div className="flex items-center space-x-3 md:space-x-4">
-                <div className="p-2 md:p-3 bg-accent/10 rounded-lg">
-                  <BookOpen className="h-5 w-5 md:h-8 md:w-8 text-accent" />
+            <Card className="shadow-elegant bg-gradient-to-br from-accent/5 to-accent/10 border-accent/20">
+              <CardContent className="p-4">
+                <div className="flex items-center justify-between">
+                  <div>
+                    <p className="text-sm font-medium text-muted-foreground">Kelas</p>
+                    <p className="text-2xl font-bold text-accent">{classes.length}</p>
+                  </div>
+                  <School className="h-8 w-8 text-accent" />
                 </div>
-                <div>
-                  <p className="text-lg md:text-2xl font-bold text-foreground">{subjects.length}</p>
-                  <p className="text-xs md:text-sm text-muted-foreground">Mata Pelajaran</p>
-                </div>
-              </div>
-            </CardContent>
-          </Card>
+              </CardContent>
+            </Card>
 
-          <Card className="shadow-elegant hover-scale transition-smooth bg-gradient-to-br from-success/10 to-success/20 border-success/20">
-            <CardContent className="p-4 md:p-6">
-              <div className="flex items-center space-x-3 md:space-x-4">
-                <div className="p-2 md:p-3 bg-success/10 rounded-lg">
-                  <School className="h-5 w-5 md:h-8 md:w-8 text-success" />
+            <Card className="shadow-elegant bg-gradient-to-br from-warning/5 to-warning/10 border-warning/20">
+              <CardContent className="p-4">
+                <div className="flex items-center justify-between">
+                  <div>
+                    <p className="text-sm font-medium text-muted-foreground">Admin</p>
+                    <p className="text-2xl font-bold text-warning">{users.filter(u => u.role === 'admin').length}</p>
+                  </div>
+                  <Shield className="h-8 w-8 text-warning" />
                 </div>
-                <div>
-                  <p className="text-lg md:text-2xl font-bold text-foreground">{classes.length}</p>
-                  <p className="text-xs md:text-sm text-muted-foreground">Kelas</p>
-                </div>
-              </div>
-            </CardContent>
-          </Card>
+              </CardContent>
+            </Card>
+          </div>
 
-          <Card className="shadow-elegant hover-scale transition-smooth bg-gradient-to-br from-warning/10 to-warning/20 border-warning/20">
-            <CardContent className="p-4 md:p-6">
-              <div className="flex items-center space-x-3 md:space-x-4">
-                <div className="p-2 md:p-3 bg-warning/10 rounded-lg">
-                  <Shield className="h-5 w-5 md:h-8 md:w-8 text-warning" />
-                </div>
-                <div>
-                  <p className="text-lg md:text-2xl font-bold text-foreground">
-                    {users.filter(u => u.role === 'admin').length}
-                  </p>
-                  <p className="text-xs md:text-sm text-muted-foreground">Admin</p>
-                </div>
-              </div>
-            </CardContent>
-          </Card>
-        </div>
+          {/* Management Sections */}
 
-        {/* Main Content */}
-        <div className="animate-fade-in">
-          {['siswa', 'guru', 'walikelas', 'admin'].includes(activeSection) && (
+          {(activeSection === 'siswa' || activeSection === 'guru' || activeSection === 'walikelas' || activeSection === 'admin') && (
             <Card className="shadow-elegant bg-gradient-to-br from-background to-muted/20 border-primary/10">
-              <CardHeader className="bg-gradient-to-r from-primary/5 to-primary-glow/5 border-b border-primary/10">
+              <CardHeader className="bg-gradient-to-r from-primary/5 to-primary/10 border-b border-primary/10">
                 <div className="flex flex-col md:flex-row justify-between items-start md:items-center space-y-4 md:space-y-0">
                   <div>
                     <CardTitle className="flex items-center space-x-2">
-                      {activeSection === 'siswa' && <GraduationCap className="h-5 w-5 text-primary" />}
-                      {activeSection === 'guru' && <Users className="h-5 w-5 text-primary" />}
-                      {activeSection === 'walikelas' && <UserCheck className="h-5 w-5 text-primary" />}
-                      {activeSection === 'admin' && <Shield className="h-5 w-5 text-primary" />}
-                      <span>
-                        Manajemen {
-                          activeSection === 'siswa' ? 'Siswa' :
-                          activeSection === 'guru' ? 'Guru' :
-                          activeSection === 'walikelas' ? 'Wali Kelas' :
-                          'Administrator'
-                        }
-                      </span>
+                      <GraduationCap className="h-5 w-5 text-primary" />
+                      <span>Manajemen {activeSection.charAt(0).toUpperCase() + activeSection.slice(1)}</span>
                     </CardTitle>
-                    <p className="text-sm text-muted-foreground mt-1">
-                      Kelola data {
-                        activeSection === 'siswa' ? 'siswa' :
-                        activeSection === 'guru' ? 'guru' :
-                        activeSection === 'walikelas' ? 'wali kelas' :
-                        'administrator'
-                      }
-                    </p>
+                    <p className="text-sm text-muted-foreground mt-1">Kelola data {activeSection}</p>
                   </div>
-                  <Dialog open={showUserDialog} onOpenChange={setShowUserDialog}>
-                    <DialogTrigger asChild>
-                      <Button 
-                        className="bg-primary text-primary-foreground w-full md:w-auto"
-                        onClick={() => setEditingItem(null)}
-                      >
-                        <Plus className="h-4 w-4 mr-2" />
-                        Tambah {
-                          activeSection === 'siswa' ? 'Siswa' :
-                          activeSection === 'guru' ? 'Guru' :
-                          activeSection === 'walikelas' ? 'Wali Kelas' :
-                          'Admin'
-                        }
-                      </Button>
-                    </DialogTrigger>
-                    <DialogContent className="max-w-md mx-4 md:max-w-lg">
-                      <DialogHeader>
-                        <DialogTitle>
-                          {editingItem ? `Edit ${
-                            activeSection === 'siswa' ? 'Siswa' :
-                            activeSection === 'guru' ? 'Guru' :
-                            activeSection === 'walikelas' ? 'Wali Kelas' :
-                            'Admin'
-                          }` : `Tambah ${
-                            activeSection === 'siswa' ? 'Siswa' :
-                            activeSection === 'guru' ? 'Guru' :
-                            activeSection === 'walikelas' ? 'Wali Kelas' :
-                            'Admin'
-                          } Baru`}
-                        </DialogTitle>
-                      </DialogHeader>
-                      <form onSubmit={handleUserSubmit} className="space-y-4">
-                        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                          <div className="space-y-2">
-                            <Label>Username</Label>
-                            <Input
-                              value={userForm.username}
-                              onChange={(e) => setUserForm(prev => ({ ...prev, username: e.target.value }))}
-                              placeholder="Username"
-                              required
-                            />
+                  
+                  <div className="flex flex-col sm:flex-row gap-2 w-full md:w-auto">
+                    <div className="flex items-center space-x-2">
+                      <Search className="h-4 w-4 text-muted-foreground" />
+                      <Input
+                        placeholder="Cari pengguna..."
+                        value={searchTerm}
+                        onChange={(e) => setSearchTerm(e.target.value)}
+                        className="w-full sm:w-64"
+                      />
+                    </div>
+                    
+                    <Dialog open={showUserDialog} onOpenChange={setShowUserDialog}>
+                      <DialogTrigger asChild>
+                        <Button 
+                          className="bg-primary text-primary-foreground w-full md:w-auto"
+                          onClick={() => setEditingItem(null)}
+                        >
+                          <Plus className="h-4 w-4 mr-2" />
+                          Tambah {activeSection.charAt(0).toUpperCase() + activeSection.slice(1)}
+                        </Button>
+                      </DialogTrigger>
+                      <DialogContent className="max-w-md mx-4 md:max-w-lg">
+                        <DialogHeader>
+                          <DialogTitle>
+                            {editingItem ? 'Edit User' : `Tambah ${activeSection.charAt(0).toUpperCase() + activeSection.slice(1)} Baru`}
+                          </DialogTitle>
+                        </DialogHeader>
+                        <form onSubmit={handleUserSubmit} className="space-y-4">
+                          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                            <div className="space-y-2">
+                              <Label>Username</Label>
+                              <Input
+                                value={userForm.username}
+                                onChange={(e) => setUserForm(prev => ({ ...prev, username: e.target.value }))}
+                                placeholder="Username"
+                                required
+                              />
+                            </div>
+                            <div className="space-y-2">
+                              <Label>Nama Lengkap</Label>
+                              <Input
+                                value={userForm.nama}
+                                onChange={(e) => setUserForm(prev => ({ ...prev, nama: e.target.value }))}
+                                placeholder="Nama lengkap"
+                                required
+                              />
+                            </div>
                           </div>
-                          
+
                           {!editingItem && (
                             <div className="space-y-2">
                               <Label>Password</Label>
@@ -534,147 +559,120 @@ const AdminDashboard = ({ currentUser, onLogout }) => {
                                 value={userForm.password}
                                 onChange={(e) => setUserForm(prev => ({ ...prev, password: e.target.value }))}
                                 placeholder="Password"
-                                required={!editingItem}
+                                required
                               />
                             </div>
                           )}
-                        </div>
 
-                        <div className="space-y-2">
-                          <Label>Nama Lengkap</Label>
-                          <Input
-                            value={userForm.nama}
-                            onChange={(e) => setUserForm(prev => ({ ...prev, nama: e.target.value }))}
-                            placeholder="Nama Lengkap"
-                            required
-                          />
-                        </div>
+                          <div className="space-y-2">
+                            <Label>Role</Label>
+                            <Select 
+                              value={userForm.role || activeSection}
+                              onValueChange={(value) => setUserForm(prev => ({ ...prev, role: value }))}
+                              required
+                            >
+                              <SelectTrigger>
+                                <SelectValue placeholder="Pilih role" />
+                              </SelectTrigger>
+                              <SelectContent>
+                                {roles.map((role) => (
+                                  <SelectItem key={role.value} value={role.value}>
+                                    {role.label}
+                                  </SelectItem>
+                                ))}
+                              </SelectContent>
+                            </Select>
+                          </div>
 
-                        <div className="space-y-2">
-                          <Label>Role</Label>
-                          <Select 
-                            value={userForm.role || activeSection}
-                            onValueChange={(value) => setUserForm(prev => ({ ...prev, role: value }))}
-                            required
-                            disabled={!editingItem}
-                          >
-                            <SelectTrigger>
-                              <SelectValue placeholder="Pilih role" />
-                            </SelectTrigger>
-                            <SelectContent>
-                              <SelectItem value={activeSection}>
-                                {roles.find(r => r.value === activeSection)?.label}
-                              </SelectItem>
-                            </SelectContent>
-                          </Select>
-                        </div>
-
-                        {(userForm.role === 'siswa' || userForm.role === 'guru' || userForm.role === 'walikelas') && (
                           <div className="space-y-2">
                             <Label>Email</Label>
                             <Input
                               type="email"
                               value={userForm.email}
                               onChange={(e) => setUserForm(prev => ({ ...prev, email: e.target.value }))}
-                              placeholder="email@example.com"
+                              placeholder="Email"
                             />
                           </div>
-                        )}
 
-                        {(userForm.role === 'siswa' || activeSection === 'siswa') && (
-                          <>
+                          {(userForm.role === 'siswa' || activeSection === 'siswa') && (
+                            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                              <div className="space-y-2">
+                                <Label>NIS</Label>
+                                <Input
+                                  value={userForm.nis}
+                                  onChange={(e) => setUserForm(prev => ({ ...prev, nis: e.target.value }))}
+                                  placeholder="NIS"
+                                />
+                              </div>
+                              <div className="space-y-2">
+                                <Label>NISN</Label>
+                                <Input
+                                  value={userForm.nisn}
+                                  onChange={(e) => setUserForm(prev => ({ ...prev, nisn: e.target.value }))}
+                                  placeholder="NISN"
+                                />
+                              </div>
+                            </div>
+                          )}
+
+                          {((userForm.role === 'guru' || userForm.role === 'walikelas') || 
+                            (activeSection === 'guru' || activeSection === 'walikelas')) && (
                             <div className="space-y-2">
-                              <Label>NIS</Label>
+                              <Label>NIP</Label>
                               <Input
-                                value={userForm.nis}
-                                onChange={(e) => setUserForm(prev => ({ ...prev, nis: e.target.value }))}
-                                placeholder="Nomor Induk Siswa"
+                                value={userForm.nip}
+                                onChange={(e) => setUserForm(prev => ({ ...prev, nip: e.target.value }))}
+                                placeholder="NIP"
                               />
                             </div>
-                            <div className="space-y-2">
-                              <Label>NISN</Label>
-                              <Input
-                                value={userForm.nisn}
-                                onChange={(e) => setUserForm(prev => ({ ...prev, nisn: e.target.value }))}
-                                placeholder="Nomor Induk Siswa Nasional"
-                              />
-                            </div>
-                          </>
-                        )}
+                          )}
 
-                        {(userForm.role === 'guru' || userForm.role === 'walikelas' || activeSection === 'guru' || activeSection === 'walikelas') && (
-                          <div className="space-y-2">
-                            <Label>NIP</Label>
-                            <Input
-                              value={userForm.nip}
-                              onChange={(e) => setUserForm(prev => ({ ...prev, nip: e.target.value }))}
-                              placeholder="Nomor NIP"
-                            />
+                          <div className="flex flex-col md:flex-row gap-2">
+                            <Button type="submit" className="flex-1">
+                              {editingItem ? 'Update' : 'Simpan'}
+                            </Button>
+                            <Button 
+                              type="button" 
+                              variant="outline" 
+                              className="flex-1"
+                              onClick={resetUserForm}
+                            >
+                              Batal
+                            </Button>
                           </div>
-                        )}
-
-                        <div className="flex flex-col md:flex-row gap-2">
-                          <Button type="submit" className="flex-1">
-                            {editingItem ? 'Update' : 'Simpan'}
-                          </Button>
-                          <Button 
-                            type="button" 
-                            variant="outline" 
-                            className="flex-1"
-                            onClick={resetUserForm}
-                          >
-                            Batal
-                          </Button>
-                        </div>
-                      </form>
-                    </DialogContent>
-                  </Dialog>
+                        </form>
+                      </DialogContent>
+                    </Dialog>
+                  </div>
                 </div>
               </CardHeader>
               <CardContent>
-                {/* Search */}
-                <div className="flex flex-col md:flex-row gap-4 mb-6">
-                  <div className="flex-1">
-                    <div className="relative">
-                      <Search className="absolute left-3 top-3 h-4 w-4 text-muted-foreground" />
-                      <Input
-                        placeholder={`Cari ${
-                          activeSection === 'siswa' ? 'siswa' :
-                          activeSection === 'guru' ? 'guru' :
-                          activeSection === 'walikelas' ? 'wali kelas' :
-                          'admin'
-                        }...`}
-                        value={searchTerm}
-                        onChange={(e) => setSearchTerm(e.target.value)}
-                        className="pl-9"
-                      />
-                    </div>
-                  </div>
-                </div>
-
-                {/* Users Table */}
                 <div className="overflow-x-auto">
                   <Table>
                     <TableHeader>
                       <TableRow>
                         <TableHead>Nama</TableHead>
                         <TableHead>Username</TableHead>
-                        {activeSection === 'siswa' && !isMobile && <TableHead>NIS</TableHead>}
-                        {activeSection === 'siswa' && !isMobile && <TableHead>NISN</TableHead>}
-                        {(activeSection === 'guru' || activeSection === 'walikelas') && !isMobile && <TableHead>NIP</TableHead>}
                         {!isMobile && <TableHead>Email</TableHead>}
+                        {!isMobile && <TableHead>Role</TableHead>}
                         <TableHead>Aksi</TableHead>
                       </TableRow>
                     </TableHeader>
                     <TableBody>
-                      {filteredUsers.map((user) => (
+                      {getCurrentRoleUsers().map((user) => (
                         <TableRow key={user.id}>
                           <TableCell className="font-medium">{user.nama}</TableCell>
-                          <TableCell>{user.username}</TableCell>
-                          {activeSection === 'siswa' && !isMobile && <TableCell className="text-muted-foreground">{user.nis || '-'}</TableCell>}
-                          {activeSection === 'siswa' && !isMobile && <TableCell className="text-muted-foreground">{user.nisn || '-'}</TableCell>}
-                          {(activeSection === 'guru' || activeSection === 'walikelas') && !isMobile && <TableCell className="text-muted-foreground">{user.nip || '-'}</TableCell>}
-                          {!isMobile && <TableCell className="text-muted-foreground">{user.email || '-'}</TableCell>}
+                          <TableCell>
+                            <Badge variant="outline">{user.username}</Badge>
+                          </TableCell>
+                          {!isMobile && (
+                            <TableCell className="text-muted-foreground">{user.email || '-'}</TableCell>
+                          )}
+                          {!isMobile && (
+                            <TableCell>
+                              <Badge variant="secondary">{user.role}</Badge>
+                            </TableCell>
+                          )}
                           <TableCell>
                             <div className="flex space-x-2">
                               <Button
@@ -704,12 +702,12 @@ const AdminDashboard = ({ currentUser, onLogout }) => {
           )}
 
           {activeSection === 'subjects' && (
-            <Card className="shadow-elegant bg-gradient-to-br from-background to-muted/20 border-accent/10">
-              <CardHeader className="bg-gradient-to-r from-accent/5 to-accent/10 border-b border-accent/10">
+            <Card className="shadow-elegant bg-gradient-to-br from-background to-muted/20 border-success/10">
+              <CardHeader className="bg-gradient-to-r from-success/5 to-success/10 border-b border-success/10">
                 <div className="flex flex-col md:flex-row justify-between items-start md:items-center space-y-4 md:space-y-0">
                   <div>
                     <CardTitle className="flex items-center space-x-2">
-                      <BookOpen className="h-5 w-5 text-accent" />
+                      <BookOpen className="h-5 w-5 text-success" />
                       <span>Manajemen Mata Pelajaran</span>
                     </CardTitle>
                     <p className="text-sm text-muted-foreground mt-1">Kelola mata pelajaran sekolah</p>
@@ -717,7 +715,7 @@ const AdminDashboard = ({ currentUser, onLogout }) => {
                   <Dialog open={showSubjectDialog} onOpenChange={setShowSubjectDialog}>
                     <DialogTrigger asChild>
                       <Button 
-                        className="bg-primary text-primary-foreground w-full md:w-auto"
+                        className="bg-success text-white w-full md:w-auto"
                         onClick={() => setEditingItem(null)}
                       >
                         <Plus className="h-4 w-4 mr-2" />
@@ -758,13 +756,13 @@ const AdminDashboard = ({ currentUser, onLogout }) => {
                             onValueChange={(value) => setSubjectForm(prev => ({ ...prev, kelasId: value }))}
                           >
                             <SelectTrigger>
-                              <SelectValue placeholder="Pilih kelas" />
+                              <SelectValue placeholder="Pilih kelas atau semua kelas" />
                             </SelectTrigger>
                             <SelectContent>
                               <SelectItem value="all">Semua Kelas</SelectItem>
-                              {classes.map((kelas) => (
-                                <SelectItem key={kelas.id} value={kelas.id}>
-                                  {kelas.nama}
+                              {classes.map((classItem) => (
+                                <SelectItem key={classItem.id} value={classItem.id}>
+                                  {classItem.nama}
                                 </SelectItem>
                               ))}
                             </SelectContent>
@@ -794,7 +792,7 @@ const AdminDashboard = ({ currentUser, onLogout }) => {
                   <Table>
                     <TableHeader>
                       <TableRow>
-                        <TableHead>Nama Mata Pelajaran</TableHead>
+                        <TableHead>Mata Pelajaran</TableHead>
                         <TableHead>Kode</TableHead>
                         {!isMobile && <TableHead>Kelas</TableHead>}
                         <TableHead>Aksi</TableHead>
@@ -987,6 +985,540 @@ const AdminDashboard = ({ currentUser, onLogout }) => {
                 </div>
               </CardContent>
             </Card>
+          )}
+
+          {/* School Profile Management */}
+          {activeSection === 'school-profile' && (
+            <div className="space-y-6">
+              {/* School Profile Info Card */}
+              <Card className="shadow-elegant bg-gradient-to-br from-background to-muted/20 border-primary/10">
+                <CardHeader className="bg-gradient-to-r from-primary/5 to-primary/10 border-b border-primary/10">
+                  <div className="flex flex-col md:flex-row justify-between items-start md:items-center space-y-4 md:space-y-0">
+                    <div>
+                      <CardTitle className="flex items-center space-x-2">
+                        <Building2 className="h-5 w-5 text-primary" />
+                        <span>Profil Sekolah</span>
+                      </CardTitle>
+                      <p className="text-sm text-muted-foreground mt-1">Informasi dasar sekolah</p>
+                    </div>
+                    <Dialog open={showSchoolProfileDialog} onOpenChange={setShowSchoolProfileDialog}>
+                      <DialogTrigger asChild>
+                        <Button 
+                          className="bg-primary text-primary-foreground w-full md:w-auto"
+                          onClick={() => setEditingItem(null)}
+                        >
+                          <Plus className="h-4 w-4 mr-2" />
+                          Edit Profil
+                        </Button>
+                      </DialogTrigger>
+                      <DialogContent className="max-w-2xl mx-4">
+                        <DialogHeader>
+                          <DialogTitle>Edit Profil Sekolah</DialogTitle>
+                        </DialogHeader>
+                        <form className="space-y-4 max-h-96 overflow-y-auto">
+                          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                            <div className="space-y-2">
+                              <Label>Nama Sekolah</Label>
+                              <Input
+                                value={schoolProfileForm.nama}
+                                onChange={(e) => setSchoolProfileForm(prev => ({ ...prev, nama: e.target.value }))}
+                                placeholder="Nama lengkap sekolah"
+                              />
+                            </div>
+                            <div className="space-y-2">
+                              <Label>Kepala Sekolah</Label>
+                              <Input
+                                value={schoolProfileForm.kepalaSekolah}
+                                onChange={(e) => setSchoolProfileForm(prev => ({ ...prev, kepalaSekolah: e.target.value }))}
+                                placeholder="Nama kepala sekolah"
+                              />
+                            </div>
+                          </div>
+                          <div className="space-y-2">
+                            <Label>Alamat</Label>
+                            <Input
+                              value={schoolProfileForm.alamat}
+                              onChange={(e) => setSchoolProfileForm(prev => ({ ...prev, alamat: e.target.value }))}
+                              placeholder="Alamat lengkap sekolah"
+                            />
+                          </div>
+                          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                            <div className="space-y-2">
+                              <Label>Telepon</Label>
+                              <Input
+                                value={schoolProfileForm.telepon}
+                                onChange={(e) => setSchoolProfileForm(prev => ({ ...prev, telepon: e.target.value }))}
+                                placeholder="Nomor telepon"
+                              />
+                            </div>
+                            <div className="space-y-2">
+                              <Label>Email</Label>
+                              <Input
+                                type="email"
+                                value={schoolProfileForm.email}
+                                onChange={(e) => setSchoolProfileForm(prev => ({ ...prev, email: e.target.value }))}
+                                placeholder="Email sekolah"
+                              />
+                            </div>
+                          </div>
+                          <div className="space-y-2">
+                            <Label>Website</Label>
+                            <Input
+                              value={schoolProfileForm.website}
+                              onChange={(e) => setSchoolProfileForm(prev => ({ ...prev, website: e.target.value }))}
+                              placeholder="https://website-sekolah.com"
+                            />
+                          </div>
+                          <div className="space-y-2">
+                            <Label>Visi</Label>
+                            <textarea
+                              className="w-full p-2 border rounded-md"
+                              rows={3}
+                              value={schoolProfileForm.visi}
+                              onChange={(e) => setSchoolProfileForm(prev => ({ ...prev, visi: e.target.value }))}
+                              placeholder="Visi sekolah"
+                            />
+                          </div>
+                          <div className="space-y-2">
+                            <Label>Misi</Label>
+                            <textarea
+                              className="w-full p-2 border rounded-md"
+                              rows={4}
+                              value={schoolProfileForm.misi}
+                              onChange={(e) => setSchoolProfileForm(prev => ({ ...prev, misi: e.target.value }))}
+                              placeholder="Misi sekolah"
+                            />
+                          </div>
+                          <div className="flex flex-col md:flex-row gap-2">
+                            <Button type="submit" className="flex-1">
+                              Simpan Profil
+                            </Button>
+                            <Button 
+                              type="button" 
+                              variant="outline" 
+                              className="flex-1"
+                              onClick={() => setShowSchoolProfileDialog(false)}
+                            >
+                              Batal
+                            </Button>
+                          </div>
+                        </form>
+                      </DialogContent>
+                    </Dialog>
+                  </div>
+                </CardHeader>
+                <CardContent>
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                    <div className="space-y-3">
+                      <div>
+                        <h4 className="font-medium text-sm text-muted-foreground">Nama Sekolah</h4>
+                        <p className="font-medium">SMA Negeri 1 Nosu</p>
+                      </div>
+                      <div>
+                        <h4 className="font-medium text-sm text-muted-foreground">Kepala Sekolah</h4>
+                        <p>Drs. John Doe, M.Pd</p>
+                      </div>
+                      <div>
+                        <h4 className="font-medium text-sm text-muted-foreground">Alamat</h4>
+                        <p>Jl. Pendidikan No. 123, Nosu, Kabupaten Banggai</p>
+                      </div>
+                    </div>
+                    <div className="space-y-3">
+                      <div>
+                        <h4 className="font-medium text-sm text-muted-foreground">Kontak</h4>
+                        <p>Telepon: (0461) 123456</p>
+                        <p>Email: admin@sman1nosu.sch.id</p>
+                      </div>
+                      <div>
+                        <h4 className="font-medium text-sm text-muted-foreground">Website</h4>
+                        <p>https://sman1nosu.sch.id</p>
+                      </div>
+                    </div>
+                  </div>
+                </CardContent>
+              </Card>
+
+              {/* Achievements Management */}
+              <Card className="shadow-elegant bg-gradient-to-br from-background to-muted/20 border-success/10">
+                <CardHeader className="bg-gradient-to-r from-success/5 to-success/10 border-b border-success/10">
+                  <div className="flex flex-col md:flex-row justify-between items-start md:items-center space-y-4 md:space-y-0">
+                    <div>
+                      <CardTitle className="flex items-center space-x-2">
+                        <Trophy className="h-5 w-5 text-success" />
+                        <span>Prestasi Terbaru</span>
+                      </CardTitle>
+                      <p className="text-sm text-muted-foreground mt-1">Kelola prestasi sekolah</p>
+                    </div>
+                    <Dialog open={showAchievementDialog} onOpenChange={setShowAchievementDialog}>
+                      <DialogTrigger asChild>
+                        <Button 
+                          className="bg-success text-white w-full md:w-auto"
+                          onClick={() => setEditingItem(null)}
+                        >
+                          <Plus className="h-4 w-4 mr-2" />
+                          Tambah Prestasi
+                        </Button>
+                      </DialogTrigger>
+                      <DialogContent className="max-w-md mx-4 md:max-w-lg">
+                        <DialogHeader>
+                          <DialogTitle>
+                            {editingItem ? 'Edit Prestasi' : 'Tambah Prestasi Baru'}
+                          </DialogTitle>
+                        </DialogHeader>
+                        <form className="space-y-4">
+                          <div className="space-y-2">
+                            <Label>Judul Prestasi</Label>
+                            <Input
+                              value={achievementForm.judul}
+                              onChange={(e) => setAchievementForm(prev => ({ ...prev, judul: e.target.value }))}
+                              placeholder="Nama prestasi"
+                            />
+                          </div>
+                          <div className="space-y-2">
+                            <Label>Deskripsi</Label>
+                            <textarea
+                              className="w-full p-2 border rounded-md"
+                              rows={3}
+                              value={achievementForm.deskripsi}
+                              onChange={(e) => setAchievementForm(prev => ({ ...prev, deskripsi: e.target.value }))}
+                              placeholder="Deskripsi prestasi"
+                            />
+                          </div>
+                          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                            <div className="space-y-2">
+                              <Label>Tanggal</Label>
+                              <Input
+                                type="date"
+                                value={achievementForm.tanggal}
+                                onChange={(e) => setAchievementForm(prev => ({ ...prev, tanggal: e.target.value }))}
+                              />
+                            </div>
+                            <div className="space-y-2">
+                              <Label>Kategori</Label>
+                              <Select 
+                                value={achievementForm.kategori}
+                                onValueChange={(value) => setAchievementForm(prev => ({ ...prev, kategori: value }))}
+                              >
+                                <SelectTrigger>
+                                  <SelectValue placeholder="Pilih kategori" />
+                                </SelectTrigger>
+                                <SelectContent>
+                                  <SelectItem value="akademik">Akademik</SelectItem>
+                                  <SelectItem value="olahraga">Olahraga</SelectItem>
+                                  <SelectItem value="seni">Seni & Budaya</SelectItem>
+                                  <SelectItem value="teknologi">Teknologi</SelectItem>
+                                  <SelectItem value="lainnya">Lainnya</SelectItem>
+                                </SelectContent>
+                              </Select>
+                            </div>
+                          </div>
+                          <div className="space-y-2">
+                            <Label>Tingkat</Label>
+                            <Select 
+                              value={achievementForm.tingkat}
+                              onValueChange={(value) => setAchievementForm(prev => ({ ...prev, tingkat: value }))}
+                            >
+                              <SelectTrigger>
+                                <SelectValue placeholder="Pilih tingkat" />
+                              </SelectTrigger>
+                              <SelectContent>
+                                <SelectItem value="kecamatan">Kecamatan</SelectItem>
+                                <SelectItem value="kabupaten">Kabupaten</SelectItem>
+                                <SelectItem value="provinsi">Provinsi</SelectItem>
+                                <SelectItem value="nasional">Nasional</SelectItem>
+                                <SelectItem value="internasional">Internasional</SelectItem>
+                              </SelectContent>
+                            </Select>
+                          </div>
+                          <div className="flex flex-col md:flex-row gap-2">
+                            <Button type="submit" className="flex-1">
+                              {editingItem ? 'Update' : 'Simpan'}
+                            </Button>
+                            <Button 
+                              type="button" 
+                              variant="outline" 
+                              className="flex-1"
+                              onClick={() => setShowAchievementDialog(false)}
+                            >
+                              Batal
+                            </Button>
+                          </div>
+                        </form>
+                      </DialogContent>
+                    </Dialog>
+                  </div>
+                </CardHeader>
+                <CardContent>
+                  <div className="space-y-4">
+                    {[1, 2, 3].map((item) => (
+                      <div key={item} className="border rounded-lg p-4 hover:bg-muted/50 transition-colors">
+                        <div className="flex justify-between items-start">
+                          <div className="space-y-2 flex-1">
+                            <div className="flex items-center space-x-2">
+                              <h4 className="font-semibold">Juara 1 Olimpiade Matematika</h4>
+                              <Badge variant="secondary">Provinsi</Badge>
+                              <Badge variant="outline">Akademik</Badge>
+                            </div>
+                            <p className="text-sm text-muted-foreground">
+                              Prestasi gemilang siswa SMA Negeri 1 Nosu dalam kompetisi olimpiade matematika tingkat provinsi
+                            </p>
+                            <p className="text-xs text-muted-foreground">15 Maret 2024</p>
+                          </div>
+                          <div className="flex space-x-2 ml-4">
+                            <Button size="sm" variant="outline">
+                              <Edit className="h-3 w-3" />
+                            </Button>
+                            <Button size="sm" variant="outline">
+                              <Trash2 className="h-3 w-3" />
+                            </Button>
+                          </div>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                </CardContent>
+              </Card>
+
+              {/* Programs Management */}
+              <Card className="shadow-elegant bg-gradient-to-br from-background to-muted/20 border-accent/10">
+                <CardHeader className="bg-gradient-to-r from-accent/5 to-accent/10 border-b border-accent/10">
+                  <div className="flex flex-col md:flex-row justify-between items-start md:items-center space-y-4 md:space-y-0">
+                    <div>
+                      <CardTitle className="flex items-center space-x-2">
+                        <Programs className="h-5 w-5 text-accent" />
+                        <span>Program Studi</span>
+                      </CardTitle>
+                      <p className="text-sm text-muted-foreground mt-1">Kelola program dan jurusan</p>
+                    </div>
+                    <Dialog open={showProgramDialog} onOpenChange={setShowProgramDialog}>
+                      <DialogTrigger asChild>
+                        <Button 
+                          className="bg-accent text-white w-full md:w-auto"
+                          onClick={() => setEditingItem(null)}
+                        >
+                          <Plus className="h-4 w-4 mr-2" />
+                          Tambah Program
+                        </Button>
+                      </DialogTrigger>
+                      <DialogContent className="max-w-md mx-4 md:max-w-lg">
+                        <DialogHeader>
+                          <DialogTitle>
+                            {editingItem ? 'Edit Program' : 'Tambah Program Baru'}
+                          </DialogTitle>
+                        </DialogHeader>
+                        <form className="space-y-4">
+                          <div className="space-y-2">
+                            <Label>Nama Program</Label>
+                            <Input
+                              value={programForm.nama}
+                              onChange={(e) => setProgramForm(prev => ({ ...prev, nama: e.target.value }))}
+                              placeholder="Contoh: IPA, IPS, Bahasa"
+                            />
+                          </div>
+                          <div className="space-y-2">
+                            <Label>Deskripsi</Label>
+                            <textarea
+                              className="w-full p-2 border rounded-md"
+                              rows={3}
+                              value={programForm.deskripsi}
+                              onChange={(e) => setProgramForm(prev => ({ ...prev, deskripsi: e.target.value }))}
+                              placeholder="Deskripsi program studi"
+                            />
+                          </div>
+                          <div className="space-y-2">
+                            <Label>Durasi</Label>
+                            <Input
+                              value={programForm.durasi}
+                              onChange={(e) => setProgramForm(prev => ({ ...prev, durasi: e.target.value }))}
+                              placeholder="Contoh: 3 tahun"
+                            />
+                          </div>
+                          <div className="space-y-2">
+                            <Label>Syarat Masuk</Label>
+                            <textarea
+                              className="w-full p-2 border rounded-md"
+                              rows={3}
+                              value={programForm.syarat}
+                              onChange={(e) => setProgramForm(prev => ({ ...prev, syarat: e.target.value }))}
+                              placeholder="Syarat dan ketentuan program"
+                            />
+                          </div>
+                          <div className="flex flex-col md:flex-row gap-2">
+                            <Button type="submit" className="flex-1">
+                              {editingItem ? 'Update' : 'Simpan'}
+                            </Button>
+                            <Button 
+                              type="button" 
+                              variant="outline" 
+                              className="flex-1"
+                              onClick={() => setShowProgramDialog(false)}
+                            >
+                              Batal
+                            </Button>
+                          </div>
+                        </form>
+                      </DialogContent>
+                    </Dialog>
+                  </div>
+                </CardHeader>
+                <CardContent>
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    {[
+                      { nama: 'IPA (Ilmu Pengetahuan Alam)', deskripsi: 'Program studi dengan fokus pada mata pelajaran sains dan matematika', durasi: '3 tahun' },
+                      { nama: 'IPS (Ilmu Pengetahuan Sosial)', deskripsi: 'Program studi dengan fokus pada ilmu sosial dan humaniora', durasi: '3 tahun' },
+                      { nama: 'Bahasa', deskripsi: 'Program studi dengan fokus pada bahasa dan sastra', durasi: '3 tahun' }
+                    ].map((program, index) => (
+                      <div key={index} className="border rounded-lg p-4 hover:bg-muted/50 transition-colors">
+                        <div className="flex justify-between items-start">
+                          <div className="space-y-2 flex-1">
+                            <h4 className="font-semibold">{program.nama}</h4>
+                            <p className="text-sm text-muted-foreground">{program.deskripsi}</p>
+                            <Badge variant="outline">{program.durasi}</Badge>
+                          </div>
+                          <div className="flex space-x-2 ml-4">
+                            <Button size="sm" variant="outline">
+                              <Edit className="h-3 w-3" />
+                            </Button>
+                            <Button size="sm" variant="outline">
+                              <Trash2 className="h-3 w-3" />
+                            </Button>
+                          </div>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                </CardContent>
+              </Card>
+
+              {/* Registration Links Management */}
+              <Card className="shadow-elegant bg-gradient-to-br from-background to-muted/20 border-primary/10">
+                <CardHeader className="bg-gradient-to-r from-primary/5 to-primary/10 border-b border-primary/10">
+                  <div className="flex flex-col md:flex-row justify-between items-start md:items-center space-y-4 md:space-y-0">
+                    <div>
+                      <CardTitle className="flex items-center space-x-2">
+                        <Link className="h-5 w-5 text-primary" />
+                        <span>Link Pendaftaran</span>
+                      </CardTitle>
+                      <p className="text-sm text-muted-foreground mt-1">Kelola link pendaftaran siswa baru</p>
+                    </div>
+                    <Dialog open={showRegistrationDialog} onOpenChange={setShowRegistrationDialog}>
+                      <DialogTrigger asChild>
+                        <Button 
+                          className="bg-primary text-primary-foreground w-full md:w-auto"
+                          onClick={() => setEditingItem(null)}
+                        >
+                          <Plus className="h-4 w-4 mr-2" />
+                          Tambah Link
+                        </Button>
+                      </DialogTrigger>
+                      <DialogContent className="max-w-md mx-4 md:max-w-lg">
+                        <DialogHeader>
+                          <DialogTitle>
+                            {editingItem ? 'Edit Link Pendaftaran' : 'Tambah Link Pendaftaran'}
+                          </DialogTitle>
+                        </DialogHeader>
+                        <form className="space-y-4">
+                          <div className="space-y-2">
+                            <Label>Judul Pendaftaran</Label>
+                            <Input
+                              value={registrationForm.judul}
+                              onChange={(e) => setRegistrationForm(prev => ({ ...prev, judul: e.target.value }))}
+                              placeholder="Contoh: Pendaftaran Siswa Baru 2025"
+                            />
+                          </div>
+                          <div className="space-y-2">
+                            <Label>Deskripsi</Label>
+                            <textarea
+                              className="w-full p-2 border rounded-md"
+                              rows={3}
+                              value={registrationForm.deskripsi}
+                              onChange={(e) => setRegistrationForm(prev => ({ ...prev, deskripsi: e.target.value }))}
+                              placeholder="Deskripsi pendaftaran"
+                            />
+                          </div>
+                          <div className="space-y-2">
+                            <Label>Link Pendaftaran</Label>
+                            <Input
+                              value={registrationForm.link}
+                              onChange={(e) => setRegistrationForm(prev => ({ ...prev, link: e.target.value }))}
+                              placeholder="https://forms.google.com/..."
+                            />
+                          </div>
+                          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                            <div className="space-y-2">
+                              <Label>Tahun Ajaran</Label>
+                              <Input
+                                value={registrationForm.tahunAjaran}
+                                onChange={(e) => setRegistrationForm(prev => ({ ...prev, tahunAjaran: e.target.value }))}
+                                placeholder="2024/2025"
+                              />
+                            </div>
+                            <div className="space-y-2">
+                              <Label>Batas Pendaftaran</Label>
+                              <Input
+                                type="date"
+                                value={registrationForm.batasPendaftaran}
+                                onChange={(e) => setRegistrationForm(prev => ({ ...prev, batasPendaftaran: e.target.value }))}
+                              />
+                            </div>
+                          </div>
+                          <div className="flex flex-col md:flex-row gap-2">
+                            <Button type="submit" className="flex-1">
+                              {editingItem ? 'Update' : 'Simpan'}
+                            </Button>
+                            <Button 
+                              type="button" 
+                              variant="outline" 
+                              className="flex-1"
+                              onClick={() => setShowRegistrationDialog(false)}
+                            >
+                              Batal
+                            </Button>
+                          </div>
+                        </form>
+                      </DialogContent>
+                    </Dialog>
+                  </div>
+                </CardHeader>
+                <CardContent>
+                  <div className="space-y-4">
+                    {[
+                      { judul: 'Pendaftaran Siswa Baru 2025/2026', tahun: '2025/2026', batas: '30 Juni 2025', status: 'Aktif' },
+                      { judul: 'Pendaftaran Siswa Pindahan', tahun: '2024/2025', batas: '15 Januari 2025', status: 'Aktif' }
+                    ].map((registration, index) => (
+                      <div key={index} className="border rounded-lg p-4 hover:bg-muted/50 transition-colors">
+                        <div className="flex justify-between items-start">
+                          <div className="space-y-2 flex-1">
+                            <div className="flex items-center space-x-2">
+                              <h4 className="font-semibold">{registration.judul}</h4>
+                              <Badge variant={registration.status === 'Aktif' ? 'default' : 'secondary'}>
+                                {registration.status}
+                              </Badge>
+                            </div>
+                            <div className="text-sm text-muted-foreground space-y-1">
+                              <p>Tahun Ajaran: {registration.tahun}</p>
+                              <p>Batas Pendaftaran: {registration.batas}</p>
+                              <p className="flex items-center space-x-1">
+                                <FileText className="h-3 w-3" />
+                                <span>Google Forms</span>
+                              </p>
+                            </div>
+                          </div>
+                          <div className="flex space-x-2 ml-4">
+                            <Button size="sm" variant="outline">
+                              <Edit className="h-3 w-3" />
+                            </Button>
+                            <Button size="sm" variant="outline">
+                              <Trash2 className="h-3 w-3" />
+                            </Button>
+                          </div>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                </CardContent>
+              </Card>
+            </div>
           )}
         </div>
       </div>

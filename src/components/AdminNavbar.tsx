@@ -7,6 +7,7 @@ import {
   BookOpen,
   School,
   LogOut,
+  Building2
 } from 'lucide-react';
 
 const menuItems = [
@@ -45,6 +46,12 @@ const menuItems = [
     icon: School,
     id: 'classes',
     description: 'Manajemen kelas'
+  },
+  { 
+    title: 'Profil Sekolah', 
+    icon: Building2,
+    id: 'school-profile',
+    description: 'Kelola profil dan informasi sekolah'
   },
 ];
 
