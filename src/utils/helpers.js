@@ -340,7 +340,7 @@ export const generateReportHTML = (reportData) => {
             <tr>
               <td>${index + 1}</td>
               <td style="text-align: left;">${
-                grade.nama || "Mata Pelajaran"
+                grade.subjectName || "Mata Pelajaran"
               }</td>
               <td>${grade.jenis === "Ulangan Harian" ? grade.nilai : "-"}</td>
               <td>${grade.jenis === "UTS" ? grade.nilai : "-"}</td>
