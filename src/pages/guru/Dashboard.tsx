@@ -53,9 +53,12 @@ const TeacherDashboard = ({ currentUser, onLogout }) => {
   const [showAttendanceDialog, setShowAttendanceDialog] = useState(false);
   const [showStudentListDialog, setShowStudentListDialog] = useState(false);
   const [showGradeTableDialog, setShowGradeTableDialog] = useState(false);
+  const [showAttendanceTableDialog, setShowAttendanceTableDialog] = useState(false);
   const [selectedSubject, setSelectedSubject] = useState('');
   const [selectedSubjectForGrades, setSelectedSubjectForGrades] = useState('');
+  const [selectedSubjectForAttendance, setSelectedSubjectForAttendance] = useState('');
   const [editingGrade, setEditingGrade] = useState(null);
+  const [editingAttendance, setEditingAttendance] = useState(null);
   const [gradeForm, setGradeForm] = useState({
     studentId: '',
     subjectId: '',
@@ -70,6 +73,7 @@ const TeacherDashboard = ({ currentUser, onLogout }) => {
     keterangan: '',
     tanggal: new Date().toISOString().split('T')[0]
   });
+  const [attendance, setAttendance] = useState([]);
   const { toast } = useToast();
 
   const gradeTypes = ['Ulangan Harian', 'UTS', 'UAS', 'Kuis', 'Tugas'];
@@ -90,6 +94,7 @@ const TeacherDashboard = ({ currentUser, onLogout }) => {
     // Reload grades when students data is loaded
     if (students.length > 0 && subjects.length > 0) {
       loadGradesData();
+      loadAttendanceData();
     }
   }, [students, subjects]);
 
@@ -111,8 +116,8 @@ const TeacherDashboard = ({ currentUser, onLogout }) => {
       const studentsData = allUsers.filter(user => user.role === 'siswa');
       setStudents(studentsData);
 
-      // Load grades data
-      await loadGradesData();
+      // Load attendance data
+      await loadAttendanceData();
     } catch (error) {
       toast({
         title: "Error",
@@ -146,6 +151,29 @@ const TeacherDashboard = ({ currentUser, onLogout }) => {
       setGrades(gradesWithNames);
     } catch (error) {
       console.error('Error loading grades:', error);
+    }
+  const loadAttendanceData = async () => {
+    try {
+      // Load attendance data from localStorage/API using correct storage key
+      const allAttendance = JSON.parse(localStorage.getItem('akademik_attendance') || '[]');
+      
+      // Filter attendance for current teacher's subjects
+      const teacherAttendance = allAttendance.filter(att => 
+        att.teacherId === currentUser.id && subjects.includes(att.subjectId)
+      );
+
+      // Add student names to attendance
+      const attendanceWithNames = teacherAttendance.map(att => {
+        const student = students.find(s => s.id === att.studentId);
+        return {
+          ...att,
+          studentName: student?.nama || 'Unknown Student'
+        };
+      });
+
+      setAttendance(attendanceWithNames);
+    } catch (error) {
+      console.error('Error loading attendance:', error);
     }
   };
 
@@ -247,6 +275,10 @@ const TeacherDashboard = ({ currentUser, onLogout }) => {
   const handleAddAttendance = async (e) => {
     e.preventDefault();
     
+    console.log('Adding attendance with form data:', attendanceForm);
+    console.log('Current user:', currentUser);
+    console.log('Available students:', students);
+    
     if (!attendanceForm.studentId || !attendanceForm.subjectId || !attendanceForm.status) {
       toast({
         title: "Error",
@@ -257,20 +289,42 @@ const TeacherDashboard = ({ currentUser, onLogout }) => {
     }
 
     try {
+      const studentData = students.find(s => s.id === attendanceForm.studentId);
       const attendanceData = {
+        id: editingAttendance ? editingAttendance.id : Date.now().toString(),
         ...attendanceForm,
         teacherId: currentUser.id,
-        kelasId: students.find(s => s.id === attendanceForm.studentId)?.kelasId,
+        kelasId: studentData?.kelasId || '1',
         tahunAjaran: '2024/2025',
         semester: 1
       };
 
-      const result = await apiService.addAttendance(currentUser.id, attendanceData);
+      console.log('Sending attendance data:', attendanceData);
+      
+      let result;
+      if (editingAttendance) {
+        // Update existing attendance
+        const allAttendance = JSON.parse(localStorage.getItem('akademik_attendance') || '[]');
+        const attIndex = allAttendance.findIndex(att => att.id === editingAttendance.id);
+        
+        if (attIndex !== -1) {
+          allAttendance[attIndex] = { ...editingAttendance, ...attendanceData };
+          localStorage.setItem('akademik_attendance', JSON.stringify(allAttendance));
+          result = { success: true };
+        } else {
+          result = { success: false, message: "Attendance not found" };
+        }
+      } else {
+        // Add new attendance
+        result = await apiService.addAttendance(currentUser.id, attendanceData);
+      }
+      
+      console.log('API result:', result);
       
       if (result.success) {
         toast({
           title: "Berhasil",
-          description: "Kehadiran berhasil dicatat"
+          description: `Kehadiran berhasil ${editingAttendance ? 'diupdate' : 'dicatat'}`
         });
         
         setShowAttendanceDialog(false);
@@ -281,11 +335,22 @@ const TeacherDashboard = ({ currentUser, onLogout }) => {
           keterangan: '',
           tanggal: new Date().toISOString().split('T')[0]
         });
+        setEditingAttendance(null);
+        
+        // Refresh attendance data
+        await loadAttendanceData();
+      } else {
+        toast({
+          title: "Error",
+          description: result.message || "Gagal menyimpan kehadiran",
+          variant: "destructive"
+        });
       }
     } catch (error) {
+      console.error('Error adding attendance:', error);
       toast({
         title: "Error",
-        description: "Gagal mencatat kehadiran",
+        description: "Gagal menyimpan kehadiran",
         variant: "destructive"
       });
     }
@@ -338,11 +403,55 @@ const TeacherDashboard = ({ currentUser, onLogout }) => {
     }
   };
 
-  const handleViewAllGrades = (subjectId) => {
-    setSelectedSubjectForGrades(subjectId);
-    setShowGradeTableDialog(true);
+  const handleEditAttendance = (attendance) => {
+    setAttendanceForm({
+      studentId: attendance.studentId,
+      subjectId: attendance.subjectId,
+      status: attendance.status,
+      keterangan: attendance.keterangan,
+      tanggal: attendance.tanggal
+    });
+    setEditingAttendance(attendance);
+    setShowAttendanceDialog(true);
   };
 
+  const handleDeleteAttendance = async (attendanceId) => {
+    if (window.confirm('Apakah Anda yakin ingin menghapus data kehadiran ini?')) {
+      try {
+        // Get current attendance from localStorage
+        const allAttendance = JSON.parse(localStorage.getItem('akademik_attendance') || '[]');
+        
+        // Remove the attendance record
+        const updatedAttendance = allAttendance.filter(att => att.id !== attendanceId);
+        
+        // Save back to localStorage
+        localStorage.setItem('akademik_attendance', JSON.stringify(updatedAttendance));
+        
+        toast({
+          title: "Berhasil",
+          description: "Data kehadiran berhasil dihapus"
+        });
+        
+        // Refresh attendance data
+        await loadAttendanceData();
+      } catch (error) {
+        console.error('Error deleting attendance:', error);
+        toast({
+          title: "Error",
+          description: "Gagal menghapus data kehadiran",
+          variant: "destructive"
+        });
+      }
+    }
+  };
+
+  const handleViewAllAttendance = (subjectId) => {
+    setSelectedSubjectForAttendance(subjectId);
+    setShowAttendanceTableDialog(true);
+  };
+
+  console.log('TeacherDashboard loaded');
+  
   return (
     <div className="min-h-screen bg-background">
       {/* Header */}
@@ -493,7 +602,19 @@ const TeacherDashboard = ({ currentUser, onLogout }) => {
             </DialogContent>
           </Dialog>
 
-          <Dialog open={showAttendanceDialog} onOpenChange={setShowAttendanceDialog}>
+          <Dialog open={showAttendanceDialog} onOpenChange={(open) => {
+            setShowAttendanceDialog(open);
+            if (!open) {
+              setEditingAttendance(null);
+              setAttendanceForm({
+                studentId: '',
+                subjectId: '',
+                status: '',
+                keterangan: '',
+                tanggal: new Date().toISOString().split('T')[0]
+              });
+            }
+          }}>
             <DialogTrigger asChild>
               <Button variant="outline">
                 <Calendar className="h-4 w-4 mr-2" />
@@ -502,7 +623,9 @@ const TeacherDashboard = ({ currentUser, onLogout }) => {
             </DialogTrigger>
             <DialogContent>
               <DialogHeader>
-                <DialogTitle>Input Kehadiran Siswa</DialogTitle>
+                <DialogTitle>
+                  {editingAttendance ? 'Edit Kehadiran Siswa' : 'Input Kehadiran Siswa'}
+                </DialogTitle>
               </DialogHeader>
               <form onSubmit={handleAddAttendance} className="space-y-4">
                 <div className="space-y-2">
@@ -588,9 +711,101 @@ const TeacherDashboard = ({ currentUser, onLogout }) => {
                 </div>
 
                 <Button type="submit" className="w-full">
-                  Simpan Kehadiran
+                  {editingAttendance ? 'Update Kehadiran' : 'Simpan Kehadiran'}
                 </Button>
               </form>
+            </DialogContent>
+          </Dialog>
+
+          {/* Attendance Table Dialog */}
+          <Dialog open={showAttendanceTableDialog} onOpenChange={setShowAttendanceTableDialog}>
+            <DialogContent className="max-w-6xl max-h-[80vh] overflow-hidden">
+              <DialogHeader>
+                <DialogTitle>
+                  Daftar Semua Kehadiran - {(() => {
+                    const allSubjects = JSON.parse(localStorage.getItem('akademik_subjects') || '[]');
+                    const subjectDetails = allSubjects.find(s => s.id === selectedSubjectForAttendance);
+                    return subjectDetails?.nama || `Mata Pelajaran ${selectedSubjectForAttendance}`;
+                  })()}
+                </DialogTitle>
+              </DialogHeader>
+              <div className="overflow-auto max-h-[60vh]">
+                <Table>
+                  <TableHeader>
+                    <TableRow>
+                      <TableHead>Nama Siswa</TableHead>
+                      <TableHead>NISN</TableHead>
+                      <TableHead>Status Kehadiran</TableHead>
+                      <TableHead>Tanggal</TableHead>
+                      <TableHead>Keterangan</TableHead>
+                      <TableHead>Aksi</TableHead>
+                    </TableRow>
+                  </TableHeader>
+                  <TableBody>
+                    {attendance
+                      .filter(att => att.subjectId === selectedSubjectForAttendance)
+                      .map((att) => {
+                        const student = students.find(s => s.id === att.studentId);
+                        return (
+                          <TableRow key={att.id}>
+                            <TableCell className="font-medium">
+                              {att.studentName || student?.nama}
+                            </TableCell>
+                            <TableCell>
+                              {student?.nisn || '-'}
+                            </TableCell>
+                            <TableCell>
+                              <Badge 
+                                variant={att.status === 'hadir' ? 'default' : 'secondary'}
+                                className={
+                                  att.status === 'hadir' ? 'bg-green-100 text-green-800' :
+                                  att.status === 'sakit' ? 'bg-yellow-100 text-yellow-800' :
+                                  att.status === 'izin' ? 'bg-blue-100 text-blue-800' :
+                                  'bg-red-100 text-red-800'
+                                }
+                              >
+                                {att.status === 'hadir' ? 'Hadir' :
+                                 att.status === 'sakit' ? 'Sakit' :
+                                 att.status === 'izin' ? 'Izin' : 'Alfa'}
+                              </Badge>
+                            </TableCell>
+                            <TableCell className="text-muted-foreground">
+                              {formatDate(att.tanggal)}
+                            </TableCell>
+                            <TableCell className="text-muted-foreground">
+                              {att.keterangan || '-'}
+                            </TableCell>
+                            <TableCell>
+                              <div className="flex space-x-2">
+                                <Button
+                                  size="sm"
+                                  variant="outline"
+                                  onClick={() => handleEditAttendance(att)}
+                                >
+                                  <Edit className="h-4 w-4" />
+                                </Button>
+                                <Button
+                                  size="sm"
+                                  variant="outline"
+                                  onClick={() => handleDeleteAttendance(att.id)}
+                                  className="text-destructive hover:text-destructive"
+                                >
+                                  <Trash2 className="h-4 w-4" />
+                                </Button>
+                              </div>
+                            </TableCell>
+                          </TableRow>
+                        );
+                      })}
+                  </TableBody>
+                </Table>
+                {attendance.filter(att => att.subjectId === selectedSubjectForAttendance).length === 0 && (
+                  <div className="text-center py-8">
+                    <Calendar className="h-12 w-12 mx-auto mb-4 text-muted-foreground" />
+                    <p className="text-muted-foreground">Belum ada data kehadiran untuk mata pelajaran ini</p>
+                  </div>
+                )}
+              </div>
             </DialogContent>
           </Dialog>
 
@@ -682,12 +897,11 @@ const TeacherDashboard = ({ currentUser, onLogout }) => {
                 </div>
               )}
             </div>
-          </DialogContent>
-        </Dialog>
-        </div>
+           </DialogContent>
+         </Dialog>
 
-        {/* Student List Dialog */}
-        <Dialog open={showStudentListDialog} onOpenChange={setShowStudentListDialog}>
+         {/* Student List Dialog */}
+         <Dialog open={showStudentListDialog} onOpenChange={setShowStudentListDialog}>
           <DialogContent className="max-w-2xl">
             <DialogHeader>
               <DialogTitle>Daftar Siswa - Mata Pelajaran {selectedSubject}</DialogTitle>
@@ -746,7 +960,8 @@ const TeacherDashboard = ({ currentUser, onLogout }) => {
               )}
             </div>
           </DialogContent>
-        </Dialog>
+         </Dialog>
+        </div>
 
         {/* Stats Cards */}
         <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
@@ -841,6 +1056,12 @@ const TeacherDashboard = ({ currentUser, onLogout }) => {
                           <div className="flex justify-between items-center">
                             <span className="text-sm text-muted-foreground">Siswa:</span>
                             <Badge variant="outline">{students.length} siswa</Badge>
+                          </div>
+                          <div className="flex justify-between items-center">
+                            <span className="text-sm text-muted-foreground">Kehadiran:</span>
+                            <Badge variant="outline">
+                              {attendance.filter(att => att.subjectId === subject).length} record
+                            </Badge>
                           </div>
                           <div className="flex justify-between items-center">
                             <span className="text-sm text-muted-foreground">Status:</span>
