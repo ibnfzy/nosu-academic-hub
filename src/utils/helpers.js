@@ -10,20 +10,20 @@
  * @returns {string} - Tanggal terformat
  */
 export const formatDate = (date, includeTime = false) => {
-  if (!date) return '-';
-  
+  if (!date) return "-";
+
   const d = new Date(date);
   const options = {
-    year: 'numeric',
-    month: 'long',
-    day: 'numeric',
+    year: "numeric",
+    month: "long",
+    day: "numeric",
     ...(includeTime && {
-      hour: '2-digit',
-      minute: '2-digit'
-    })
+      hour: "2-digit",
+      minute: "2-digit",
+    }),
   };
-  
-  return d.toLocaleDateString('id-ID', options);
+
+  return d.toLocaleDateString("id-ID", options);
 };
 
 /**
@@ -33,13 +33,13 @@ export const formatDate = (date, includeTime = false) => {
  * @returns {string} - Nama terformat
  */
 export const formatName = (nama, maxLength = 20) => {
-  if (!nama) return '-';
-  
+  if (!nama) return "-";
+
   if (nama.length <= maxLength) return nama;
-  
-  const words = nama.split(' ');
-  if (words.length === 1) return nama.substring(0, maxLength) + '...';
-  
+
+  const words = nama.split(" ");
+  if (words.length === 1) return nama.substring(0, maxLength) + "...";
+
   const firstName = words[0];
   const lastInitial = words[words.length - 1].charAt(0);
   return `${firstName} ${lastInitial}.`;
@@ -52,7 +52,7 @@ export const formatName = (nama, maxLength = 20) => {
  */
 export const calculateAverage = (grades) => {
   if (!grades || grades.length === 0) return 0;
-  
+
   const total = grades.reduce((sum, grade) => sum + (grade.nilai || 0), 0);
   return Math.round((total / grades.length) * 100) / 100;
 };
@@ -66,15 +66,19 @@ export const calculateAttendanceStats = (attendance) => {
   if (!attendance || attendance.length === 0) {
     return { hadir: 0, sakit: 0, alfa: 0, izin: 0, total: 0, persentase: 0 };
   }
-  
-  const stats = attendance.reduce((acc, curr) => {
-    acc[curr.status] = (acc[curr.status] || 0) + 1;
-    acc.total++;
-    return acc;
-  }, { hadir: 0, sakit: 0, alfa: 0, izin: 0, total: 0 });
-  
-  stats.persentase = stats.total > 0 ? Math.round((stats.hadir / stats.total) * 100) : 0;
-  
+
+  const stats = attendance.reduce(
+    (acc, curr) => {
+      acc[curr.status] = (acc[curr.status] || 0) + 1;
+      acc.total++;
+      return acc;
+    },
+    { hadir: 0, sakit: 0, alfa: 0, izin: 0, total: 0 }
+  );
+
+  stats.persentase =
+    stats.total > 0 ? Math.round((stats.hadir / stats.total) * 100) : 0;
+
   return stats;
 };
 
@@ -84,11 +88,11 @@ export const calculateAttendanceStats = (attendance) => {
  * @returns {string} - Class warna CSS
  */
 export const getGradeColor = (nilai) => {
-  if (nilai >= 90) return 'text-success';
-  if (nilai >= 80) return 'text-accent';
-  if (nilai >= 70) return 'text-warning';
-  if (nilai >= 60) return 'text-primary';
-  return 'text-destructive';
+  if (nilai >= 90) return "text-success";
+  if (nilai >= 80) return "text-accent";
+  if (nilai >= 70) return "text-warning";
+  if (nilai >= 60) return "text-primary";
+  return "text-destructive";
 };
 
 /**
@@ -97,11 +101,11 @@ export const getGradeColor = (nilai) => {
  * @returns {string} - Predikat nilai
  */
 export const getGradePredicate = (nilai) => {
-  if (nilai >= 90) return 'A (Sangat Baik)';
-  if (nilai >= 80) return 'B (Baik)';
-  if (nilai >= 70) return 'C (Cukup)';
-  if (nilai >= 60) return 'D (Kurang)';
-  return 'E (Sangat Kurang)';
+  if (nilai >= 90) return "A (Sangat Baik)";
+  if (nilai >= 80) return "B (Baik)";
+  if (nilai >= 70) return "C (Cukup)";
+  if (nilai >= 60) return "D (Kurang)";
+  return "E (Sangat Kurang)";
 };
 
 /**
@@ -111,13 +115,23 @@ export const getGradePredicate = (nilai) => {
  */
 export const getAttendanceStatus = (status) => {
   const statusMap = {
-    hadir: { label: 'Hadir', color: 'text-success', bgColor: 'bg-success/10' },
-    sakit: { label: 'Sakit', color: 'text-warning', bgColor: 'bg-warning/10' },
-    alfa: { label: 'Alfa', color: 'text-destructive', bgColor: 'bg-destructive/10' },
-    izin: { label: 'Izin', color: 'text-primary', bgColor: 'bg-primary/10' }
+    hadir: { label: "Hadir", color: "text-success", bgColor: "bg-success/10" },
+    sakit: { label: "Sakit", color: "text-warning", bgColor: "bg-warning/10" },
+    alfa: {
+      label: "Alfa",
+      color: "text-destructive",
+      bgColor: "bg-destructive/10",
+    },
+    izin: { label: "Izin", color: "text-primary", bgColor: "bg-primary/10" },
   };
-  
-  return statusMap[status] || { label: 'Unknown', color: 'text-muted-foreground', bgColor: 'bg-muted' };
+
+  return (
+    statusMap[status] || {
+      label: "Unknown",
+      color: "text-muted-foreground",
+      bgColor: "bg-muted",
+    }
+  );
 };
 
 /**
@@ -155,10 +169,11 @@ export const validateNIP = (nip) => {
  */
 export const filterByAcademicPeriod = (data, tahunAjaran, semester) => {
   if (!data || !tahunAjaran) return [];
-  
-  return data.filter(item => 
-    item.tahunAjaran === tahunAjaran && 
-    (!semester || item.semester === semester)
+
+  return data.filter(
+    (item) =>
+      item.tahunAjaran === tahunAjaran &&
+      (!semester || item.semester === semester)
   );
 };
 
@@ -169,9 +184,9 @@ export const filterByAcademicPeriod = (data, tahunAjaran, semester) => {
  * @returns {string} - Format display
  */
 export const formatAcademicPeriod = (tahunAjaran, semester) => {
-  if (!tahunAjaran) return '-';
-  
-  const semesterText = semester === 1 ? 'Ganjil' : 'Genap';
+  if (!tahunAjaran) return "-";
+
+  const semesterText = semester === 1 ? "Ganjil" : "Genap";
   return `${tahunAjaran} - Semester ${semesterText}`;
 };
 
@@ -190,18 +205,22 @@ export const isGradeVerified = (grade) => {
  * @returns {string} - HTML raport
  */
 export const generateReportHTML = (reportData) => {
-  const { student, grades, attendance, tahunAjaran, semester } = reportData;
-  
-  if (!student) return '';
-  
+  const { student, grades, attendance, tahunAjaran, semester, walikelas } =
+    reportData;
+
+  if (!student) return "";
+
   const averageGrade = calculateAverage(grades);
   const attendanceStats = calculateAttendanceStats(attendance);
-  
+
   return `
     <!DOCTYPE html>
     <html>
     <head>
-      <title>Raport ${student.nama} - ${formatAcademicPeriod(tahunAjaran, semester)}</title>
+      <title>Raport ${student.nama} - ${formatAcademicPeriod(
+    tahunAjaran,
+    semester
+  )}</title>
       <style>
         @page { size: A4; margin: 20mm; }
         body { 
@@ -258,7 +277,16 @@ export const generateReportHTML = (reportData) => {
         .signature-space {
           height: 60px;
           border-bottom: 1px solid #333;
-          margin: 10px 0;
+          margin: 10px auto;
+          width: 90%;
+        }
+        .signature-block {
+          display: flex;
+          flex-direction: column;
+          align-items: center;
+        }
+        .text-white {
+          color: white;
         }
       </style>
     </head>
@@ -282,13 +310,13 @@ export const generateReportHTML = (reportData) => {
             <td><strong>Kelas</strong></td>
             <td>${student.kelasId}</td>
             <td><strong>Semester</strong></td>
-            <td>${semester} (${semester === 1 ? 'Ganjil' : 'Genap'})</td>
+            <td>${semester} (${semester === 1 ? "Ganjil" : "Genap"})</td>
           </tr>
           <tr>
             <td><strong>Tahun Ajaran</strong></td>
             <td>${tahunAjaran}</td>
             <td><strong>Wali Kelas</strong></td>
-            <td>-</td>
+            <td>${walikelas?.nama || "-"}</td>
           </tr>
         </table>
       </div>
@@ -306,43 +334,57 @@ export const generateReportHTML = (reportData) => {
           </tr>
         </thead>
         <tbody>
-          ${grades.map((grade, index) => `
+          ${grades
+            .map(
+              (grade, index) => `
             <tr>
               <td>${index + 1}</td>
-              <td style="text-align: left;">${grade.subjectName || 'Mata Pelajaran'}</td>
-              <td>${grade.jenis === 'Ulangan Harian' ? grade.nilai : '-'}</td>
-              <td>${grade.jenis === 'UTS' ? grade.nilai : '-'}</td>
-              <td>${grade.jenis === 'UAS' ? grade.nilai : '-'}</td>
+              <td style="text-align: left;">${
+                grade.subjectName || "Mata Pelajaran"
+              }</td>
+              <td>${grade.jenis === "Ulangan Harian" ? grade.nilai : "-"}</td>
+              <td>${grade.jenis === "UTS" ? grade.nilai : "-"}</td>
+              <td>${grade.jenis === "UAS" ? grade.nilai : "-"}</td>
               <td><strong>${grade.nilai}</strong></td>
               <td>${getGradePredicate(grade.nilai)}</td>
             </tr>
-          `).join('')}
+          `
+            )
+            .join("")}
         </tbody>
       </table>
       
       <div style="margin-bottom: 20px;">
-        <p><strong>Nilai Rata-rata:</strong> ${averageGrade} (${getGradePredicate(averageGrade)})</p>
-        <p><strong>Kehadiran:</strong> Hadir: ${attendanceStats.hadir}, Sakit: ${attendanceStats.sakit}, Alfa: ${attendanceStats.alfa}, Izin: ${attendanceStats.izin}</p>
-        <p><strong>Persentase Kehadiran:</strong> ${attendanceStats.persentase}%</p>
+        <p><strong>Nilai Rata-rata:</strong> ${averageGrade} (${getGradePredicate(
+    averageGrade
+  )})</p>
+        <p><strong>Kehadiran:</strong> Hadir: ${
+          attendanceStats.hadir
+        }, Sakit: ${attendanceStats.sakit}, Alfa: ${
+    attendanceStats.alfa
+  }, Izin: ${attendanceStats.izin}</p>
+        <p><strong>Persentase Kehadiran:</strong> ${
+          attendanceStats.persentase
+        }%</p>
       </div>
       
       <div class="footer">
-        <div>
-          <p>Mengetahui,</p>
-          <p><strong>Kepala Sekolah</strong></p>
+        <div class="signature-block">
+          <p>Mengetahui, <br> <strong>Kepala Sekolah</strong></p>
           <div class="signature-space"></div>
           <p>Drs. Kepala Sekolah</p>
           <p>NIP. 196001011985031001</p>
         </div>
-        <div>
-          <p>Wali Kelas</p>
+        <div class="signature-block">
+          <p><br>Wali Kelas</p>
           <div class="signature-space"></div>
-          <p>Nama Wali Kelas</p>
-          <p>NIP. -</p>
+          <p>${walikelas?.nama || "Nama Wali Kelas"}</p>
+          <p>NIP. ${walikelas?.nip || "-"}</p>
         </div>
-        <div>
-          <p>Nosu, ${formatDate(new Date())}</p>
-          <p><strong>Orang Tua/Wali</strong></p>
+        <div class="signature-block">
+          <p>Nosu, ${formatDate(
+            new Date()
+          )} <br> <strong>Orang Tua/Wali</strong></p>
           <div class="signature-space"></div>
           <p>(...........................)</p>
         </div>
@@ -358,12 +400,12 @@ export const generateReportHTML = (reportData) => {
  */
 export const printReport = (reportData) => {
   const htmlContent = generateReportHTML(reportData);
-  const printWindow = window.open('', '_blank');
-  
+  const printWindow = window.open("", "_blank");
+
   if (printWindow) {
     printWindow.document.write(htmlContent);
     printWindow.document.close();
-    
+
     printWindow.onload = () => {
       printWindow.print();
     };
