@@ -1,24 +1,31 @@
-import { useState, useEffect } from 'react';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { Button } from '@/components/ui/button';
-import { Badge } from '@/components/ui/badge';
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
-import { 
-  Dialog, 
-  DialogContent, 
-  DialogHeader, 
-  DialogTitle, 
-  DialogTrigger 
-} from '@/components/ui/dialog';
-import { Input } from '@/components/ui/input';
-import { Label } from '@/components/ui/label';
-import { 
-  Select, 
-  SelectContent, 
-  SelectItem, 
-  SelectTrigger, 
-  SelectValue 
-} from '@/components/ui/select';
+import { useState, useEffect } from "react";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Button } from "@/components/ui/button";
+import { Badge } from "@/components/ui/badge";
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from "@/components/ui/table";
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogTrigger,
+} from "@/components/ui/dialog";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 import {
   Users,
   CheckCircle,
@@ -32,13 +39,18 @@ import {
   Clock,
   FileText,
   Printer,
-  CheckSquare
-} from 'lucide-react';
-import { useToast } from '@/hooks/use-toast';
-import apiService from '@/services/apiService';
-import { formatDate, getGradeColor, getAttendanceStatus, printReport } from '@/utils/helpers';
-import { useIsMobile } from '@/hooks/use-mobile';
-import WalikelasNavbar from '@/components/WalikelasNavbar';
+  CheckSquare,
+} from "lucide-react";
+import { useToast } from "@/hooks/use-toast";
+import apiService from "@/services/apiService";
+import {
+  formatDate,
+  getGradeColor,
+  getAttendanceStatus,
+  printReport,
+} from "@/utils/helpers";
+import { useIsMobile } from "@/hooks/use-mobile";
+import WalikelasNavbar from "@/components/WalikelasNavbar";
 
 const WalikelasaDashboard = ({ currentUser, onLogout }) => {
   const [students, setStudents] = useState([]);
@@ -48,53 +60,69 @@ const WalikelasaDashboard = ({ currentUser, onLogout }) => {
   const [loading, setLoading] = useState(false);
   const [showStudentDialog, setShowStudentDialog] = useState(false);
   const [editingStudent, setEditingStudent] = useState(null);
-  const [searchTerm, setSearchTerm] = useState('');
-  const [activeSection, setActiveSection] = useState('students');
+  const [searchTerm, setSearchTerm] = useState("");
+  const [activeSection, setActiveSection] = useState("students");
   const [selectedPeriod, setSelectedPeriod] = useState({
-    tahun: '2024/2025',
-    semester: 1
+    tahun: "2024/2025",
+    semester: 1,
   });
-  
+
   const [studentForm, setStudentForm] = useState({
-    nama: '',
-    nisn: '',
-    username: '',
-    password: '',
-    email: '',
-    alamat: '',
-    tanggalLahir: ''
+    nama: "",
+    nisn: "",
+    username: "",
+    password: "",
+    email: "",
+    alamat: "",
+    tanggalLahir: "",
   });
 
   const { toast } = useToast();
   const isMobile = useIsMobile();
 
   const academicPeriods = [
-    { tahun: '2023/2024', semester: 1, label: '2023/2024 - Semester Ganjil' },
-    { tahun: '2023/2024', semester: 2, label: '2023/2024 - Semester Genap' },
-    { tahun: '2024/2025', semester: 1, label: '2024/2025 - Semester Ganjil (Aktif)' }
+    { tahun: "2023/2024", semester: 1, label: "2023/2024 - Semester Ganjil" },
+    { tahun: "2023/2024", semester: 2, label: "2023/2024 - Semester Genap" },
+    {
+      tahun: "2024/2025",
+      semester: 1,
+      label: "2024/2025 - Semester Ganjil (Aktif)",
+    },
   ];
 
   useEffect(() => {
     if (currentUser) {
       loadWalikelasData();
     }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [currentUser, selectedPeriod]);
 
   const loadWalikelasData = async () => {
     setLoading(true);
     try {
       // Load class info and students data
-      const [classesData, studentsData, gradesData, attendanceData] = await Promise.all([
-        apiService.getClasses(),
-        apiService.getClassStudents(currentUser.id),
-        apiService.getClassGrades(currentUser.id, selectedPeriod.tahun, selectedPeriod.semester),
-        apiService.getClassAttendance(currentUser.id, selectedPeriod.tahun, selectedPeriod.semester)
-      ]);
+      const [classesData, studentsData, gradesData, attendanceData] =
+        await Promise.all([
+          apiService.getClasses(),
+          apiService.getClassStudents(currentUser.id),
+          apiService.getClassGrades(
+            currentUser.id,
+            selectedPeriod.tahun,
+            selectedPeriod.semester
+          ),
+          apiService.getClassAttendance(
+            currentUser.id,
+            selectedPeriod.tahun,
+            selectedPeriod.semester
+          ),
+        ]);
 
       // Find current user's class
-      const currentClass = classesData.find(cls => cls.walikelas === currentUser.id);
+      const currentClass = classesData.find(
+        (cls) => cls.walikelas === currentUser.id
+      );
       setClassInfo(currentClass);
-      
+
       setStudents(studentsData);
       setGrades(gradesData);
       setAttendance(attendanceData);
@@ -102,7 +130,7 @@ const WalikelasaDashboard = ({ currentUser, onLogout }) => {
       toast({
         title: "Error",
         description: "Gagal memuat data wali kelas",
-        variant: "destructive"
+        variant: "destructive",
       });
     } finally {
       setLoading(false);
@@ -111,12 +139,12 @@ const WalikelasaDashboard = ({ currentUser, onLogout }) => {
 
   const handleStudentSubmit = async (e) => {
     e.preventDefault();
-    
+
     if (!studentForm.nama || !studentForm.nisn || !studentForm.username) {
       toast({
         title: "Error",
         description: "Mohon lengkapi field wajib",
-        variant: "destructive"
+        variant: "destructive",
       });
       return;
     }
@@ -125,43 +153,54 @@ const WalikelasaDashboard = ({ currentUser, onLogout }) => {
       const studentData = {
         ...studentForm,
         id: editingStudent ? editingStudent.id : Date.now().toString(),
-        role: 'siswa',
-        kelasId: currentUser.kelasId // Assuming walikelas has kelasId
+        role: "siswa",
+        kelasId: currentUser.kelasId, // Assuming walikelas has kelasId
       };
 
       let result;
       if (editingStudent) {
-        result = await apiService.updateClassStudent(currentUser.id, studentData.id, studentData);
+        result = await apiService.updateClassStudent(
+          currentUser.id,
+          studentData.id,
+          studentData
+        );
       } else {
         result = await apiService.addClassStudent(currentUser.id, studentData);
       }
-      
+
       if (result.success) {
         toast({
           title: "Berhasil",
-          description: `Siswa berhasil ${editingStudent ? 'diupdate' : 'ditambahkan'}`
+          description: `Siswa berhasil ${
+            editingStudent ? "diupdate" : "ditambahkan"
+          }`,
         });
-        
+
         resetStudentForm();
         loadWalikelasData();
       }
     } catch (error) {
       toast({
         title: "Error",
-        description: `Gagal ${editingStudent ? 'mengupdate' : 'menambahkan'} siswa`,
-        variant: "destructive"
+        description: `Gagal ${
+          editingStudent ? "mengupdate" : "menambahkan"
+        } siswa`,
+        variant: "destructive",
       });
     }
   };
 
   const handleDeleteStudent = async (studentId) => {
-    if (window.confirm('Apakah Anda yakin ingin menghapus siswa ini?')) {
+    if (window.confirm("Apakah Anda yakin ingin menghapus siswa ini?")) {
       try {
-        const result = await apiService.deleteClassStudent(currentUser.id, studentId);
+        const result = await apiService.deleteClassStudent(
+          currentUser.id,
+          studentId
+        );
         if (result.success) {
           toast({
             title: "Berhasil",
-            description: "Siswa berhasil dihapus"
+            description: "Siswa berhasil dihapus",
           });
           loadWalikelasData();
         }
@@ -169,7 +208,7 @@ const WalikelasaDashboard = ({ currentUser, onLogout }) => {
         toast({
           title: "Error",
           description: "Gagal menghapus siswa",
-          variant: "destructive"
+          variant: "destructive",
         });
       }
     }
@@ -181,7 +220,7 @@ const WalikelasaDashboard = ({ currentUser, onLogout }) => {
       if (result.success) {
         toast({
           title: "Berhasil",
-          description: "Nilai berhasil diverifikasi"
+          description: "Nilai berhasil diverifikasi",
         });
         loadWalikelasData();
       }
@@ -189,35 +228,39 @@ const WalikelasaDashboard = ({ currentUser, onLogout }) => {
       toast({
         title: "Error",
         description: "Gagal memverifikasi nilai",
-        variant: "destructive"
+        variant: "destructive",
       });
     }
   };
 
   const handleVerifyAll = async () => {
     if (unverifiedGrades.length === 0) return;
-    
-    if (window.confirm(`Apakah Anda yakin ingin memverifikasi semua ${unverifiedGrades.length} nilai yang belum diverifikasi?`)) {
+
+    if (
+      window.confirm(
+        `Apakah Anda yakin ingin memverifikasi semua ${unverifiedGrades.length} nilai yang belum diverifikasi?`
+      )
+    ) {
       setLoading(true);
       try {
         // Verify all unverified grades
-        const verifyPromises = unverifiedGrades.map(grade => 
+        const verifyPromises = unverifiedGrades.map((grade) =>
           apiService.verifyGrade(currentUser.id, grade.id)
         );
-        
+
         await Promise.all(verifyPromises);
-        
+
         toast({
           title: "Berhasil",
-          description: `${unverifiedGrades.length} nilai berhasil diverifikasi`
+          description: `${unverifiedGrades.length} nilai berhasil diverifikasi`,
         });
-        
+
         loadWalikelasData();
       } catch (error) {
         toast({
           title: "Error",
           description: "Gagal memverifikasi beberapa nilai",
-          variant: "destructive"
+          variant: "destructive",
         });
       } finally {
         setLoading(false);
@@ -227,13 +270,13 @@ const WalikelasaDashboard = ({ currentUser, onLogout }) => {
 
   const resetStudentForm = () => {
     setStudentForm({
-      nama: '',
-      nisn: '',
-      username: '',
-      password: '',
-      email: '',
-      alamat: '',
-      tanggalLahir: ''
+      nama: "",
+      nisn: "",
+      username: "",
+      password: "",
+      email: "",
+      alamat: "",
+      tanggalLahir: "",
     });
     setEditingStudent(null);
     setShowStudentDialog(false);
@@ -245,38 +288,48 @@ const WalikelasaDashboard = ({ currentUser, onLogout }) => {
     setShowStudentDialog(true);
   };
 
-  const filteredStudents = students.filter(student =>
-    student.nama?.toLowerCase().includes(searchTerm.toLowerCase()) ||
-    student.nisn?.toLowerCase().includes(searchTerm.toLowerCase())
+  const filteredStudents = students.filter(
+    (student) =>
+      student.nama?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      student.nisn?.toLowerCase().includes(searchTerm.toLowerCase())
   );
 
-  const unverifiedGrades = grades.filter(grade => !grade.verified);
+  const unverifiedGrades = grades.filter((grade) => !grade.verified);
   const totalAttendance = attendance.length;
-  const presentCount = attendance.filter(a => a.status === 'hadir').length;
-  const attendancePercentage = totalAttendance > 0 ? Math.round((presentCount / totalAttendance) * 100) : 0;
+  const presentCount = attendance.filter((a) => a.status === "hadir").length;
+  const attendancePercentage =
+    totalAttendance > 0
+      ? Math.round((presentCount / totalAttendance) * 100)
+      : 0;
 
   // Get students with verified grades for reports
-  const studentsWithVerifiedGrades = students.filter(student => {
-    const studentGrades = grades.filter(grade => 
-      grade.studentId === student.id && grade.verified
+  const studentsWithVerifiedGrades = students.filter((student) => {
+    const studentGrades = grades.filter(
+      (grade) => grade.studentId === student.id && grade.verified
     );
     return studentGrades.length > 0;
   });
 
   const handlePrintReport = (student) => {
-    const studentGrades = grades.filter(grade => 
-      grade.studentId === student.id && grade.verified
+    const studentGrades = grades.filter(
+      (grade) => grade.studentId === student.id && grade.verified
     );
-    const studentAttendance = attendance.filter(att => att.studentId === student.id);
-    
+    const studentAttendance = attendance.filter(
+      (att) => att.studentId === student.id
+    );
+
     const reportData = {
       student,
       grades: studentGrades,
       attendance: studentAttendance,
       tahunAjaran: selectedPeriod.tahun,
-      semester: selectedPeriod.semester
+      semester: selectedPeriod.semester,
+      walikelas: {
+        nama: currentUser?.nama || "-",
+        nip: currentUser?.nip || "-",
+      },
     };
-    
+
     printReport(reportData);
   };
 
@@ -291,18 +344,22 @@ const WalikelasaDashboard = ({ currentUser, onLogout }) => {
                 <GraduationCap className="h-6 w-6 md:h-8 md:w-8" />
               </div>
               <div>
-                <h1 className="text-xl md:text-2xl font-bold">Dashboard Wali Kelas</h1>
-                <p className="opacity-90 text-sm md:text-base">Selamat datang, {currentUser?.nama}</p>
+                <h1 className="text-xl md:text-2xl font-bold">
+                  Dashboard Wali Kelas
+                </h1>
+                <p className="opacity-90 text-sm md:text-base">
+                  Selamat datang, {currentUser?.nama}
+                </p>
               </div>
             </div>
-            
+
             {/* Class Information */}
             {classInfo && (
               <div className="bg-white/10 backdrop-blur-sm rounded-lg px-4 py-3 border border-white/20">
                 <div className="text-center md:text-right">
                   <h2 className="text-lg font-semibold">{classInfo.nama}</h2>
                   <p className="text-sm opacity-90">
-                    Tingkat {classInfo.tingkat} - {classInfo.jurusan || 'Umum'}
+                    Tingkat {classInfo.tingkat} - {classInfo.jurusan || "Umum"}
                   </p>
                   <p className="text-xs opacity-75 mt-1">
                     Total Siswa: {students.length} orang
@@ -315,7 +372,7 @@ const WalikelasaDashboard = ({ currentUser, onLogout }) => {
       </div>
 
       {/* Navigation */}
-      <WalikelasNavbar 
+      <WalikelasNavbar
         activeSection={activeSection}
         setActiveSection={setActiveSection}
         onLogout={onLogout}
@@ -327,15 +384,17 @@ const WalikelasaDashboard = ({ currentUser, onLogout }) => {
           <CardContent className="p-4">
             <div className="flex flex-col md:flex-row justify-between items-start md:items-center space-y-4 md:space-y-0">
               <div>
-                <h3 className="font-semibold text-foreground">Filter Periode Akademik</h3>
+                <h3 className="font-semibold text-foreground">
+                  Filter Periode Akademik
+                </h3>
                 <p className="text-sm text-muted-foreground">
                   Pilih tahun ajaran dan semester yang ingin dilihat
                 </p>
               </div>
-              <Select 
+              <Select
                 value={`${selectedPeriod.tahun}-${selectedPeriod.semester}`}
                 onValueChange={(value) => {
-                  const [tahun, semester] = value.split('-');
+                  const [tahun, semester] = value.split("-");
                   setSelectedPeriod({ tahun, semester: parseInt(semester) });
                 }}
               >
@@ -344,7 +403,7 @@ const WalikelasaDashboard = ({ currentUser, onLogout }) => {
                 </SelectTrigger>
                 <SelectContent>
                   {academicPeriods.map((period) => (
-                    <SelectItem 
+                    <SelectItem
                       key={`${period.tahun}-${period.semester}`}
                       value={`${period.tahun}-${period.semester}`}
                     >
@@ -366,8 +425,12 @@ const WalikelasaDashboard = ({ currentUser, onLogout }) => {
                   <Users className="h-5 w-5 md:h-8 md:w-8 text-primary" />
                 </div>
                 <div>
-                  <p className="text-lg md:text-2xl font-bold text-foreground">{students.length}</p>
-                  <p className="text-xs md:text-sm text-muted-foreground">Total Siswa</p>
+                  <p className="text-lg md:text-2xl font-bold text-foreground">
+                    {students.length}
+                  </p>
+                  <p className="text-xs md:text-sm text-muted-foreground">
+                    Total Siswa
+                  </p>
                 </div>
               </div>
             </CardContent>
@@ -380,8 +443,12 @@ const WalikelasaDashboard = ({ currentUser, onLogout }) => {
                   <CheckCircle className="h-5 w-5 md:h-8 md:w-8 text-warning" />
                 </div>
                 <div>
-                  <p className="text-lg md:text-2xl font-bold text-foreground">{unverifiedGrades.length}</p>
-                  <p className="text-xs md:text-sm text-muted-foreground">Nilai Belum Verifikasi</p>
+                  <p className="text-lg md:text-2xl font-bold text-foreground">
+                    {unverifiedGrades.length}
+                  </p>
+                  <p className="text-xs md:text-sm text-muted-foreground">
+                    Nilai Belum Verifikasi
+                  </p>
                 </div>
               </div>
             </CardContent>
@@ -394,8 +461,12 @@ const WalikelasaDashboard = ({ currentUser, onLogout }) => {
                   <BarChart3 className="h-5 w-5 md:h-8 md:w-8 text-success" />
                 </div>
                 <div>
-                  <p className="text-lg md:text-2xl font-bold text-foreground">{attendancePercentage}%</p>
-                  <p className="text-xs md:text-sm text-muted-foreground">Kehadiran Rata-rata</p>
+                  <p className="text-lg md:text-2xl font-bold text-foreground">
+                    {attendancePercentage}%
+                  </p>
+                  <p className="text-xs md:text-sm text-muted-foreground">
+                    Kehadiran Rata-rata
+                  </p>
                 </div>
               </div>
             </CardContent>
@@ -408,8 +479,12 @@ const WalikelasaDashboard = ({ currentUser, onLogout }) => {
                   <Calendar className="h-5 w-5 md:h-8 md:w-8 text-accent" />
                 </div>
                 <div>
-                  <p className="text-lg md:text-2xl font-bold text-foreground">{grades.length}</p>
-                  <p className="text-xs md:text-sm text-muted-foreground">Total Nilai</p>
+                  <p className="text-lg md:text-2xl font-bold text-foreground">
+                    {grades.length}
+                  </p>
+                  <p className="text-xs md:text-sm text-muted-foreground">
+                    Total Nilai
+                  </p>
                 </div>
               </div>
             </CardContent>
@@ -419,14 +494,17 @@ const WalikelasaDashboard = ({ currentUser, onLogout }) => {
         {/* Main Content */}
         <div className="space-y-6">
           {/* Students Management Section */}
-          {activeSection === 'students' && (
+          {activeSection === "students" && (
             <Card className="shadow-soft">
               <CardHeader>
                 <div className="flex flex-col md:flex-row justify-between items-start md:items-center space-y-4 md:space-y-0">
                   <CardTitle>Manajemen Siswa Kelas</CardTitle>
-                  <Dialog open={showStudentDialog} onOpenChange={setShowStudentDialog}>
+                  <Dialog
+                    open={showStudentDialog}
+                    onOpenChange={setShowStudentDialog}
+                  >
                     <DialogTrigger asChild>
-                      <Button 
+                      <Button
                         className="bg-primary text-primary-foreground w-full md:w-auto"
                         onClick={() => setEditingStudent(null)}
                       >
@@ -437,26 +515,39 @@ const WalikelasaDashboard = ({ currentUser, onLogout }) => {
                     <DialogContent className="max-w-md mx-4 md:max-w-lg">
                       <DialogHeader>
                         <DialogTitle>
-                          {editingStudent ? 'Edit Siswa' : 'Tambah Siswa Baru'}
+                          {editingStudent ? "Edit Siswa" : "Tambah Siswa Baru"}
                         </DialogTitle>
                       </DialogHeader>
-                      <form onSubmit={handleStudentSubmit} className="space-y-4">
+                      <form
+                        onSubmit={handleStudentSubmit}
+                        className="space-y-4"
+                      >
                         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                           <div className="space-y-2">
                             <Label>Nama Lengkap</Label>
                             <Input
                               value={studentForm.nama}
-                              onChange={(e) => setStudentForm(prev => ({ ...prev, nama: e.target.value }))}
+                              onChange={(e) =>
+                                setStudentForm((prev) => ({
+                                  ...prev,
+                                  nama: e.target.value,
+                                }))
+                              }
                               placeholder="Nama Lengkap"
                               required
                             />
                           </div>
-                          
+
                           <div className="space-y-2">
                             <Label>NISN</Label>
                             <Input
                               value={studentForm.nisn}
-                              onChange={(e) => setStudentForm(prev => ({ ...prev, nisn: e.target.value }))}
+                              onChange={(e) =>
+                                setStudentForm((prev) => ({
+                                  ...prev,
+                                  nisn: e.target.value,
+                                }))
+                              }
                               placeholder="Nomor NISN"
                               required
                             />
@@ -468,19 +559,29 @@ const WalikelasaDashboard = ({ currentUser, onLogout }) => {
                             <Label>Username</Label>
                             <Input
                               value={studentForm.username}
-                              onChange={(e) => setStudentForm(prev => ({ ...prev, username: e.target.value }))}
+                              onChange={(e) =>
+                                setStudentForm((prev) => ({
+                                  ...prev,
+                                  username: e.target.value,
+                                }))
+                              }
                               placeholder="Username"
                               required
                             />
                           </div>
-                          
+
                           {!editingStudent && (
                             <div className="space-y-2">
                               <Label>Password</Label>
                               <Input
                                 type="password"
                                 value={studentForm.password}
-                                onChange={(e) => setStudentForm(prev => ({ ...prev, password: e.target.value }))}
+                                onChange={(e) =>
+                                  setStudentForm((prev) => ({
+                                    ...prev,
+                                    password: e.target.value,
+                                  }))
+                                }
                                 placeholder="Password"
                                 required={!editingStudent}
                               />
@@ -493,7 +594,12 @@ const WalikelasaDashboard = ({ currentUser, onLogout }) => {
                           <Input
                             type="email"
                             value={studentForm.email}
-                            onChange={(e) => setStudentForm(prev => ({ ...prev, email: e.target.value }))}
+                            onChange={(e) =>
+                              setStudentForm((prev) => ({
+                                ...prev,
+                                email: e.target.value,
+                              }))
+                            }
                             placeholder="email@example.com"
                           />
                         </div>
@@ -503,7 +609,12 @@ const WalikelasaDashboard = ({ currentUser, onLogout }) => {
                           <Input
                             type="date"
                             value={studentForm.tanggalLahir}
-                            onChange={(e) => setStudentForm(prev => ({ ...prev, tanggalLahir: e.target.value }))}
+                            onChange={(e) =>
+                              setStudentForm((prev) => ({
+                                ...prev,
+                                tanggalLahir: e.target.value,
+                              }))
+                            }
                           />
                         </div>
 
@@ -511,18 +622,23 @@ const WalikelasaDashboard = ({ currentUser, onLogout }) => {
                           <Label>Alamat</Label>
                           <Input
                             value={studentForm.alamat}
-                            onChange={(e) => setStudentForm(prev => ({ ...prev, alamat: e.target.value }))}
+                            onChange={(e) =>
+                              setStudentForm((prev) => ({
+                                ...prev,
+                                alamat: e.target.value,
+                              }))
+                            }
                             placeholder="Alamat lengkap"
                           />
                         </div>
 
                         <div className="flex flex-col md:flex-row gap-2">
                           <Button type="submit" className="flex-1">
-                            {editingStudent ? 'Update' : 'Simpan'}
+                            {editingStudent ? "Update" : "Simpan"}
                           </Button>
-                          <Button 
-                            type="button" 
-                            variant="outline" 
+                          <Button
+                            type="button"
+                            variant="outline"
                             className="flex-1"
                             onClick={resetStudentForm}
                           >
@@ -563,10 +679,20 @@ const WalikelasaDashboard = ({ currentUser, onLogout }) => {
                     <TableBody>
                       {filteredStudents.map((student) => (
                         <TableRow key={student.id}>
-                          <TableCell className="font-medium">{student.nama}</TableCell>
+                          <TableCell className="font-medium">
+                            {student.nama}
+                          </TableCell>
                           <TableCell>{student.nisn}</TableCell>
-                          {!isMobile && <TableCell className="text-muted-foreground">{student.username}</TableCell>}
-                          {!isMobile && <TableCell className="text-muted-foreground">{student.email || '-'}</TableCell>}
+                          {!isMobile && (
+                            <TableCell className="text-muted-foreground">
+                              {student.username}
+                            </TableCell>
+                          )}
+                          {!isMobile && (
+                            <TableCell className="text-muted-foreground">
+                              {student.email || "-"}
+                            </TableCell>
+                          )}
                           <TableCell>
                             <div className="flex space-x-2">
                               <Button
@@ -595,7 +721,7 @@ const WalikelasaDashboard = ({ currentUser, onLogout }) => {
           )}
 
           {/* Grades Verification Section */}
-          {activeSection === 'grades' && (
+          {activeSection === "grades" && (
             <Card className="shadow-soft">
               <CardHeader>
                 <div className="flex flex-col md:flex-row justify-between items-start md:items-center space-y-4 md:space-y-0">
@@ -616,18 +742,21 @@ const WalikelasaDashboard = ({ currentUser, onLogout }) => {
                 {loading ? (
                   <div className="text-center py-8">
                     <Clock className="h-8 w-8 animate-spin mx-auto mb-4 text-muted-foreground" />
-                    <p className="text-muted-foreground">Memuat data nilai...</p>
+                    <p className="text-muted-foreground">
+                      Memuat data nilai...
+                    </p>
                   </div>
                 ) : unverifiedGrades.length > 0 ? (
                   <div className="space-y-4">
                     {unverifiedGrades.map((grade) => (
-                      <div 
+                      <div
                         key={grade.id}
                         className="flex flex-col md:flex-row justify-between items-start md:items-center p-4 border border-border rounded-lg space-y-4 md:space-y-0"
                       >
                         <div className="flex-1">
                           <h4 className="font-medium text-foreground">
-                            {students.find(s => s.id === grade.studentId)?.nama || 'Siswa'}
+                            {students.find((s) => s.id === grade.studentId)
+                              ?.nama || "Siswa"}
                           </h4>
                           <div className="flex flex-wrap items-center gap-2 mt-1">
                             <Badge variant="outline" className="text-xs">
@@ -643,7 +772,11 @@ const WalikelasaDashboard = ({ currentUser, onLogout }) => {
                         </div>
                         <div className="flex items-center space-x-4">
                           <div className="text-right">
-                            <p className={`text-xl font-bold ${getGradeColor(grade.nilai)}`}>
+                            <p
+                              className={`text-xl font-bold ${getGradeColor(
+                                grade.nilai
+                              )}`}
+                            >
                               {grade.nilai}
                             </p>
                           </div>
@@ -662,7 +795,9 @@ const WalikelasaDashboard = ({ currentUser, onLogout }) => {
                 ) : (
                   <div className="text-center py-8">
                     <CheckCircle className="h-12 w-12 mx-auto mb-4 text-muted-foreground" />
-                    <p className="text-muted-foreground">Semua nilai sudah diverifikasi</p>
+                    <p className="text-muted-foreground">
+                      Semua nilai sudah diverifikasi
+                    </p>
                   </div>
                 )}
               </CardContent>
@@ -670,7 +805,7 @@ const WalikelasaDashboard = ({ currentUser, onLogout }) => {
           )}
 
           {/* Attendance Section */}
-          {activeSection === 'attendance' && (
+          {activeSection === "attendance" && (
             <Card className="shadow-soft">
               <CardHeader>
                 <CardTitle>Kehadiran Kelas</CardTitle>
@@ -680,15 +815,17 @@ const WalikelasaDashboard = ({ currentUser, onLogout }) => {
                   <div className="space-y-4">
                     {attendance.map((record) => {
                       const status = getAttendanceStatus(record.status);
-                      const student = students.find(s => s.id === record.studentId);
+                      const student = students.find(
+                        (s) => s.id === record.studentId
+                      );
                       return (
-                        <div 
+                        <div
                           key={record.id}
                           className="flex flex-col md:flex-row justify-between items-start md:items-center p-4 border border-border rounded-lg space-y-2 md:space-y-0"
                         >
                           <div className="flex-1">
                             <h4 className="font-medium text-foreground">
-                              {student?.nama || 'Siswa'}
+                              {student?.nama || "Siswa"}
                             </h4>
                             <div className="flex flex-wrap items-center gap-2 mt-1">
                               <Badge variant="outline" className="text-xs">
@@ -704,7 +841,9 @@ const WalikelasaDashboard = ({ currentUser, onLogout }) => {
                               </p>
                             )}
                           </div>
-                          <Badge className={`${status.bgColor} ${status.color}`}>
+                          <Badge
+                            className={`${status.bgColor} ${status.color}`}
+                          >
                             {status.label}
                           </Badge>
                         </div>
@@ -714,7 +853,9 @@ const WalikelasaDashboard = ({ currentUser, onLogout }) => {
                 ) : (
                   <div className="text-center py-8">
                     <Calendar className="h-12 w-12 mx-auto mb-4 text-muted-foreground" />
-                    <p className="text-muted-foreground">Belum ada data kehadiran</p>
+                    <p className="text-muted-foreground">
+                      Belum ada data kehadiran
+                    </p>
                   </div>
                 )}
               </CardContent>
@@ -722,13 +863,16 @@ const WalikelasaDashboard = ({ currentUser, onLogout }) => {
           )}
 
           {/* Reports Section */}
-          {activeSection === 'reports' && (
+          {activeSection === "reports" && (
             <Card className="shadow-soft">
               <CardHeader>
                 <div className="flex flex-col md:flex-row justify-between items-start md:items-center space-y-4 md:space-y-0">
                   <CardTitle>Laporan Raport Siswa</CardTitle>
                   <div className="text-sm text-muted-foreground">
-                    <span className="font-medium">{studentsWithVerifiedGrades.length}</span> siswa siap cetak raport
+                    <span className="font-medium">
+                      {studentsWithVerifiedGrades.length}
+                    </span>{" "}
+                    siswa siap cetak raport
                   </div>
                 </div>
               </CardHeader>
@@ -736,16 +880,23 @@ const WalikelasaDashboard = ({ currentUser, onLogout }) => {
                 {studentsWithVerifiedGrades.length > 0 ? (
                   <div className="space-y-4">
                     {studentsWithVerifiedGrades.map((student) => {
-                      const studentGrades = grades.filter(grade => 
-                        grade.studentId === student.id && grade.verified
+                      const studentGrades = grades.filter(
+                        (grade) =>
+                          grade.studentId === student.id && grade.verified
                       );
                       const verifiedSubjects = studentGrades.length;
-                      const averageGrade = studentGrades.length > 0 
-                        ? (studentGrades.reduce((sum, grade) => sum + parseFloat(grade.nilai), 0) / studentGrades.length).toFixed(1)
-                        : 0;
-                      
+                      const averageGrade =
+                        studentGrades.length > 0
+                          ? (
+                              studentGrades.reduce(
+                                (sum, grade) => sum + parseFloat(grade.nilai),
+                                0
+                              ) / studentGrades.length
+                            ).toFixed(1)
+                          : 0;
+
                       return (
-                        <div 
+                        <div
                           key={student.id}
                           className="flex flex-col md:flex-row justify-between items-start md:items-center p-4 border border-border rounded-lg space-y-3 md:space-y-0"
                         >
@@ -771,11 +922,12 @@ const WalikelasaDashboard = ({ currentUser, onLogout }) => {
                                 Rata-rata: {averageGrade}
                               </Badge>
                               <span className="text-xs text-muted-foreground">
-                                Periode: {selectedPeriod.tahun} - Semester {selectedPeriod.semester}
+                                Periode: {selectedPeriod.tahun} - Semester{" "}
+                                {selectedPeriod.semester}
                               </span>
                             </div>
                           </div>
-                          
+
                           <div className="flex items-center space-x-2">
                             <Button
                               variant="outline"
@@ -794,9 +946,12 @@ const WalikelasaDashboard = ({ currentUser, onLogout }) => {
                 ) : (
                   <div className="text-center py-8">
                     <FileText className="h-12 w-12 mx-auto mb-4 text-muted-foreground" />
-                    <p className="text-muted-foreground font-medium mb-2">Belum Ada Siswa dengan Nilai Terverifikasi</p>
+                    <p className="text-muted-foreground font-medium mb-2">
+                      Belum Ada Siswa dengan Nilai Terverifikasi
+                    </p>
                     <p className="text-sm text-muted-foreground">
-                      Verifikasi nilai siswa terlebih dahulu untuk dapat mencetak raport
+                      Verifikasi nilai siswa terlebih dahulu untuk dapat
+                      mencetak raport
                     </p>
                   </div>
                 )}
