@@ -29,14 +29,46 @@ const STORAGE_KEYS = {
 // Generic API/localStorage abstraction
 const apiService = {
   // ============= AUTHENTICATION =============
+  getToken() {
+    const user = this.getCurrentUser();
+    return user?.token || null;
+  },
+
+  async authFetch(url, options = {}) {
+    const token = this.getToken();
+    const headers = {
+      ...(options.headers || {}),
+      "Content-Type": "application/json",
+    };
+    if (token) headers["Authorization"] = `Bearer ${token}`;
+
+    const response = await fetch(url, { ...options, headers });
+    if (response.status === 401) {
+      // Token invalid/expired → logout otomatis
+      this.logout();
+      throw new Error("Unauthorized. Please login again.");
+    }
+    return response.json();
+  },
+
   async login(username, password, role) {
     if (USE_API) {
-      const response = await fetch(`${API_BASE_URL}/auth/login`, {
+      const response = await authFetch(`${API_BASE_URL}/auth/login`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ username, password, role }),
       });
-      return await response.json();
+      const data = await response.json();
+
+      if (data.success && data.token) {
+        // Simpan user info + token
+        localStorage.setItem(
+          STORAGE_KEYS.CURRENT_USER,
+          JSON.stringify({ ...data.user, token: data.token })
+        );
+      }
+
+      return data;
     } else {
       // LocalStorage implementation
       const users = JSON.parse(
@@ -62,7 +94,7 @@ const apiService = {
 
   async logout() {
     if (USE_API) {
-      await fetch(`${API_BASE_URL}/auth/logout`, { method: "POST" });
+      await authFetch(`${API_BASE_URL}/auth/logout`, { method: "POST" });
     }
     localStorage.removeItem(STORAGE_KEYS.CURRENT_USER);
     return { success: true };
@@ -77,7 +109,7 @@ const apiService = {
   // ============= SISWA ENDPOINTS =============
   async getStudentGrades(studentId, tahun, semester) {
     if (USE_API) {
-      const response = await fetch(
+      const response = await authFetch(
         `${API_BASE_URL}/siswa/${studentId}/nilai?tahun=${tahun}&semester=${semester}`
       );
       return await response.json();
@@ -96,7 +128,7 @@ const apiService = {
 
   async getStudentAttendance(studentId, tahun, semester) {
     if (USE_API) {
-      const response = await fetch(
+      const response = await authFetch(
         `${API_BASE_URL}/siswa/${studentId}/kehadiran?tahun=${tahun}&semester=${semester}`
       );
       return await response.json();
@@ -115,7 +147,7 @@ const apiService = {
 
   async getStudentReport(studentId, tahun, semester) {
     if (USE_API) {
-      const response = await fetch(
+      const response = await authFetch(
         `${API_BASE_URL}/siswa/${studentId}/raport?tahun=${tahun}&semester=${semester}`
       );
       return await response.json();
@@ -171,7 +203,7 @@ const apiService = {
   // ============= GURU ENDPOINTS =============
   async getTeacherSubjects(teacherId) {
     if (USE_API) {
-      const response = await fetch(
+      const response = await authFetch(
         `${API_BASE_URL}/guru/${teacherId}/matapelajaran`
       );
       return await response.json();
@@ -186,11 +218,14 @@ const apiService = {
 
   async addGrade(teacherId, gradeData) {
     if (USE_API) {
-      const response = await fetch(`${API_BASE_URL}/guru/${teacherId}/nilai`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(gradeData),
-      });
+      const response = await authFetch(
+        `${API_BASE_URL}/guru/${teacherId}/nilai`,
+        {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify(gradeData),
+        }
+      );
       return await response.json();
     } else {
       const grades = JSON.parse(
@@ -209,7 +244,7 @@ const apiService = {
 
   async addAttendance(teacherId, attendanceData) {
     if (USE_API) {
-      const response = await fetch(
+      const response = await authFetch(
         `${API_BASE_URL}/guru/${teacherId}/kehadiran`,
         {
           method: "POST",
@@ -236,7 +271,7 @@ const apiService = {
   // ============= ADMIN ENDPOINTS =============
   async getUsers() {
     if (USE_API) {
-      const response = await fetch(`${API_BASE_URL}/admin/users`);
+      const response = await authFetch(`${API_BASE_URL}/admin/users`);
       return await response.json();
     } else {
       const users = JSON.parse(
@@ -248,7 +283,7 @@ const apiService = {
 
   async createUser(userData) {
     if (USE_API) {
-      const response = await fetch(`${API_BASE_URL}/admin/users`, {
+      const response = await authFetch(`${API_BASE_URL}/admin/users`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify(userData),
@@ -271,11 +306,14 @@ const apiService = {
 
   async updateUser(userId, userData) {
     if (USE_API) {
-      const response = await fetch(`${API_BASE_URL}/admin/users/${userId}`, {
-        method: "PUT",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(userData),
-      });
+      const response = await authFetch(
+        `${API_BASE_URL}/admin/users/${userId}`,
+        {
+          method: "PUT",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify(userData),
+        }
+      );
       return await response.json();
     } else {
       const users = JSON.parse(
@@ -301,9 +339,12 @@ const apiService = {
 
   async deleteUser(userId) {
     if (USE_API) {
-      const response = await fetch(`${API_BASE_URL}/admin/users/${userId}`, {
-        method: "DELETE",
-      });
+      const response = await authFetch(
+        `${API_BASE_URL}/admin/users/${userId}`,
+        {
+          method: "DELETE",
+        }
+      );
       return await response.json();
     } else {
       const users = JSON.parse(
@@ -323,7 +364,7 @@ const apiService = {
 
   async getSubjects() {
     if (USE_API) {
-      const response = await fetch(`${API_BASE_URL}/admin/matapelajaran`);
+      const response = await authFetch(`${API_BASE_URL}/admin/matapelajaran`);
       return await response.json();
     } else {
       const subjects = JSON.parse(
@@ -335,7 +376,7 @@ const apiService = {
 
   async addSubject(subjectData) {
     if (USE_API) {
-      const response = await fetch(`${API_BASE_URL}/admin/matapelajaran`, {
+      const response = await authFetch(`${API_BASE_URL}/admin/matapelajaran`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify(subjectData),
@@ -358,7 +399,7 @@ const apiService = {
 
   async updateSubject(subjectId, subjectData) {
     if (USE_API) {
-      const response = await fetch(
+      const response = await authFetch(
         `${API_BASE_URL}/admin/matapelajaran/${subjectId}`,
         {
           method: "PUT",
@@ -388,7 +429,7 @@ const apiService = {
 
   async deleteSubject(subjectId) {
     if (USE_API) {
-      const response = await fetch(
+      const response = await authFetch(
         `${API_BASE_URL}/admin/matapelajaran/${subjectId}`,
         {
           method: "DELETE",
@@ -410,7 +451,7 @@ const apiService = {
 
   async getClasses() {
     if (USE_API) {
-      const response = await fetch(`${API_BASE_URL}/admin/kelas`);
+      const response = await authFetch(`${API_BASE_URL}/admin/kelas`);
       return await response.json();
     } else {
       const classes = JSON.parse(
@@ -422,7 +463,7 @@ const apiService = {
 
   async addClass(classData) {
     if (USE_API) {
-      const response = await fetch(`${API_BASE_URL}/admin/kelas`, {
+      const response = await authFetch(`${API_BASE_URL}/admin/kelas`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify(classData),
@@ -445,11 +486,14 @@ const apiService = {
 
   async updateClass(classId, classData) {
     if (USE_API) {
-      const response = await fetch(`${API_BASE_URL}/admin/kelas/${classId}`, {
-        method: "PUT",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(classData),
-      });
+      const response = await authFetch(
+        `${API_BASE_URL}/admin/kelas/${classId}`,
+        {
+          method: "PUT",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify(classData),
+        }
+      );
       return await response.json();
     } else {
       const classes = JSON.parse(
@@ -472,9 +516,12 @@ const apiService = {
 
   async deleteClass(classId) {
     if (USE_API) {
-      const response = await fetch(`${API_BASE_URL}/admin/kelas/${classId}`, {
-        method: "DELETE",
-      });
+      const response = await authFetch(
+        `${API_BASE_URL}/admin/kelas/${classId}`,
+        {
+          method: "DELETE",
+        }
+      );
       return await response.json();
     } else {
       const classes = JSON.parse(
@@ -492,7 +539,7 @@ const apiService = {
   // ============= WALIKELAS METHODS =============
   async getClassStudents(walikelasId) {
     if (USE_API) {
-      const response = await fetch(
+      const response = await authFetch(
         `${API_BASE_URL}/walikelas/${walikelasId}/kelas/siswa`
       );
       return await response.json();
@@ -506,7 +553,7 @@ const apiService = {
 
   async getClassGrades(walikelasId, tahun, semester) {
     if (USE_API) {
-      const response = await fetch(
+      const response = await authFetch(
         `${API_BASE_URL}/walikelas/${walikelasId}/kelas/nilai?tahun=${tahun}&semester=${semester}`
       );
       return await response.json();
@@ -522,7 +569,7 @@ const apiService = {
 
   async getClassAttendance(walikelasId, tahun, semester) {
     if (USE_API) {
-      const response = await fetch(
+      const response = await authFetch(
         `${API_BASE_URL}/walikelas/${walikelasId}/kelas/kehadiran?tahun=${tahun}&semester=${semester}`
       );
       return await response.json();
@@ -538,7 +585,7 @@ const apiService = {
 
   async addClassStudent(walikelasId, studentData) {
     if (USE_API) {
-      const response = await fetch(
+      const response = await authFetch(
         `${API_BASE_URL}/walikelas/${walikelasId}/kelas/siswa`,
         {
           method: "POST",
@@ -572,7 +619,7 @@ const apiService = {
 
   async updateClassStudent(walikelasId, studentId, studentData) {
     if (USE_API) {
-      const response = await fetch(
+      const response = await authFetch(
         `${API_BASE_URL}/walikelas/${walikelasId}/kelas/siswa/${studentId}`,
         {
           method: "PUT",
@@ -619,7 +666,7 @@ const apiService = {
 
   async deleteClassStudent(walikelasId, studentId) {
     if (USE_API) {
-      const response = await fetch(
+      const response = await authFetch(
         `${API_BASE_URL}/walikelas/${walikelasId}/kelas/siswa/${studentId}`,
         {
           method: "DELETE",
@@ -649,7 +696,7 @@ const apiService = {
 
   async verifyGrade(walikelasId, gradeId) {
     if (USE_API) {
-      const response = await fetch(
+      const response = await authFetch(
         `${API_BASE_URL}/walikelas/${walikelasId}/verifikasi/${gradeId}`,
         {
           method: "PUT",
