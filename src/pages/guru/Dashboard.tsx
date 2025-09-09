@@ -48,6 +48,7 @@ const TeacherDashboard = ({ currentUser, onLogout }) => {
   const [subjects, setSubjects] = useState([]);
   const [students, setStudents] = useState([]);
   const [grades, setGrades] = useState([]);
+  const [attendance, setAttendance] = useState([]);
   const [loading, setLoading] = useState(false);
   const [showGradeDialog, setShowGradeDialog] = useState(false);
   const [showAttendanceDialog, setShowAttendanceDialog] = useState(false);
@@ -59,6 +60,7 @@ const TeacherDashboard = ({ currentUser, onLogout }) => {
   const [selectedSubjectForAttendance, setSelectedSubjectForAttendance] = useState('');
   const [editingGrade, setEditingGrade] = useState(null);
   const [editingAttendance, setEditingAttendance] = useState(null);
+  
   const [gradeForm, setGradeForm] = useState({
     studentId: '',
     subjectId: '',
@@ -66,6 +68,7 @@ const TeacherDashboard = ({ currentUser, onLogout }) => {
     nilai: '',
     tanggal: new Date().toISOString().split('T')[0]
   });
+  
   const [attendanceForm, setAttendanceForm] = useState({
     studentId: '',
     subjectId: '',
@@ -73,7 +76,7 @@ const TeacherDashboard = ({ currentUser, onLogout }) => {
     keterangan: '',
     tanggal: new Date().toISOString().split('T')[0]
   });
-  const [attendance, setAttendance] = useState([]);
+  
   const { toast } = useToast();
 
   const gradeTypes = ['Ulangan Harian', 'UTS', 'UAS', 'Kuis', 'Tugas'];
@@ -91,7 +94,6 @@ const TeacherDashboard = ({ currentUser, onLogout }) => {
   }, [currentUser]);
 
   useEffect(() => {
-    // Reload grades when students data is loaded
     if (students.length > 0 && subjects.length > 0) {
       loadGradesData();
       loadAttendanceData();
@@ -101,22 +103,19 @@ const TeacherDashboard = ({ currentUser, onLogout }) => {
   const loadTeacherData = async () => {
     setLoading(true);
     try {
-      // Load teacher data from localStorage/API
       const subjectsData = await apiService.getTeacherSubjects(currentUser.id);
-      // Get all subjects data to display proper names
       const allSubjects = await apiService.getSubjects();
-      // Normalize to array of subjectId strings
+      
       const subjectIds = Array.isArray(subjectsData)
         ? subjectsData.map((s) => (typeof s === 'object' && s !== null ? s.subjectId : s)).filter(Boolean)
         : [];
       setSubjects(subjectIds);
       
-      // Load students from API
       const allUsers = await apiService.getUsers();
       const studentsData = allUsers.filter(user => user.role === 'siswa');
       setStudents(studentsData);
 
-      // Load attendance data
+      await loadGradesData();
       await loadAttendanceData();
     } catch (error) {
       toast({
@@ -131,15 +130,11 @@ const TeacherDashboard = ({ currentUser, onLogout }) => {
 
   const loadGradesData = async () => {
     try {
-      // Load grades data from localStorage/API using correct storage key
       const allGrades = JSON.parse(localStorage.getItem('akademik_grades') || '[]');
-      
-      // Filter grades for current teacher's subjects
       const teacherGrades = allGrades.filter(grade => 
         grade.teacherId === currentUser.id && subjects.includes(grade.subjectId)
       );
 
-      // Add student names to grades
       const gradesWithNames = teacherGrades.map(grade => {
         const student = students.find(s => s.id === grade.studentId);
         return {
@@ -152,17 +147,15 @@ const TeacherDashboard = ({ currentUser, onLogout }) => {
     } catch (error) {
       console.error('Error loading grades:', error);
     }
+  };
+
   const loadAttendanceData = async () => {
     try {
-      // Load attendance data from localStorage/API using correct storage key
       const allAttendance = JSON.parse(localStorage.getItem('akademik_attendance') || '[]');
-      
-      // Filter attendance for current teacher's subjects
       const teacherAttendance = allAttendance.filter(att => 
         att.teacherId === currentUser.id && subjects.includes(att.subjectId)
       );
 
-      // Add student names to attendance
       const attendanceWithNames = teacherAttendance.map(att => {
         const student = students.find(s => s.id === att.studentId);
         return {
@@ -179,10 +172,6 @@ const TeacherDashboard = ({ currentUser, onLogout }) => {
 
   const handleAddGrade = async (e) => {
     e.preventDefault();
-    
-    console.log('Adding grade with form data:', gradeForm);
-    console.log('Current user:', currentUser);
-    console.log('Available students:', students);
     
     if (!gradeForm.studentId || !gradeForm.subjectId || !gradeForm.nilai || !gradeForm.jenis) {
       toast({
@@ -206,7 +195,7 @@ const TeacherDashboard = ({ currentUser, onLogout }) => {
     try {
       const studentData = students.find(s => s.id === gradeForm.studentId);
       const gradeData = {
-        id: Date.now().toString(),
+        id: editingGrade ? editingGrade.id : Date.now().toString(),
         ...gradeForm,
         teacherId: currentUser.id,
         kelasId: studentData?.kelasId || '1',
@@ -216,11 +205,8 @@ const TeacherDashboard = ({ currentUser, onLogout }) => {
         verified: false
       };
 
-      console.log('Sending grade data:', gradeData);
-      
       let result;
       if (editingGrade) {
-        // Update existing grade
         const allGrades = JSON.parse(localStorage.getItem('akademik_grades') || '[]');
         const gradeIndex = allGrades.findIndex(g => g.id === editingGrade.id);
         
@@ -232,16 +218,13 @@ const TeacherDashboard = ({ currentUser, onLogout }) => {
           result = { success: false, message: "Grade not found" };
         }
       } else {
-        // Add new grade
         result = await apiService.addGrade(currentUser.id, gradeData);
       }
-      
-      console.log('API result:', result);
       
       if (result.success) {
         toast({
           title: "Berhasil",
-          description: "Nilai berhasil ditambahkan"
+          description: `Nilai berhasil ${editingGrade ? 'diupdate' : 'ditambahkan'}`
         });
         
         setShowGradeDialog(false);
@@ -252,21 +235,20 @@ const TeacherDashboard = ({ currentUser, onLogout }) => {
           nilai: '',
           tanggal: new Date().toISOString().split('T')[0]
         });
+        setEditingGrade(null);
         
-        // Refresh grades data
         await loadGradesData();
       } else {
         toast({
           title: "Error",
-          description: result.message || "Gagal menambahkan nilai",
+          description: result.message || "Gagal menyimpan nilai",
           variant: "destructive"
         });
       }
     } catch (error) {
-      console.error('Error adding grade:', error);
       toast({
         title: "Error",
-        description: "Gagal menambahkan nilai",
+        description: "Gagal menyimpan nilai",
         variant: "destructive"
       });
     }
@@ -274,10 +256,6 @@ const TeacherDashboard = ({ currentUser, onLogout }) => {
 
   const handleAddAttendance = async (e) => {
     e.preventDefault();
-    
-    console.log('Adding attendance with form data:', attendanceForm);
-    console.log('Current user:', currentUser);
-    console.log('Available students:', students);
     
     if (!attendanceForm.studentId || !attendanceForm.subjectId || !attendanceForm.status) {
       toast({
@@ -299,11 +277,8 @@ const TeacherDashboard = ({ currentUser, onLogout }) => {
         semester: 1
       };
 
-      console.log('Sending attendance data:', attendanceData);
-      
       let result;
       if (editingAttendance) {
-        // Update existing attendance
         const allAttendance = JSON.parse(localStorage.getItem('akademik_attendance') || '[]');
         const attIndex = allAttendance.findIndex(att => att.id === editingAttendance.id);
         
@@ -315,11 +290,8 @@ const TeacherDashboard = ({ currentUser, onLogout }) => {
           result = { success: false, message: "Attendance not found" };
         }
       } else {
-        // Add new attendance
         result = await apiService.addAttendance(currentUser.id, attendanceData);
       }
-      
-      console.log('API result:', result);
       
       if (result.success) {
         toast({
@@ -337,7 +309,6 @@ const TeacherDashboard = ({ currentUser, onLogout }) => {
         });
         setEditingAttendance(null);
         
-        // Refresh attendance data
         await loadAttendanceData();
       } else {
         toast({
@@ -347,18 +318,12 @@ const TeacherDashboard = ({ currentUser, onLogout }) => {
         });
       }
     } catch (error) {
-      console.error('Error adding attendance:', error);
       toast({
         title: "Error",
         description: "Gagal menyimpan kehadiran",
         variant: "destructive"
       });
     }
-  };
-
-  const handleViewStudentList = (subject) => {
-    setSelectedSubject(subject);
-    setShowStudentListDialog(true);
   };
 
   const handleEditGrade = (grade) => {
@@ -376,13 +341,8 @@ const TeacherDashboard = ({ currentUser, onLogout }) => {
   const handleDeleteGrade = async (gradeId) => {
     if (window.confirm('Apakah Anda yakin ingin menghapus nilai ini?')) {
       try {
-        // Get current grades from localStorage
         const allGrades = JSON.parse(localStorage.getItem('akademik_grades') || '[]');
-        
-        // Remove the grade
         const updatedGrades = allGrades.filter(grade => grade.id !== gradeId);
-        
-        // Save back to localStorage
         localStorage.setItem('akademik_grades', JSON.stringify(updatedGrades));
         
         toast({
@@ -390,10 +350,8 @@ const TeacherDashboard = ({ currentUser, onLogout }) => {
           description: "Nilai berhasil dihapus"
         });
         
-        // Refresh grades data
         await loadGradesData();
       } catch (error) {
-        console.error('Error deleting grade:', error);
         toast({
           title: "Error",
           description: "Gagal menghapus nilai",
@@ -418,13 +376,8 @@ const TeacherDashboard = ({ currentUser, onLogout }) => {
   const handleDeleteAttendance = async (attendanceId) => {
     if (window.confirm('Apakah Anda yakin ingin menghapus data kehadiran ini?')) {
       try {
-        // Get current attendance from localStorage
         const allAttendance = JSON.parse(localStorage.getItem('akademik_attendance') || '[]');
-        
-        // Remove the attendance record
         const updatedAttendance = allAttendance.filter(att => att.id !== attendanceId);
-        
-        // Save back to localStorage
         localStorage.setItem('akademik_attendance', JSON.stringify(updatedAttendance));
         
         toast({
@@ -432,10 +385,8 @@ const TeacherDashboard = ({ currentUser, onLogout }) => {
           description: "Data kehadiran berhasil dihapus"
         });
         
-        // Refresh attendance data
         await loadAttendanceData();
       } catch (error) {
-        console.error('Error deleting attendance:', error);
         toast({
           title: "Error",
           description: "Gagal menghapus data kehadiran",
@@ -445,13 +396,27 @@ const TeacherDashboard = ({ currentUser, onLogout }) => {
     }
   };
 
+  const handleViewStudentList = (subject) => {
+    setSelectedSubject(subject);
+    setShowStudentListDialog(true);
+  };
+
+  const handleViewAllGrades = (subjectId) => {
+    setSelectedSubjectForGrades(subjectId);
+    setShowGradeTableDialog(true);
+  };
+
   const handleViewAllAttendance = (subjectId) => {
     setSelectedSubjectForAttendance(subjectId);
     setShowAttendanceTableDialog(true);
   };
 
-  console.log('TeacherDashboard loaded');
-  
+  const getSubjectName = (subjectId) => {
+    const allSubjects = JSON.parse(localStorage.getItem('akademik_subjects') || '[]');
+    const subjectDetails = allSubjects.find(s => s.id === subjectId);
+    return subjectDetails?.nama || `Mata Pelajaran ${subjectId}`;
+  };
+
   return (
     <div className="min-h-screen bg-background">
       {/* Header */}
@@ -468,7 +433,6 @@ const TeacherDashboard = ({ currentUser, onLogout }) => {
               </div>
             </div>
             
-            {/* Logout Button */}
             <Button 
               variant="outline" 
               size="sm" 
@@ -540,15 +504,11 @@ const TeacherDashboard = ({ currentUser, onLogout }) => {
                       <SelectValue placeholder="Pilih mata pelajaran" />
                     </SelectTrigger>
                     <SelectContent>
-                        {subjects.map((subject) => (
-                          <SelectItem key={subject} value={subject}>
-                          {(() => {
-                            const allSubjects = JSON.parse(localStorage.getItem('akademik_subjects') || '[]');
-                            const subjectDetails = allSubjects.find(s => s.id === subject);
-                            return subjectDetails?.nama || `Mata Pelajaran ${subject}`;
-                          })()}
-                          </SelectItem>
-                        ))}
+                      {subjects.map((subject) => (
+                        <SelectItem key={subject} value={subject}>
+                          {getSubjectName(subject)}
+                        </SelectItem>
+                      ))}
                     </SelectContent>
                   </Select>
                 </div>
@@ -657,15 +617,11 @@ const TeacherDashboard = ({ currentUser, onLogout }) => {
                       <SelectValue placeholder="Pilih mata pelajaran" />
                     </SelectTrigger>
                     <SelectContent>
-                        {subjects.map((subject) => (
-                          <SelectItem key={subject} value={subject}>
-                            {(() => {
-                              const allSubjects = JSON.parse(localStorage.getItem('akademik_subjects') || '[]');
-                              const subjectDetails = allSubjects.find(s => s.id === subject);
-                              return subjectDetails?.nama || `Mata Pelajaran ${subject}`;
-                            })()}
-                          </SelectItem>
-                        ))}
+                      {subjects.map((subject) => (
+                        <SelectItem key={subject} value={subject}>
+                          {getSubjectName(subject)}
+                        </SelectItem>
+                      ))}
                     </SelectContent>
                   </Select>
                 </div>
@@ -716,109 +672,14 @@ const TeacherDashboard = ({ currentUser, onLogout }) => {
               </form>
             </DialogContent>
           </Dialog>
+        </div>
 
-          {/* Attendance Table Dialog */}
-          <Dialog open={showAttendanceTableDialog} onOpenChange={setShowAttendanceTableDialog}>
-            <DialogContent className="max-w-6xl max-h-[80vh] overflow-hidden">
-              <DialogHeader>
-                <DialogTitle>
-                  Daftar Semua Kehadiran - {(() => {
-                    const allSubjects = JSON.parse(localStorage.getItem('akademik_subjects') || '[]');
-                    const subjectDetails = allSubjects.find(s => s.id === selectedSubjectForAttendance);
-                    return subjectDetails?.nama || `Mata Pelajaran ${selectedSubjectForAttendance}`;
-                  })()}
-                </DialogTitle>
-              </DialogHeader>
-              <div className="overflow-auto max-h-[60vh]">
-                <Table>
-                  <TableHeader>
-                    <TableRow>
-                      <TableHead>Nama Siswa</TableHead>
-                      <TableHead>NISN</TableHead>
-                      <TableHead>Status Kehadiran</TableHead>
-                      <TableHead>Tanggal</TableHead>
-                      <TableHead>Keterangan</TableHead>
-                      <TableHead>Aksi</TableHead>
-                    </TableRow>
-                  </TableHeader>
-                  <TableBody>
-                    {attendance
-                      .filter(att => att.subjectId === selectedSubjectForAttendance)
-                      .map((att) => {
-                        const student = students.find(s => s.id === att.studentId);
-                        return (
-                          <TableRow key={att.id}>
-                            <TableCell className="font-medium">
-                              {att.studentName || student?.nama}
-                            </TableCell>
-                            <TableCell>
-                              {student?.nisn || '-'}
-                            </TableCell>
-                            <TableCell>
-                              <Badge 
-                                variant={att.status === 'hadir' ? 'default' : 'secondary'}
-                                className={
-                                  att.status === 'hadir' ? 'bg-green-100 text-green-800' :
-                                  att.status === 'sakit' ? 'bg-yellow-100 text-yellow-800' :
-                                  att.status === 'izin' ? 'bg-blue-100 text-blue-800' :
-                                  'bg-red-100 text-red-800'
-                                }
-                              >
-                                {att.status === 'hadir' ? 'Hadir' :
-                                 att.status === 'sakit' ? 'Sakit' :
-                                 att.status === 'izin' ? 'Izin' : 'Alfa'}
-                              </Badge>
-                            </TableCell>
-                            <TableCell className="text-muted-foreground">
-                              {formatDate(att.tanggal)}
-                            </TableCell>
-                            <TableCell className="text-muted-foreground">
-                              {att.keterangan || '-'}
-                            </TableCell>
-                            <TableCell>
-                              <div className="flex space-x-2">
-                                <Button
-                                  size="sm"
-                                  variant="outline"
-                                  onClick={() => handleEditAttendance(att)}
-                                >
-                                  <Edit className="h-4 w-4" />
-                                </Button>
-                                <Button
-                                  size="sm"
-                                  variant="outline"
-                                  onClick={() => handleDeleteAttendance(att.id)}
-                                  className="text-destructive hover:text-destructive"
-                                >
-                                  <Trash2 className="h-4 w-4" />
-                                </Button>
-                              </div>
-                            </TableCell>
-                          </TableRow>
-                        );
-                      })}
-                  </TableBody>
-                </Table>
-                {attendance.filter(att => att.subjectId === selectedSubjectForAttendance).length === 0 && (
-                  <div className="text-center py-8">
-                    <Calendar className="h-12 w-12 mx-auto mb-4 text-muted-foreground" />
-                    <p className="text-muted-foreground">Belum ada data kehadiran untuk mata pelajaran ini</p>
-                  </div>
-                )}
-              </div>
-            </DialogContent>
-          </Dialog>
-
-          {/* Grades Table Dialog */}
-          <Dialog open={showGradeTableDialog} onOpenChange={setShowGradeTableDialog}>
+        {/* Grades Table Dialog */}
+        <Dialog open={showGradeTableDialog} onOpenChange={setShowGradeTableDialog}>
           <DialogContent className="max-w-6xl max-h-[80vh] overflow-hidden">
             <DialogHeader>
               <DialogTitle>
-                Daftar Semua Nilai - {(() => {
-                  const allSubjects = JSON.parse(localStorage.getItem('akademik_subjects') || '[]');
-                  const subjectDetails = allSubjects.find(s => s.id === selectedSubjectForGrades);
-                  return subjectDetails?.nama || `Mata Pelajaran ${selectedSubjectForGrades}`;
-                })()}
+                Daftar Semua Nilai - {getSubjectName(selectedSubjectForGrades)}
               </DialogTitle>
             </DialogHeader>
             <div className="overflow-auto max-h-[60vh]">
@@ -897,14 +758,102 @@ const TeacherDashboard = ({ currentUser, onLogout }) => {
                 </div>
               )}
             </div>
-           </DialogContent>
-         </Dialog>
+          </DialogContent>
+        </Dialog>
 
-         {/* Student List Dialog */}
-         <Dialog open={showStudentListDialog} onOpenChange={setShowStudentListDialog}>
+        {/* Attendance Table Dialog */}
+        <Dialog open={showAttendanceTableDialog} onOpenChange={setShowAttendanceTableDialog}>
+          <DialogContent className="max-w-6xl max-h-[80vh] overflow-hidden">
+            <DialogHeader>
+              <DialogTitle>
+                Daftar Semua Kehadiran - {getSubjectName(selectedSubjectForAttendance)}
+              </DialogTitle>
+            </DialogHeader>
+            <div className="overflow-auto max-h-[60vh]">
+              <Table>
+                <TableHeader>
+                  <TableRow>
+                    <TableHead>Nama Siswa</TableHead>
+                    <TableHead>NISN</TableHead>
+                    <TableHead>Status Kehadiran</TableHead>
+                    <TableHead>Tanggal</TableHead>
+                    <TableHead>Keterangan</TableHead>
+                    <TableHead>Aksi</TableHead>
+                  </TableRow>
+                </TableHeader>
+                <TableBody>
+                  {attendance
+                    .filter(att => att.subjectId === selectedSubjectForAttendance)
+                    .map((att) => {
+                      const student = students.find(s => s.id === att.studentId);
+                      return (
+                        <TableRow key={att.id}>
+                          <TableCell className="font-medium">
+                            {att.studentName || student?.nama}
+                          </TableCell>
+                          <TableCell>
+                            {student?.nisn || '-'}
+                          </TableCell>
+                          <TableCell>
+                            <Badge 
+                              variant={att.status === 'hadir' ? 'default' : 'secondary'}
+                              className={
+                                att.status === 'hadir' ? 'bg-green-100 text-green-800' :
+                                att.status === 'sakit' ? 'bg-yellow-100 text-yellow-800' :
+                                att.status === 'izin' ? 'bg-blue-100 text-blue-800' :
+                                'bg-red-100 text-red-800'
+                              }
+                            >
+                              {att.status === 'hadir' ? 'Hadir' :
+                               att.status === 'sakit' ? 'Sakit' :
+                               att.status === 'izin' ? 'Izin' : 'Alfa'}
+                            </Badge>
+                          </TableCell>
+                          <TableCell className="text-muted-foreground">
+                            {formatDate(att.tanggal)}
+                          </TableCell>
+                          <TableCell className="text-muted-foreground">
+                            {att.keterangan || '-'}
+                          </TableCell>
+                          <TableCell>
+                            <div className="flex space-x-2">
+                              <Button
+                                size="sm"
+                                variant="outline"
+                                onClick={() => handleEditAttendance(att)}
+                              >
+                                <Edit className="h-4 w-4" />
+                              </Button>
+                              <Button
+                                size="sm"
+                                variant="outline"
+                                onClick={() => handleDeleteAttendance(att.id)}
+                                className="text-destructive hover:text-destructive"
+                              >
+                                <Trash2 className="h-4 w-4" />
+                              </Button>
+                            </div>
+                          </TableCell>
+                        </TableRow>
+                      );
+                    })}
+                </TableBody>
+              </Table>
+              {attendance.filter(att => att.subjectId === selectedSubjectForAttendance).length === 0 && (
+                <div className="text-center py-8">
+                  <Calendar className="h-12 w-12 mx-auto mb-4 text-muted-foreground" />
+                  <p className="text-muted-foreground">Belum ada data kehadiran untuk mata pelajaran ini</p>
+                </div>
+              )}
+            </div>
+          </DialogContent>
+        </Dialog>
+
+        {/* Student List Dialog */}
+        <Dialog open={showStudentListDialog} onOpenChange={setShowStudentListDialog}>
           <DialogContent className="max-w-2xl">
             <DialogHeader>
-              <DialogTitle>Daftar Siswa - Mata Pelajaran {selectedSubject}</DialogTitle>
+              <DialogTitle>Daftar Siswa - {getSubjectName(selectedSubject)}</DialogTitle>
             </DialogHeader>
             <div className="space-y-4 max-h-96 overflow-y-auto">
               {students.length > 0 ? (
@@ -960,8 +909,7 @@ const TeacherDashboard = ({ currentUser, onLogout }) => {
               )}
             </div>
           </DialogContent>
-         </Dialog>
-        </div>
+        </Dialog>
 
         {/* Stats Cards */}
         <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
@@ -1022,157 +970,178 @@ const TeacherDashboard = ({ currentUser, onLogout }) => {
           </TabsList>
 
           {/* Mata Pelajaran Tab */}
-          <TabsContent value="matapelajaran">
-            <Card className="shadow-soft">
-              <CardHeader>
-                <CardTitle>Mata Pelajaran yang Diajar</CardTitle>
-              </CardHeader>
-              <CardContent>
-                {subjects.length > 0 ? (
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                    {subjects.map((subject) => (
-                      <div key={subject} className="p-6 border border-border rounded-lg">
-                        <div className="flex items-center space-x-3 mb-4">
-                          <BookOpen className="h-6 w-6 text-accent" />
-                           <div>
-                             <h3 className="font-semibold text-foreground">
-                               {(() => {
-                                 const allSubjects = JSON.parse(localStorage.getItem('akademik_subjects') || '[]');
-                                 const subjectDetails = allSubjects.find(s => s.id === subject);
-                                 return subjectDetails?.nama || `Mata Pelajaran ${subject}`;
-                               })()}
-                             </h3>
-                             <p className="text-sm text-muted-foreground">
-                               Kode: {(() => {
-                                 const allSubjects = JSON.parse(localStorage.getItem('akademik_subjects') || '[]');
-                                 const subjectDetails = allSubjects.find(s => s.id === subject);
-                                 return subjectDetails?.kode || subject;
-                               })()}
-                             </p>
-                           </div>
+          <TabsContent value="matapelajaran" className="space-y-6">
+            {loading ? (
+              <div className="text-center">Loading...</div>
+            ) : subjects.length > 0 ? (
+              <div className="grid gap-6">
+                {subjects.map((subjectId) => {
+                  const subjectGrades = grades.filter(grade => grade.subjectId === subjectId);
+                  const subjectAttendance = attendance.filter(att => att.subjectId === subjectId);
+                  
+                  return (
+                    <Card key={subjectId} className="shadow-soft">
+                      <CardHeader>
+                        <div className="flex flex-col md:flex-row justify-between items-start md:items-center space-y-4 md:space-y-0">
+                          <div>
+                            <CardTitle className="flex items-center space-x-2">
+                              <BookOpen className="h-5 w-5 text-primary" />
+                              <span>{getSubjectName(subjectId)}</span>
+                            </CardTitle>
+                            <p className="text-muted-foreground">
+                              Nilai: {subjectGrades.length} | Kehadiran: {subjectAttendance.length}
+                            </p>
+                          </div>
+                          
+                          <div className="flex flex-wrap gap-2">
+                            <Button 
+                              size="sm" 
+                              variant="outline"
+                              onClick={() => handleViewStudentList(subjectId)}
+                            >
+                              <Users className="h-4 w-4 mr-2" />
+                              Lihat Siswa
+                            </Button>
+                            <Button 
+                              size="sm"
+                              onClick={() => {
+                                setGradeForm(prev => ({ ...prev, subjectId }));
+                                setShowGradeDialog(true);
+                              }}
+                            >
+                              <Plus className="h-4 w-4 mr-2" />
+                              Input Nilai
+                            </Button>
+                            <Button 
+                              size="sm" 
+                              variant="outline"
+                              onClick={() => {
+                                setAttendanceForm(prev => ({ ...prev, subjectId }));
+                                setShowAttendanceDialog(true);
+                              }}
+                            >
+                              <Calendar className="h-4 w-4 mr-2" />
+                              Input Kehadiran
+                            </Button>
+                          </div>
                         </div>
-                        
-                        <div className="space-y-2">
-                          <div className="flex justify-between items-center">
-                            <span className="text-sm text-muted-foreground">Siswa:</span>
-                            <Badge variant="outline">{students.length} siswa</Badge>
-                          </div>
-                          <div className="flex justify-between items-center">
-                            <span className="text-sm text-muted-foreground">Kehadiran:</span>
-                            <Badge variant="outline">
-                              {attendance.filter(att => att.subjectId === subject).length} record
-                            </Badge>
-                          </div>
-                          <div className="flex justify-between items-center">
-                            <span className="text-sm text-muted-foreground">Status:</span>
-                            <Badge className="bg-success text-success-foreground">
-                              <Check className="h-3 w-3 mr-1" />
-                              Aktif
-                            </Badge>
-                          </div>
-                        </div>
-                        
-                          {/* Grades Display */}
-                          <div className="mt-4 mb-4">
+                      </CardHeader>
+
+                      <CardContent>
+                        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                          {/* Grades Section */}
+                          <div>
                             <div className="flex items-center justify-between mb-3">
-                              <h4 className="text-sm font-medium text-foreground">Nilai Terbaru</h4>
-                              <Button
-                                size="sm"
-                                variant="outline"
-                                onClick={() => handleViewAllGrades(subject)}
-                                className="text-xs"
-                              >
-                                Lihat Semua
-                              </Button>
-                            </div>
-                            {grades.filter(grade => grade.subjectId === subject).length > 0 ? (
-                            <div className="border border-border rounded-lg overflow-hidden">
-                              <Table>
-                                <TableHeader>
-                                  <TableRow>
-                                    <TableHead className="text-xs">Siswa</TableHead>
-                                    <TableHead className="text-xs">Jenis</TableHead>
-                                    <TableHead className="text-xs">Nilai</TableHead>
-                                    <TableHead className="text-xs">Tanggal</TableHead>
-                                  </TableRow>
-                                </TableHeader>
-                                <TableBody>
-                                  {grades
-                                    .filter(grade => grade.subjectId === subject)
-                                    .slice(-3) // Show last 3 grades
-                                    .map((grade) => (
-                                    <TableRow key={grade.id}>
-                                      <TableCell className="text-xs font-medium">
-                                        {grade.studentName}
-                                      </TableCell>
-                                      <TableCell className="text-xs">
-                                        {grade.jenis}
-                                      </TableCell>
-                                      <TableCell className="text-xs">
-                                        <Badge 
-                                          variant={grade.nilai >= 75 ? "default" : "destructive"}
-                                          className="text-xs"
-                                        >
-                                          {grade.nilai}
-                                        </Badge>
-                                      </TableCell>
-                                      <TableCell className="text-xs text-muted-foreground">
-                                        {new Date(grade.tanggal).toLocaleDateString('id-ID')}
-                                      </TableCell>
-                                    </TableRow>
-                                  ))}
-                                </TableBody>
-                              </Table>
-                              {grades.filter(grade => grade.subjectId === subject).length > 3 && (
-                                <div className="p-2 text-center border-t border-border">
-                                  <Button
-                                    variant="link"
-                                    size="sm"
-                                    onClick={() => handleViewAllGrades(subject)}
-                                    className="text-xs text-muted-foreground p-0"
-                                  >
-                                    +{grades.filter(grade => grade.subjectId === subject).length - 3} nilai lainnya - Lihat Semua
-                                  </Button>
-                                </div>
+                              <h4 className="font-semibold flex items-center">
+                                <FileText className="h-4 w-4 mr-2" />
+                                Nilai ({subjectGrades.length})
+                              </h4>
+                              {subjectGrades.length > 0 && (
+                                <Button
+                                  size="sm"
+                                  variant="outline"
+                                  onClick={() => handleViewAllGrades(subjectId)}
+                                >
+                                  Lihat Semua
+                                </Button>
                               )}
                             </div>
-                          ) : (
-                            <div className="text-center py-4 border border-border rounded-lg">
-                              <FileText className="h-8 w-8 mx-auto mb-2 text-muted-foreground" />
-                              <p className="text-xs text-muted-foreground">Belum ada nilai yang diinput</p>
-                            </div>
-                          )}
-                        </div>
+                            {subjectGrades.length > 0 ? (
+                              <div className="space-y-2">
+                                {subjectGrades.slice(-3).map((grade) => (
+                                  <div key={grade.id} className="flex justify-between items-center p-2 bg-muted/20 rounded">
+                                    <span className="text-sm">{grade.studentName}</span>
+                                    <div className="flex items-center space-x-2">
+                                      <Badge variant="outline" className="text-xs">{grade.jenis}</Badge>
+                                      <Badge variant="outline" className={`text-xs ${getGradeColor(grade.nilai)}`}>
+                                        {grade.nilai}
+                                      </Badge>
+                                    </div>
+                                  </div>
+                                ))}
+                                {subjectGrades.length > 3 && (
+                                  <p className="text-xs text-muted-foreground text-center">
+                                    +{subjectGrades.length - 3} nilai lainnya
+                                  </p>
+                                )}
+                              </div>
+                            ) : (
+                              <div className="text-center py-4 text-muted-foreground">
+                                <FileText className="h-8 w-8 mx-auto mb-2" />
+                                <p className="text-xs">Belum ada nilai</p>
+                              </div>
+                            )}
+                          </div>
 
-                        <div className="mt-4">
-                          <Button 
-                            variant="outline" 
-                            size="sm" 
-                            className="w-full"
-                            onClick={() => handleViewStudentList(subject)}
-                          >
-                            <Users className="h-4 w-4 mr-2" />
-                            Lihat Daftar Siswa
-                          </Button>
+                          {/* Attendance Section */}
+                          <div>
+                            <div className="flex items-center justify-between mb-3">
+                              <h4 className="font-semibold flex items-center">
+                                <Calendar className="h-4 w-4 mr-2" />
+                                Kehadiran ({subjectAttendance.length})
+                              </h4>
+                              {subjectAttendance.length > 0 && (
+                                <Button
+                                  size="sm"
+                                  variant="outline"
+                                  onClick={() => handleViewAllAttendance(subjectId)}
+                                >
+                                  Lihat Semua
+                                </Button>
+                              )}
+                            </div>
+                            {subjectAttendance.length > 0 ? (
+                              <div className="space-y-2">
+                                {subjectAttendance.slice(-3).map((att) => (
+                                  <div key={att.id} className="flex justify-between items-center p-2 bg-muted/20 rounded">
+                                    <span className="text-sm">{att.studentName}</span>
+                                    <Badge 
+                                      variant="outline" 
+                                      className={`text-xs ${
+                                        att.status === 'hadir' ? 'bg-green-100 text-green-800' :
+                                        att.status === 'sakit' ? 'bg-yellow-100 text-yellow-800' :
+                                        att.status === 'izin' ? 'bg-blue-100 text-blue-800' :
+                                        'bg-red-100 text-red-800'
+                                      }`}
+                                    >
+                                      {att.status === 'hadir' ? 'Hadir' :
+                                       att.status === 'sakit' ? 'Sakit' :
+                                       att.status === 'izin' ? 'Izin' : 'Alfa'}
+                                    </Badge>
+                                  </div>
+                                ))}
+                                {subjectAttendance.length > 3 && (
+                                  <p className="text-xs text-muted-foreground text-center">
+                                    +{subjectAttendance.length - 3} record lainnya
+                                  </p>
+                                )}
+                              </div>
+                            ) : (
+                              <div className="text-center py-4 text-muted-foreground">
+                                <Calendar className="h-8 w-8 mx-auto mb-2" />
+                                <p className="text-xs">Belum ada kehadiran</p>
+                              </div>
+                            )}
+                          </div>
                         </div>
-                      </div>
-                    ))}
-                  </div>
-                ) : (
-                  <div className="text-center py-8">
-                    <BookOpen className="h-12 w-12 mx-auto mb-4 text-muted-foreground" />
-                    <p className="text-muted-foreground">Belum ada mata pelajaran yang diajar</p>
-                  </div>
-                )}
-              </CardContent>
-            </Card>
+                      </CardContent>
+                    </Card>
+                  );
+                })}
+              </div>
+            ) : (
+              <div className="text-center py-12">
+                <BookOpen className="h-16 w-16 mx-auto mb-4 text-muted-foreground" />
+                <p className="text-muted-foreground">Belum ada mata pelajaran yang diampu</p>
+              </div>
+            )}
           </TabsContent>
 
           {/* Siswa Tab */}
           <TabsContent value="siswa">
             <Card className="shadow-soft">
               <CardHeader>
-                <CardTitle>Daftar Siswa</CardTitle>
+                <CardTitle>Daftar Siswa yang Diajar</CardTitle>
               </CardHeader>
               <CardContent>
                 {students.length > 0 ? (
@@ -1190,7 +1159,7 @@ const TeacherDashboard = ({ currentUser, onLogout }) => {
                             <h4 className="font-medium text-foreground">{student.nama}</h4>
                             <div className="flex items-center space-x-4 text-sm text-muted-foreground">
                               <span>NISN: {student.nisn}</span>
-                              <span>Kelas: {student.kelasId}</span>
+                              <span>Username: {student.username}</span>
                             </div>
                           </div>
                         </div>
