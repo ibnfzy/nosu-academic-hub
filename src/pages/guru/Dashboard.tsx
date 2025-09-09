@@ -192,6 +192,24 @@ const TeacherDashboard = ({ currentUser, onLogout }) => {
       return;
     }
 
+    // Cek duplikasi UTS/UAS untuk mata pelajaran yang sama
+    if ((gradeForm.jenis === 'UTS' || gradeForm.jenis === 'UAS') && !editingGrade) {
+      const existingGrade = grades.find(g => 
+        g.studentId === gradeForm.studentId && 
+        g.subjectId === gradeForm.subjectId && 
+        g.jenis === gradeForm.jenis
+      );
+      
+      if (existingGrade) {
+        toast({
+          title: "Error",
+          description: `${gradeForm.jenis} untuk mata pelajaran ini sudah ada. Gunakan edit untuk mengubah nilai.`,
+          variant: "destructive"
+        });
+        return;
+      }
+    }
+
     try {
       const studentData = students.find(s => s.id === gradeForm.studentId);
       const gradeData = {

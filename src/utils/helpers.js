@@ -219,6 +219,71 @@ export const getSubjectName = (subjectId) => {
 };
 
 /**
+ * Menghitung nilai harian dari kuis dan tugas
+ * @param {Array} grades - Array nilai
+ * @returns {number} - Nilai rata-rata harian
+ */
+export const calculateDailyGrade = (grades) => {
+  const dailyGrades = grades.filter(g => g.jenis === 'Kuis' || g.jenis === 'Tugas');
+  if (dailyGrades.length === 0) return 0;
+  
+  const total = dailyGrades.reduce((sum, grade) => sum + (grade.nilai || 0), 0);
+  return Math.round((total / dailyGrades.length) * 100) / 100;
+};
+
+/**
+ * Mengelompokkan nilai berdasarkan mata pelajaran
+ * @param {Array} grades - Array nilai
+ * @returns {Object} - Nilai terkelompok per subject
+ */
+export const groupGradesBySubject = (grades) => {
+  const grouped = {};
+  
+  grades.forEach(grade => {
+    const subjectId = grade.subjectId;
+    if (!grouped[subjectId]) {
+      grouped[subjectId] = {
+        subjectId,
+        subjectName: getSubjectName(subjectId),
+        kuis: [],
+        tugas: [],
+        uts: null,
+        uas: null,
+        ulangan: []
+      };
+    }
+    
+    switch (grade.jenis) {
+      case 'Kuis':
+        grouped[subjectId].kuis.push(grade);
+        break;
+      case 'Tugas':
+        grouped[subjectId].tugas.push(grade);
+        break;
+      case 'UTS':
+        grouped[subjectId].uts = grade;
+        break;
+      case 'UAS':
+        grouped[subjectId].uas = grade;
+        break;
+      case 'Ulangan Harian':
+        grouped[subjectId].ulangan.push(grade);
+        break;
+    }
+  });
+  
+  // Hitung nilai harian untuk setiap mata pelajaran
+  Object.keys(grouped).forEach(subjectId => {
+    const subject = grouped[subjectId];
+    const dailyGrades = [...subject.kuis, ...subject.tugas];
+    subject.nilaiHarian = calculateDailyGrade(dailyGrades);
+    subject.rataUlangan = calculateAverage(subject.ulangan);
+  });
+  
+  return grouped;
+};
+
+/**
  * Generate raport HTML untuk print
  * @param {Object} reportData - Data raport
  * @returns {string} - HTML raport
@@ -229,6 +294,7 @@ export const generateReportHTML = (reportData) => {
 
   if (!student) return "";
 
+  const groupedGrades = groupGradesBySubject(grades);
   const averageGrade = calculateAverage(grades);
   const attendanceStats = calculateAttendanceStats(attendance);
 
@@ -353,21 +419,22 @@ export const generateReportHTML = (reportData) => {
           </tr>
         </thead>
         <tbody>
-          ${grades
+          ${Object.values(groupedGrades)
             .map(
-              (grade, index) => `
+              (subject, index) => {
+                const finalGrade = subject.uas?.nilai || subject.uts?.nilai || subject.nilaiHarian || subject.rataUlangan || 0;
+                return `
             <tr>
               <td>${index + 1}</td>
-              <td style="text-align: left;">${
-                getSubjectName(grade.subjectId)
-              }</td>
-              <td>${grade.jenis === "Ulangan Harian" ? grade.nilai : "-"}</td>
-              <td>${grade.jenis === "UTS" ? grade.nilai : "-"}</td>
-              <td>${grade.jenis === "UAS" ? grade.nilai : "-"}</td>
-              <td><strong>${grade.nilai}</strong></td>
-              <td>${getGradePredicate(grade.nilai)}</td>
+              <td style="text-align: left;">${subject.subjectName}</td>
+              <td>${subject.nilaiHarian > 0 ? subject.nilaiHarian : (subject.rataUlangan > 0 ? subject.rataUlangan : "-")}</td>
+              <td>${subject.uts?.nilai || "-"}</td>
+              <td>${subject.uas?.nilai || "-"}</td>
+              <td><strong>${finalGrade}</strong></td>
+              <td>${getGradePredicate(finalGrade)}</td>
             </tr>
           `
+              }
             )
             .join("")}
         </tbody>
