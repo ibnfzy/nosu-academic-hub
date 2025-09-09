@@ -26,7 +26,8 @@ import {
   getGradeColor, 
   getAttendanceStatus,
   formatDate,
-  printReport
+  printReport,
+  getSubjectName
 } from '@/utils/helpers';
 import SiswaNavbar from '@/components/SiswaNavbar';
 
@@ -110,7 +111,7 @@ const StudentDashboard = ({ currentUser, onLogout }) => {
     } else {
       acc.push({
         subjectId: grade.subjectId,
-        subjectName: `Mata Pelajaran ${grade.subjectId}`, // TODO: Get actual subject name
+        subjectName: getSubjectName(grade.subjectId),
         grades: [grade]
       });
     }
@@ -246,7 +247,7 @@ const StudentDashboard = ({ currentUser, onLogout }) => {
                       >
                         <div>
                           <h4 className="font-medium text-foreground">
-                            {`Mata Pelajaran ${grade.subjectId}`}
+                            {getSubjectName(grade.subjectId)}
                           </h4>
                           <div className="flex items-center space-x-4 mt-1">
                             <Badge variant="outline" className="text-xs">
@@ -324,7 +325,7 @@ const StudentDashboard = ({ currentUser, onLogout }) => {
                         >
                           <div>
                             <h4 className="font-medium text-foreground">
-                              {`Mata Pelajaran ${record.subjectId}`}
+                              {getSubjectName(record.subjectId)}
                             </h4>
                             <p className="text-sm text-muted-foreground">
                               {formatDate(record.tanggal)}
