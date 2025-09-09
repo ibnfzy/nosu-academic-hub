@@ -76,10 +76,7 @@ const Navbar = ({ currentUser, onLogin, onLogout }) => {
         });
 
         // Redirect ke dashboard sesuai role
-        const dashboardPath = result.user.role === 'walikelas' 
-          ? '/dashboard/guru' 
-          : `/dashboard/${result.user.role}`;
-        navigate(dashboardPath);
+        navigate(`/dashboard/${result.user.role}`);
       } else {
         toast({
           title: "Login Gagal",
