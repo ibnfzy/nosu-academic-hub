@@ -121,8 +121,8 @@ const TeacherDashboard = ({ currentUser, onLogout }) => {
 
   const loadGradesData = async () => {
     try {
-      // Load grades data from localStorage/API
-      const allGrades = JSON.parse(localStorage.getItem('grades') || '[]');
+      // Load grades data from localStorage/API using correct storage key
+      const allGrades = JSON.parse(localStorage.getItem('akademik_grades') || '[]');
       
       // Filter grades for current teacher's subjects
       const teacherGrades = allGrades.filter(grade => 
@@ -147,10 +147,14 @@ const TeacherDashboard = ({ currentUser, onLogout }) => {
   const handleAddGrade = async (e) => {
     e.preventDefault();
     
-    if (!gradeForm.studentId || !gradeForm.subjectId || !gradeForm.nilai) {
+    console.log('Adding grade with form data:', gradeForm);
+    console.log('Current user:', currentUser);
+    console.log('Available students:', students);
+    
+    if (!gradeForm.studentId || !gradeForm.subjectId || !gradeForm.nilai || !gradeForm.jenis) {
       toast({
         title: "Error",
-        description: "Mohon lengkapi semua field",
+        description: "Mohon lengkapi semua field wajib",
         variant: "destructive"
       });
       return;
@@ -167,16 +171,23 @@ const TeacherDashboard = ({ currentUser, onLogout }) => {
     }
 
     try {
+      const studentData = students.find(s => s.id === gradeForm.studentId);
       const gradeData = {
+        id: Date.now().toString(),
         ...gradeForm,
         teacherId: currentUser.id,
-        kelasId: students.find(s => s.id === gradeForm.studentId)?.kelasId,
+        kelasId: studentData?.kelasId || '1',
         tahunAjaran: '2024/2025',
         semester: 1,
-        nilai: nilaiNumber
+        nilai: nilaiNumber,
+        verified: false
       };
 
+      console.log('Sending grade data:', gradeData);
+      
       const result = await apiService.addGrade(currentUser.id, gradeData);
+      
+      console.log('API result:', result);
       
       if (result.success) {
         toast({
@@ -195,8 +206,15 @@ const TeacherDashboard = ({ currentUser, onLogout }) => {
         
         // Refresh grades data
         await loadGradesData();
+      } else {
+        toast({
+          title: "Error",
+          description: result.message || "Gagal menambahkan nilai",
+          variant: "destructive"
+        });
       }
     } catch (error) {
+      console.error('Error adding grade:', error);
       toast({
         title: "Error",
         description: "Gagal menambahkan nilai",
@@ -333,11 +351,11 @@ const TeacherDashboard = ({ currentUser, onLogout }) => {
                     <SelectContent>
                         {subjects.map((subject) => (
                           <SelectItem key={subject} value={subject}>
-                            {(() => {
-                              const allSubjects = JSON.parse(localStorage.getItem('subjects') || '[]');
-                              const subjectDetails = allSubjects.find(s => s.id === subject);
-                              return subjectDetails?.nama || `Mata Pelajaran ${subject}`;
-                            })()}
+                          {(() => {
+                            const allSubjects = JSON.parse(localStorage.getItem('akademik_subjects') || '[]');
+                            const subjectDetails = allSubjects.find(s => s.id === subject);
+                            return subjectDetails?.nama || `Mata Pelajaran ${subject}`;
+                          })()}
                           </SelectItem>
                         ))}
                     </SelectContent>
@@ -437,7 +455,7 @@ const TeacherDashboard = ({ currentUser, onLogout }) => {
                         {subjects.map((subject) => (
                           <SelectItem key={subject} value={subject}>
                             {(() => {
-                              const allSubjects = JSON.parse(localStorage.getItem('subjects') || '[]');
+                              const allSubjects = JSON.parse(localStorage.getItem('akademik_subjects') || '[]');
                               const subjectDetails = allSubjects.find(s => s.id === subject);
                               return subjectDetails?.nama || `Mata Pelajaran ${subject}`;
                             })()}
@@ -631,14 +649,14 @@ const TeacherDashboard = ({ currentUser, onLogout }) => {
                            <div>
                              <h3 className="font-semibold text-foreground">
                                {(() => {
-                                 const allSubjects = JSON.parse(localStorage.getItem('subjects') || '[]');
+                                 const allSubjects = JSON.parse(localStorage.getItem('akademik_subjects') || '[]');
                                  const subjectDetails = allSubjects.find(s => s.id === subject);
                                  return subjectDetails?.nama || `Mata Pelajaran ${subject}`;
                                })()}
                              </h3>
                              <p className="text-sm text-muted-foreground">
                                Kode: {(() => {
-                                 const allSubjects = JSON.parse(localStorage.getItem('subjects') || '[]');
+                                 const allSubjects = JSON.parse(localStorage.getItem('akademik_subjects') || '[]');
                                  const subjectDetails = allSubjects.find(s => s.id === subject);
                                  return subjectDetails?.kode || subject;
                                })()}
