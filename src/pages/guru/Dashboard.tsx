@@ -81,22 +81,30 @@ const TeacherDashboard = ({ currentUser, onLogout }) => {
     }
   }, [currentUser]);
 
+  useEffect(() => {
+    // Reload grades when students data is loaded
+    if (students.length > 0 && subjects.length > 0) {
+      loadGradesData();
+    }
+  }, [students, subjects]);
+
   const loadTeacherData = async () => {
     setLoading(true);
     try {
+      // Load teacher data from localStorage/API
       const subjectsData = await apiService.getTeacherSubjects(currentUser.id);
+      // Get all subjects data to display proper names
+      const allSubjects = await apiService.getSubjects();
       // Normalize to array of subjectId strings
       const subjectIds = Array.isArray(subjectsData)
         ? subjectsData.map((s) => (typeof s === 'object' && s !== null ? s.subjectId : s)).filter(Boolean)
         : [];
       setSubjects(subjectIds);
       
-      // TODO: Load students based on teacher's classes
-      // For now, using sample data
-      setStudents([
-        { id: '2', nama: 'Ahmad Fadli', nisn: '2024001', kelasId: '1' },
-        { id: '7', nama: 'Siti Aminah', nisn: '2024002', kelasId: '1' }
-      ]);
+      // Load students from API
+      const allUsers = await apiService.getUsers();
+      const studentsData = allUsers.filter(user => user.role === 'siswa');
+      setStudents(studentsData);
 
       // Load grades data
       await loadGradesData();
@@ -113,37 +121,24 @@ const TeacherDashboard = ({ currentUser, onLogout }) => {
 
   const loadGradesData = async () => {
     try {
-      // For now, using sample grades data
-      const sampleGrades = [
-        {
-          id: '1',
-          studentId: '2',
-          studentName: 'Ahmad Fadli',
-          subjectId: '1',
-          jenis: 'Ulangan Harian',
-          nilai: 85,
-          tanggal: '2024-11-15'
-        },
-        {
-          id: '2',
-          studentId: '7',
-          studentName: 'Siti Aminah',
-          subjectId: '1',
-          jenis: 'UTS',
-          nilai: 92,
-          tanggal: '2024-11-10'
-        },
-        {
-          id: '3',
-          studentId: '2',
-          studentName: 'Ahmad Fadli',
-          subjectId: '2',
-          jenis: 'Tugas',
-          nilai: 78,
-          tanggal: '2024-11-12'
-        }
-      ];
-      setGrades(sampleGrades);
+      // Load grades data from localStorage/API
+      const allGrades = JSON.parse(localStorage.getItem('grades') || '[]');
+      
+      // Filter grades for current teacher's subjects
+      const teacherGrades = allGrades.filter(grade => 
+        grade.teacherId === currentUser.id && subjects.includes(grade.subjectId)
+      );
+
+      // Add student names to grades
+      const gradesWithNames = teacherGrades.map(grade => {
+        const student = students.find(s => s.id === grade.studentId);
+        return {
+          ...grade,
+          studentName: student?.nama || 'Unknown Student'
+        };
+      });
+
+      setGrades(gradesWithNames);
     } catch (error) {
       console.error('Error loading grades:', error);
     }
@@ -336,11 +331,15 @@ const TeacherDashboard = ({ currentUser, onLogout }) => {
                       <SelectValue placeholder="Pilih mata pelajaran" />
                     </SelectTrigger>
                     <SelectContent>
-                      {subjects.map((subject) => (
-                        <SelectItem key={subject} value={subject}>
-                          Mata Pelajaran {subject}
-                        </SelectItem>
-                      ))}
+                        {subjects.map((subject) => (
+                          <SelectItem key={subject} value={subject}>
+                            {(() => {
+                              const allSubjects = JSON.parse(localStorage.getItem('subjects') || '[]');
+                              const subjectDetails = allSubjects.find(s => s.id === subject);
+                              return subjectDetails?.nama || `Mata Pelajaran ${subject}`;
+                            })()}
+                          </SelectItem>
+                        ))}
                     </SelectContent>
                   </Select>
                 </div>
@@ -435,11 +434,15 @@ const TeacherDashboard = ({ currentUser, onLogout }) => {
                       <SelectValue placeholder="Pilih mata pelajaran" />
                     </SelectTrigger>
                     <SelectContent>
-                      {subjects.map((subject) => (
-                        <SelectItem key={subject} value={subject}>
-                          Mata Pelajaran {subject}
-                        </SelectItem>
-                      ))}
+                        {subjects.map((subject) => (
+                          <SelectItem key={subject} value={subject}>
+                            {(() => {
+                              const allSubjects = JSON.parse(localStorage.getItem('subjects') || '[]');
+                              const subjectDetails = allSubjects.find(s => s.id === subject);
+                              return subjectDetails?.nama || `Mata Pelajaran ${subject}`;
+                            })()}
+                          </SelectItem>
+                        ))}
                     </SelectContent>
                   </Select>
                 </div>
@@ -625,14 +628,22 @@ const TeacherDashboard = ({ currentUser, onLogout }) => {
                       <div key={subject} className="p-6 border border-border rounded-lg">
                         <div className="flex items-center space-x-3 mb-4">
                           <BookOpen className="h-6 w-6 text-accent" />
-                          <div>
-                            <h3 className="font-semibold text-foreground">
-                              Mata Pelajaran {subject}
-                            </h3>
-                            <p className="text-sm text-muted-foreground">
-                              Tahun Ajaran 2024/2025
-                            </p>
-                          </div>
+                           <div>
+                             <h3 className="font-semibold text-foreground">
+                               {(() => {
+                                 const allSubjects = JSON.parse(localStorage.getItem('subjects') || '[]');
+                                 const subjectDetails = allSubjects.find(s => s.id === subject);
+                                 return subjectDetails?.nama || `Mata Pelajaran ${subject}`;
+                               })()}
+                             </h3>
+                             <p className="text-sm text-muted-foreground">
+                               Kode: {(() => {
+                                 const allSubjects = JSON.parse(localStorage.getItem('subjects') || '[]');
+                                 const subjectDetails = allSubjects.find(s => s.id === subject);
+                                 return subjectDetails?.kode || subject;
+                               })()}
+                             </p>
+                           </div>
                         </div>
                         
                         <div className="space-y-2">
