@@ -200,6 +200,25 @@ export const isGradeVerified = (grade) => {
 };
 
 /**
+ * Mendapatkan nama mata pelajaran berdasarkan ID
+ * @param {string} subjectId - ID mata pelajaran
+ * @returns {string} - Nama mata pelajaran
+ */
+export const getSubjectName = (subjectId) => {
+  const subjects = [
+    { id: '1', nama: 'Matematika' },
+    { id: '2', nama: 'Bahasa Indonesia' },
+    { id: '3', nama: 'Bahasa Inggris' },
+    { id: '4', nama: 'Fisika' },
+    { id: '5', nama: 'Kimia' },
+    { id: '6', nama: 'Biologi' }
+  ];
+
+  const subject = subjects.find(s => s.id === subjectId);
+  return subject ? subject.nama : 'Mata Pelajaran';
+};
+
+/**
  * Generate raport HTML untuk print
  * @param {Object} reportData - Data raport
  * @returns {string} - HTML raport
@@ -340,7 +359,7 @@ export const generateReportHTML = (reportData) => {
             <tr>
               <td>${index + 1}</td>
               <td style="text-align: left;">${
-                grade.subjectName || "Mata Pelajaran"
+                getSubjectName(grade.subjectId)
               }</td>
               <td>${grade.jenis === "Ulangan Harian" ? grade.nilai : "-"}</td>
               <td>${grade.jenis === "UTS" ? grade.nilai : "-"}</td>
