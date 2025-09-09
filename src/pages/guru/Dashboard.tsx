@@ -12,6 +12,14 @@ import {
 } from '@/components/ui/dialog';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from '@/components/ui/table';
 import { 
   Select, 
   SelectContent, 
@@ -89,6 +97,9 @@ const TeacherDashboard = ({ currentUser, onLogout }) => {
         { id: '2', nama: 'Ahmad Fadli', nisn: '2024001', kelasId: '1' },
         { id: '7', nama: 'Siti Aminah', nisn: '2024002', kelasId: '1' }
       ]);
+
+      // Load grades data
+      await loadGradesData();
     } catch (error) {
       toast({
         title: "Error",
@@ -97,6 +108,44 @@ const TeacherDashboard = ({ currentUser, onLogout }) => {
       });
     } finally {
       setLoading(false);
+    }
+  };
+
+  const loadGradesData = async () => {
+    try {
+      // For now, using sample grades data
+      const sampleGrades = [
+        {
+          id: '1',
+          studentId: '2',
+          studentName: 'Ahmad Fadli',
+          subjectId: '1',
+          jenis: 'Ulangan Harian',
+          nilai: 85,
+          tanggal: '2024-11-15'
+        },
+        {
+          id: '2',
+          studentId: '7',
+          studentName: 'Siti Aminah',
+          subjectId: '1',
+          jenis: 'UTS',
+          nilai: 92,
+          tanggal: '2024-11-10'
+        },
+        {
+          id: '3',
+          studentId: '2',
+          studentName: 'Ahmad Fadli',
+          subjectId: '2',
+          jenis: 'Tugas',
+          nilai: 78,
+          tanggal: '2024-11-12'
+        }
+      ];
+      setGrades(sampleGrades);
+    } catch (error) {
+      console.error('Error loading grades:', error);
     }
   };
 
@@ -150,7 +199,7 @@ const TeacherDashboard = ({ currentUser, onLogout }) => {
         });
         
         // Refresh grades data
-        loadTeacherData();
+        await loadGradesData();
       }
     } catch (error) {
       toast({
@@ -600,6 +649,63 @@ const TeacherDashboard = ({ currentUser, onLogout }) => {
                           </div>
                         </div>
                         
+                        {/* Grades Display */}
+                        <div className="mt-4 mb-4">
+                          <h4 className="text-sm font-medium text-foreground mb-3">Nilai Terbaru</h4>
+                          {grades.filter(grade => grade.subjectId === subject).length > 0 ? (
+                            <div className="border border-border rounded-lg overflow-hidden">
+                              <Table>
+                                <TableHeader>
+                                  <TableRow>
+                                    <TableHead className="text-xs">Siswa</TableHead>
+                                    <TableHead className="text-xs">Jenis</TableHead>
+                                    <TableHead className="text-xs">Nilai</TableHead>
+                                    <TableHead className="text-xs">Tanggal</TableHead>
+                                  </TableRow>
+                                </TableHeader>
+                                <TableBody>
+                                  {grades
+                                    .filter(grade => grade.subjectId === subject)
+                                    .slice(-3) // Show last 3 grades
+                                    .map((grade) => (
+                                    <TableRow key={grade.id}>
+                                      <TableCell className="text-xs font-medium">
+                                        {grade.studentName}
+                                      </TableCell>
+                                      <TableCell className="text-xs">
+                                        {grade.jenis}
+                                      </TableCell>
+                                      <TableCell className="text-xs">
+                                        <Badge 
+                                          variant={grade.nilai >= 75 ? "default" : "destructive"}
+                                          className="text-xs"
+                                        >
+                                          {grade.nilai}
+                                        </Badge>
+                                      </TableCell>
+                                      <TableCell className="text-xs text-muted-foreground">
+                                        {new Date(grade.tanggal).toLocaleDateString('id-ID')}
+                                      </TableCell>
+                                    </TableRow>
+                                  ))}
+                                </TableBody>
+                              </Table>
+                              {grades.filter(grade => grade.subjectId === subject).length > 3 && (
+                                <div className="p-2 text-center border-t border-border">
+                                  <span className="text-xs text-muted-foreground">
+                                    +{grades.filter(grade => grade.subjectId === subject).length - 3} nilai lainnya
+                                  </span>
+                                </div>
+                              )}
+                            </div>
+                          ) : (
+                            <div className="text-center py-4 border border-border rounded-lg">
+                              <FileText className="h-8 w-8 mx-auto mb-2 text-muted-foreground" />
+                              <p className="text-xs text-muted-foreground">Belum ada nilai yang diinput</p>
+                            </div>
+                          )}
+                        </div>
+
                         <div className="mt-4">
                           <Button 
                             variant="outline" 
