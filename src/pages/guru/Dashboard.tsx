@@ -36,7 +36,9 @@ import {
   Plus,
   Check,
   Clock,
-  LogOut
+  LogOut,
+  Edit,
+  Trash2
 } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import apiService from '@/services/apiService';
@@ -50,7 +52,10 @@ const TeacherDashboard = ({ currentUser, onLogout }) => {
   const [showGradeDialog, setShowGradeDialog] = useState(false);
   const [showAttendanceDialog, setShowAttendanceDialog] = useState(false);
   const [showStudentListDialog, setShowStudentListDialog] = useState(false);
+  const [showGradeTableDialog, setShowGradeTableDialog] = useState(false);
   const [selectedSubject, setSelectedSubject] = useState('');
+  const [selectedSubjectForGrades, setSelectedSubjectForGrades] = useState('');
+  const [editingGrade, setEditingGrade] = useState(null);
   const [gradeForm, setGradeForm] = useState({
     studentId: '',
     subjectId: '',
@@ -185,7 +190,23 @@ const TeacherDashboard = ({ currentUser, onLogout }) => {
 
       console.log('Sending grade data:', gradeData);
       
-      const result = await apiService.addGrade(currentUser.id, gradeData);
+      let result;
+      if (editingGrade) {
+        // Update existing grade
+        const allGrades = JSON.parse(localStorage.getItem('akademik_grades') || '[]');
+        const gradeIndex = allGrades.findIndex(g => g.id === editingGrade.id);
+        
+        if (gradeIndex !== -1) {
+          allGrades[gradeIndex] = { ...editingGrade, ...gradeData };
+          localStorage.setItem('akademik_grades', JSON.stringify(allGrades));
+          result = { success: true };
+        } else {
+          result = { success: false, message: "Grade not found" };
+        }
+      } else {
+        // Add new grade
+        result = await apiService.addGrade(currentUser.id, gradeData);
+      }
       
       console.log('API result:', result);
       
@@ -275,6 +296,53 @@ const TeacherDashboard = ({ currentUser, onLogout }) => {
     setShowStudentListDialog(true);
   };
 
+  const handleEditGrade = (grade) => {
+    setGradeForm({
+      studentId: grade.studentId,
+      subjectId: grade.subjectId,
+      jenis: grade.jenis,
+      nilai: grade.nilai.toString(),
+      tanggal: grade.tanggal
+    });
+    setEditingGrade(grade);
+    setShowGradeDialog(true);
+  };
+
+  const handleDeleteGrade = async (gradeId) => {
+    if (window.confirm('Apakah Anda yakin ingin menghapus nilai ini?')) {
+      try {
+        // Get current grades from localStorage
+        const allGrades = JSON.parse(localStorage.getItem('akademik_grades') || '[]');
+        
+        // Remove the grade
+        const updatedGrades = allGrades.filter(grade => grade.id !== gradeId);
+        
+        // Save back to localStorage
+        localStorage.setItem('akademik_grades', JSON.stringify(updatedGrades));
+        
+        toast({
+          title: "Berhasil",
+          description: "Nilai berhasil dihapus"
+        });
+        
+        // Refresh grades data
+        await loadGradesData();
+      } catch (error) {
+        console.error('Error deleting grade:', error);
+        toast({
+          title: "Error",
+          description: "Gagal menghapus nilai",
+          variant: "destructive"
+        });
+      }
+    }
+  };
+
+  const handleViewAllGrades = (subjectId) => {
+    setSelectedSubjectForGrades(subjectId);
+    setShowGradeTableDialog(true);
+  };
+
   return (
     <div className="min-h-screen bg-background">
       {/* Header */}
@@ -308,7 +376,19 @@ const TeacherDashboard = ({ currentUser, onLogout }) => {
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6 md:py-8">
         {/* Quick Actions */}
         <div className="flex flex-wrap gap-4 mb-8">
-          <Dialog open={showGradeDialog} onOpenChange={setShowGradeDialog}>
+          <Dialog open={showGradeDialog} onOpenChange={(open) => {
+            setShowGradeDialog(open);
+            if (!open) {
+              setEditingGrade(null);
+              setGradeForm({
+                studentId: '',
+                subjectId: '',
+                jenis: '',
+                nilai: '',
+                tanggal: new Date().toISOString().split('T')[0]
+              });
+            }
+          }}>
             <DialogTrigger asChild>
               <Button className="bg-primary text-primary-foreground">
                 <Plus className="h-4 w-4 mr-2" />
@@ -317,7 +397,9 @@ const TeacherDashboard = ({ currentUser, onLogout }) => {
             </DialogTrigger>
             <DialogContent>
               <DialogHeader>
-                <DialogTitle>Input Nilai Siswa</DialogTitle>
+                <DialogTitle>
+                  {editingGrade ? 'Edit Nilai Siswa' : 'Input Nilai Siswa'}
+                </DialogTitle>
               </DialogHeader>
               <form onSubmit={handleAddGrade} className="space-y-4">
                 <div className="space-y-2">
@@ -405,7 +487,7 @@ const TeacherDashboard = ({ currentUser, onLogout }) => {
                 </div>
 
                 <Button type="submit" className="w-full">
-                  Simpan Nilai
+                  {editingGrade ? 'Update Nilai' : 'Simpan Nilai'}
                 </Button>
               </form>
             </DialogContent>
@@ -511,6 +593,97 @@ const TeacherDashboard = ({ currentUser, onLogout }) => {
               </form>
             </DialogContent>
           </Dialog>
+
+          {/* Grades Table Dialog */}
+          <Dialog open={showGradeTableDialog} onOpenChange={setShowGradeTableDialog}>
+          <DialogContent className="max-w-6xl max-h-[80vh] overflow-hidden">
+            <DialogHeader>
+              <DialogTitle>
+                Daftar Semua Nilai - {(() => {
+                  const allSubjects = JSON.parse(localStorage.getItem('akademik_subjects') || '[]');
+                  const subjectDetails = allSubjects.find(s => s.id === selectedSubjectForGrades);
+                  return subjectDetails?.nama || `Mata Pelajaran ${selectedSubjectForGrades}`;
+                })()}
+              </DialogTitle>
+            </DialogHeader>
+            <div className="overflow-auto max-h-[60vh]">
+              <Table>
+                <TableHeader>
+                  <TableRow>
+                    <TableHead>Nama Siswa</TableHead>
+                    <TableHead>NISN</TableHead>
+                    <TableHead>Jenis Penilaian</TableHead>
+                    <TableHead>Nilai</TableHead>
+                    <TableHead>Tanggal</TableHead>
+                    <TableHead>Status</TableHead>
+                    <TableHead>Aksi</TableHead>
+                  </TableRow>
+                </TableHeader>
+                <TableBody>
+                  {grades
+                    .filter(grade => grade.subjectId === selectedSubjectForGrades)
+                    .map((grade) => {
+                      const student = students.find(s => s.id === grade.studentId);
+                      return (
+                        <TableRow key={grade.id}>
+                          <TableCell className="font-medium">
+                            {grade.studentName || student?.nama}
+                          </TableCell>
+                          <TableCell>
+                            {student?.nisn || '-'}
+                          </TableCell>
+                          <TableCell>
+                            <Badge variant="outline">{grade.jenis}</Badge>
+                          </TableCell>
+                          <TableCell>
+                            <Badge 
+                              variant="outline" 
+                              className={`${getGradeColor(grade.nilai)} border-current`}
+                            >
+                              {grade.nilai}
+                            </Badge>
+                          </TableCell>
+                          <TableCell className="text-muted-foreground">
+                            {formatDate(grade.tanggal)}
+                          </TableCell>
+                          <TableCell>
+                            <Badge variant={grade.verified ? "default" : "secondary"}>
+                              {grade.verified ? "Terverifikasi" : "Belum Verifikasi"}
+                            </Badge>
+                          </TableCell>
+                          <TableCell>
+                            <div className="flex space-x-2">
+                              <Button
+                                size="sm"
+                                variant="outline"
+                                onClick={() => handleEditGrade(grade)}
+                              >
+                                <Edit className="h-4 w-4" />
+                              </Button>
+                              <Button
+                                size="sm"
+                                variant="outline"
+                                onClick={() => handleDeleteGrade(grade.id)}
+                                className="text-destructive hover:text-destructive"
+                              >
+                                <Trash2 className="h-4 w-4" />
+                              </Button>
+                            </div>
+                          </TableCell>
+                        </TableRow>
+                      );
+                    })}
+                </TableBody>
+              </Table>
+              {grades.filter(grade => grade.subjectId === selectedSubjectForGrades).length === 0 && (
+                <div className="text-center py-8">
+                  <FileText className="h-12 w-12 mx-auto mb-4 text-muted-foreground" />
+                  <p className="text-muted-foreground">Belum ada nilai yang diinput untuk mata pelajaran ini</p>
+                </div>
+              )}
+            </div>
+          </DialogContent>
+        </Dialog>
         </div>
 
         {/* Student List Dialog */}
@@ -678,10 +851,20 @@ const TeacherDashboard = ({ currentUser, onLogout }) => {
                           </div>
                         </div>
                         
-                        {/* Grades Display */}
-                        <div className="mt-4 mb-4">
-                          <h4 className="text-sm font-medium text-foreground mb-3">Nilai Terbaru</h4>
-                          {grades.filter(grade => grade.subjectId === subject).length > 0 ? (
+                          {/* Grades Display */}
+                          <div className="mt-4 mb-4">
+                            <div className="flex items-center justify-between mb-3">
+                              <h4 className="text-sm font-medium text-foreground">Nilai Terbaru</h4>
+                              <Button
+                                size="sm"
+                                variant="outline"
+                                onClick={() => handleViewAllGrades(subject)}
+                                className="text-xs"
+                              >
+                                Lihat Semua
+                              </Button>
+                            </div>
+                            {grades.filter(grade => grade.subjectId === subject).length > 0 ? (
                             <div className="border border-border rounded-lg overflow-hidden">
                               <Table>
                                 <TableHeader>
@@ -721,9 +904,14 @@ const TeacherDashboard = ({ currentUser, onLogout }) => {
                               </Table>
                               {grades.filter(grade => grade.subjectId === subject).length > 3 && (
                                 <div className="p-2 text-center border-t border-border">
-                                  <span className="text-xs text-muted-foreground">
-                                    +{grades.filter(grade => grade.subjectId === subject).length - 3} nilai lainnya
-                                  </span>
+                                  <Button
+                                    variant="link"
+                                    size="sm"
+                                    onClick={() => handleViewAllGrades(subject)}
+                                    className="text-xs text-muted-foreground p-0"
+                                  >
+                                    +{grades.filter(grade => grade.subjectId === subject).length - 3} nilai lainnya - Lihat Semua
+                                  </Button>
                                 </div>
                               )}
                             </div>
