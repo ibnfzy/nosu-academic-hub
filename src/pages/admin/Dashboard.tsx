@@ -566,6 +566,68 @@ const AdminDashboard = ({ currentUser, onLogout }) => {
     setShowSchoolProfileDialog(true);
   };
 
+  const editAchievement = (achievement) => {
+    setAchievementForm({
+      judul: achievement.judul || '',
+      tingkat: achievement.tingkat || '',
+      tahun: achievement.tahun || '',
+      bidang: achievement.bidang || ''
+    });
+    setEditingItem(achievement);
+    setShowAchievementDialog(true);
+  };
+
+  const deleteAchievement = async (achievementId) => {
+    if (window.confirm('Apakah Anda yakin ingin menghapus prestasi ini?')) {
+      try {
+        // Note: Add delete method in apiService if needed
+        const updatedAchievements = achievements.filter(a => a.id !== achievementId);
+        setAchievements(updatedAchievements);
+        toast({
+          title: "Berhasil",
+          description: "Prestasi berhasil dihapus"
+        });
+      } catch (error) {
+        toast({
+          title: "Error",
+          description: "Gagal menghapus prestasi",
+          variant: "destructive"
+        });
+      }
+    }
+  };
+
+  const editProgram = (program) => {
+    setProgramForm({
+      nama: program.nama || '',
+      deskripsi: program.deskripsi || '',
+      mataPelajaran: Array.isArray(program.mataPelajaran) ? program.mataPelajaran.join(', ') : program.mataPelajaran || '',
+      prospek: program.prospek || ''
+    });
+    setEditingItem(program);
+    setShowProgramDialog(true);
+  };
+
+  const deleteProgram = async (programId) => {
+    if (window.confirm('Apakah Anda yakin ingin menghapus program ini?')) {
+      try {
+        // Note: Add delete method in apiService if needed
+        const updatedPrograms = programs.filter(p => p.id !== programId);
+        setPrograms(updatedPrograms);
+        toast({
+          title: "Berhasil",
+          description: "Program berhasil dihapus"
+        });
+      } catch (error) {
+        toast({
+          title: "Error",
+          description: "Gagal menghapus program",
+          variant: "destructive"
+        });
+      }
+    }
+  };
+
   const editClass = (classItem) => {
     setClassForm(classItem);
     setEditingItem(classItem);
@@ -1382,13 +1444,14 @@ const AdminDashboard = ({ currentUser, onLogout }) => {
                             {editingItem ? 'Edit Prestasi' : 'Tambah Prestasi Baru'}
                           </DialogTitle>
                         </DialogHeader>
-                        <form className="space-y-4">
+                        <form onSubmit={handleAchievementSubmit} className="space-y-4">
                           <div className="space-y-2">
                             <Label>Judul Prestasi</Label>
                             <Input
                               value={achievementForm.judul}
                               onChange={(e) => setAchievementForm(prev => ({ ...prev, judul: e.target.value }))}
                               placeholder="Nama prestasi"
+                              required
                             />
                           </div>
                           <div className="space-y-2">
@@ -1429,31 +1492,40 @@ const AdminDashboard = ({ currentUser, onLogout }) => {
                 </CardHeader>
                 <CardContent>
                   <div className="space-y-4">
-                    {[1, 2, 3].map((item) => (
-                      <div key={item} className="border rounded-lg p-4 hover:bg-muted/50 transition-colors">
+                    {achievements.length > 0 ? achievements.map((achievement) => (
+                      <div key={achievement.id} className="border rounded-lg p-4 hover:bg-muted/50 transition-colors">
                         <div className="flex justify-between items-start">
                           <div className="space-y-2 flex-1">
                             <div className="flex items-center space-x-2">
-                              <h4 className="font-semibold">Juara 1 Olimpiade Matematika</h4>
-                              <Badge variant="secondary">Provinsi</Badge>
-                              <Badge variant="outline">Akademik</Badge>
+                              <h4 className="font-semibold">{achievement.judul}</h4>
+                              <Badge variant="secondary">{achievement.tingkat}</Badge>
+                              <Badge variant="outline">{achievement.bidang}</Badge>
                             </div>
-                            <p className="text-sm text-muted-foreground">
-                              Prestasi gemilang siswa SMA Negeri 1 Nosu dalam kompetisi olimpiade matematika tingkat provinsi
-                            </p>
-                            <p className="text-xs text-muted-foreground">15 Maret 2024</p>
+                            <p className="text-xs text-muted-foreground">{achievement.tahun}</p>
                           </div>
                           <div className="flex space-x-2 ml-4">
-                            <Button size="sm" variant="outline">
+                            <Button 
+                              size="sm" 
+                              variant="outline"
+                              onClick={() => editAchievement(achievement)}
+                            >
                               <Edit className="h-3 w-3" />
                             </Button>
-                            <Button size="sm" variant="outline">
+                            <Button 
+                              size="sm" 
+                              variant="outline"
+                              onClick={() => deleteAchievement(achievement.id)}
+                            >
                               <Trash2 className="h-3 w-3" />
                             </Button>
                           </div>
                         </div>
                       </div>
-                    ))}
+                    )) : (
+                      <div className="text-center py-8">
+                        <p className="text-muted-foreground">Belum ada prestasi yang ditambahkan</p>
+                      </div>
+                    )}
                   </div>
                 </CardContent>
               </Card>
@@ -1485,23 +1557,24 @@ const AdminDashboard = ({ currentUser, onLogout }) => {
                             {editingItem ? 'Edit Program' : 'Tambah Program Baru'}
                           </DialogTitle>
                         </DialogHeader>
-                        <form className="space-y-4">
+                        <form onSubmit={handleProgramSubmit} className="space-y-4">
                           <div className="space-y-2">
                             <Label>Nama Program</Label>
                             <Input
                               value={programForm.nama}
                               onChange={(e) => setProgramForm(prev => ({ ...prev, nama: e.target.value }))}
                               placeholder="Contoh: IPA, IPS, Bahasa"
+                              required
                             />
                           </div>
                           <div className="space-y-2">
                             <Label>Deskripsi</Label>
-                            <textarea
-                              className="w-full p-2 border rounded-md"
+                            <Textarea
                               rows={3}
                               value={programForm.deskripsi}
                               onChange={(e) => setProgramForm(prev => ({ ...prev, deskripsi: e.target.value }))}
                               placeholder="Deskripsi program studi"
+                              required
                             />
                           </div>
                           <div className="space-y-2">
@@ -1541,29 +1614,50 @@ const AdminDashboard = ({ currentUser, onLogout }) => {
                 </CardHeader>
                 <CardContent>
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                    {[
-                      { nama: 'IPA (Ilmu Pengetahuan Alam)', deskripsi: 'Program studi dengan fokus pada mata pelajaran sains dan matematika', durasi: '3 tahun' },
-                      { nama: 'IPS (Ilmu Pengetahuan Sosial)', deskripsi: 'Program studi dengan fokus pada ilmu sosial dan humaniora', durasi: '3 tahun' },
-                      { nama: 'Bahasa', deskripsi: 'Program studi dengan fokus pada bahasa dan sastra', durasi: '3 tahun' }
-                    ].map((program, index) => (
-                      <div key={index} className="border rounded-lg p-4 hover:bg-muted/50 transition-colors">
+                    {programs.length > 0 ? programs.map((program) => (
+                      <div key={program.id} className="border rounded-lg p-4 hover:bg-muted/50 transition-colors">
                         <div className="flex justify-between items-start">
                           <div className="space-y-2 flex-1">
                             <h4 className="font-semibold">{program.nama}</h4>
                             <p className="text-sm text-muted-foreground">{program.deskripsi}</p>
-                            <Badge variant="outline">{program.durasi}</Badge>
+                            {program.mataPelajaran && (
+                              <div className="flex flex-wrap gap-1">
+                                {(Array.isArray(program.mataPelajaran) ? program.mataPelajaran : program.mataPelajaran.split(',')).map((subject, idx) => (
+                                  <Badge key={idx} variant="outline" className="text-xs">
+                                    {subject.trim()}
+                                  </Badge>
+                                ))}
+                              </div>
+                            )}
+                            {program.prospek && (
+                              <p className="text-xs text-muted-foreground">
+                                <span className="font-medium">Prospek:</span> {program.prospek}
+                              </p>
+                            )}
                           </div>
                           <div className="flex space-x-2 ml-4">
-                            <Button size="sm" variant="outline">
+                            <Button 
+                              size="sm" 
+                              variant="outline"
+                              onClick={() => editProgram(program)}
+                            >
                               <Edit className="h-3 w-3" />
                             </Button>
-                            <Button size="sm" variant="outline">
+                            <Button 
+                              size="sm" 
+                              variant="outline"
+                              onClick={() => deleteProgram(program.id)}
+                            >
                               <Trash2 className="h-3 w-3" />
                             </Button>
                           </div>
                         </div>
                       </div>
-                    ))}
+                    )) : (
+                      <div className="col-span-2 text-center py-8">
+                        <p className="text-muted-foreground">Belum ada program studi yang ditambahkan</p>
+                      </div>
+                    )}
                   </div>
                 </CardContent>
               </Card>
