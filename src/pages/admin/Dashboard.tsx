@@ -447,7 +447,7 @@ const AdminDashboard = ({ currentUser, onLogout }) => {
   const handleAchievementSubmit = async (e) => {
     e.preventDefault();
     
-    if (!achievementForm.judul || !achievementForm.tahun) {
+    if (!achievementForm.judul.trim() || !achievementForm.tahun.trim()) {
       toast({
         title: "Error",
         description: "Judul dan tahun prestasi wajib diisi",
@@ -1586,13 +1586,42 @@ const AdminDashboard = ({ currentUser, onLogout }) => {
                                 <SelectValue placeholder="Pilih tingkat" />
                               </SelectTrigger>
                               <SelectContent>
-                                <SelectItem value="kecamatan">Kecamatan</SelectItem>
-                                <SelectItem value="kabupaten">Kabupaten</SelectItem>
-                                <SelectItem value="provinsi">Provinsi</SelectItem>
-                                <SelectItem value="nasional">Nasional</SelectItem>
-                                <SelectItem value="internasional">Internasional</SelectItem>
+                                <SelectItem value="Kecamatan">Kecamatan</SelectItem>
+                                <SelectItem value="Kabupaten">Kabupaten</SelectItem>
+                                <SelectItem value="Provinsi">Provinsi</SelectItem>
+                                <SelectItem value="Nasional">Nasional</SelectItem>
+                                <SelectItem value="Internasional">Internasional</SelectItem>
                               </SelectContent>
                             </Select>
+                          </div>
+                          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                            <div className="space-y-2">
+                              <Label>Tahun</Label>
+                              <Input
+                                value={achievementForm.tahun}
+                                onChange={(e) => setAchievementForm(prev => ({ ...prev, tahun: e.target.value }))}
+                                placeholder="Tahun pencapaian"
+                                required
+                              />
+                            </div>
+                            <div className="space-y-2">
+                              <Label>Bidang</Label>
+                              <Select 
+                                value={achievementForm.bidang}
+                                onValueChange={(value) => setAchievementForm(prev => ({ ...prev, bidang: value }))}
+                              >
+                                <SelectTrigger>
+                                  <SelectValue placeholder="Pilih bidang" />
+                                </SelectTrigger>
+                                <SelectContent>
+                                  <SelectItem value="Akademik">Akademik</SelectItem>
+                                  <SelectItem value="Olahraga">Olahraga</SelectItem>
+                                  <SelectItem value="Seni">Seni & Budaya</SelectItem>
+                                  <SelectItem value="Lingkungan">Lingkungan</SelectItem>
+                                  <SelectItem value="Kelembagaan">Kelembagaan</SelectItem>
+                                </SelectContent>
+                              </Select>
+                            </div>
                           </div>
                           <div className="flex flex-col md:flex-row gap-2">
                             <Button type="submit" className="flex-1">
@@ -1602,7 +1631,10 @@ const AdminDashboard = ({ currentUser, onLogout }) => {
                               type="button" 
                               variant="outline" 
                               className="flex-1"
-                              onClick={() => setShowAchievementDialog(false)}
+                              onClick={() => {
+                                setShowAchievementDialog(false);
+                                resetAchievementForm();
+                              }}
                             >
                               Batal
                             </Button>
