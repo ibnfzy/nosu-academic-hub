@@ -1181,14 +1181,14 @@ const AdminDashboard = ({ currentUser, onLogout }) => {
                         <DialogHeader>
                           <DialogTitle>Edit Profil Sekolah</DialogTitle>
                         </DialogHeader>
-                        <form className="space-y-4 max-h-96 overflow-y-auto">
+                        <form onSubmit={handleSchoolProfileSubmit} className="space-y-4 max-h-96 overflow-y-auto">
                           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                             <div className="space-y-2">
                               <Label>Nama Sekolah</Label>
                               <Input
                                 value={schoolProfileForm.nama}
                                 onChange={(e) => setSchoolProfileForm(prev => ({ ...prev, nama: e.target.value }))}
-                                placeholder="Nama lengkap sekolah"
+                                required
                               />
                             </div>
                             <div className="space-y-2">
@@ -1235,20 +1235,39 @@ const AdminDashboard = ({ currentUser, onLogout }) => {
                               placeholder="https://website-sekolah.com"
                             />
                           </div>
+                          
+                          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                            <div className="space-y-2">
+                              <Label>Tahun Berdiri</Label>
+                              <Input
+                                value={schoolProfileForm.tahunBerdiri}
+                                onChange={(e) => setSchoolProfileForm(prev => ({ ...prev, tahunBerdiri: e.target.value }))}
+                                placeholder="Tahun berdiri sekolah"
+                              />
+                            </div>
+                            <div className="space-y-2">
+                              <Label>Akreditasi</Label>
+                              <Input
+                                value={schoolProfileForm.akreditasi}
+                                onChange={(e) => setSchoolProfileForm(prev => ({ ...prev, akreditasi: e.target.value }))}
+                                placeholder="Status akreditasi (A/B/C)"
+                              />
+                            </div>
+                          </div>
+                          
                           <div className="space-y-2">
                             <Label>Visi</Label>
-                            <textarea
-                              className="w-full p-2 border rounded-md"
+                            <Textarea
                               rows={3}
                               value={schoolProfileForm.visi}
                               onChange={(e) => setSchoolProfileForm(prev => ({ ...prev, visi: e.target.value }))}
                               placeholder="Visi sekolah"
                             />
                           </div>
+                          
                           <div className="space-y-2">
                             <Label>Misi</Label>
-                            <textarea
-                              className="w-full p-2 border rounded-md"
+                            <Textarea
                               rows={4}
                               value={schoolProfileForm.misi}
                               onChange={(e) => setSchoolProfileForm(prev => ({ ...prev, misi: e.target.value }))}
