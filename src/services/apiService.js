@@ -860,6 +860,33 @@ const apiService = {
     }
   },
 
+  async updateRegistrationLink(linkId, linkData) {
+    if (USE_API) {
+      const response = await authFetch(`${API_BASE_URL}/admin/registration-links/${linkId}`, {
+        method: "PUT",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(linkData),
+      });
+      return await response.json();
+    } else {
+      const registrationLinks = JSON.parse(
+        localStorage.getItem(STORAGE_KEYS.REGISTRATION_LINKS) || "[]"
+      );
+      const linkIndex = registrationLinks.findIndex(link => link.id === linkId);
+      
+      if (linkIndex !== -1) {
+        registrationLinks[linkIndex] = {
+          ...registrationLinks[linkIndex],
+          ...linkData,
+          updatedAt: new Date().toISOString(),
+        };
+        localStorage.setItem(STORAGE_KEYS.REGISTRATION_LINKS, JSON.stringify(registrationLinks));
+        return { success: true, data: registrationLinks[linkIndex] };
+      }
+      return { success: false, message: "Registration link not found" };
+    }
+  },
+
   // ============= UTILITY METHODS =============
   initializeData() {
     // Initialize with sample data if localStorage is empty

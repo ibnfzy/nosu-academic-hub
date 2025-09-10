@@ -651,15 +651,24 @@ const AdminDashboard = ({ currentUser, onLogout }) => {
     }
 
     try {
-      const result = await apiService.addRegistrationLink(registrationForm);
+      let result;
+      
+      if (editingItem) {
+        // Update existing registration link
+        result = await apiService.updateRegistrationLink(editingItem.id, registrationForm);
+      } else {
+        // Add new registration link
+        result = await apiService.addRegistrationLink(registrationForm);
+      }
       
       if (result.success) {
         toast({
           title: "Berhasil",
-          description: "Link pendaftaran berhasil ditambahkan"
+          description: `Link pendaftaran berhasil ${editingItem ? 'diperbarui' : 'ditambahkan'}`
         });
         
         resetRegistrationForm();
+        setEditingItem(null);
         loadAdminData();
         setShowRegistrationDialog(false);
       }
@@ -680,6 +689,7 @@ const AdminDashboard = ({ currentUser, onLogout }) => {
       tahunAjaran: '',
       batasPendaftaran: ''
     });
+    setEditingItem(null);
   };
 
   const editRegistrationLink = (registration) => {
@@ -1763,7 +1773,10 @@ const AdminDashboard = ({ currentUser, onLogout }) => {
                       <DialogTrigger asChild>
                         <Button 
                           className="bg-primary text-primary-foreground w-full md:w-auto"
-                          onClick={() => setEditingItem(null)}
+                          onClick={() => {
+                            setEditingItem(null);
+                            resetRegistrationForm();
+                          }}
                         >
                           <Plus className="h-4 w-4 mr-2" />
                           Tambah Link
