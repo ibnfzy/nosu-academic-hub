@@ -12,8 +12,9 @@ import {
 } from '@/components/ui/dialog';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
+import { Textarea } from '@/components/ui/textarea';
 import { 
-  Select, 
+  Select,
   SelectContent, 
   SelectItem, 
   SelectTrigger, 
@@ -59,7 +60,7 @@ const AdminDashboard = ({ currentUser, onLogout }) => {
   const [roleFilter, setRoleFilter] = useState('all');
   
   // School management data
-  const [schoolProfile, setSchoolProfile] = useState([]);
+  const [schoolProfile, setSchoolProfile] = useState(null);
   const [achievements, setAchievements] = useState([]);
   const [programs, setPrograms] = useState([]);
   const [registrationLinks, setRegistrationLinks] = useState([]);
@@ -95,23 +96,24 @@ const AdminDashboard = ({ currentUser, onLogout }) => {
     email: '',
     website: '',
     kepalaSekolah: '',
+    tahunBerdiri: '',
+    akreditasi: '',
     visi: '',
     misi: ''
   });
   
   const [achievementForm, setAchievementForm] = useState({
     judul: '',
-    deskripsi: '',
-    tanggal: '',
-    kategori: '',
-    tingkat: ''
+    tingkat: '',
+    tahun: '',
+    bidang: ''
   });
   
   const [programForm, setProgramForm] = useState({
     nama: '',
     deskripsi: '',
-    durasi: '',
-    syarat: ''
+    mataPelajaran: '',
+    prospek: ''
   });
   
   const [registrationForm, setRegistrationForm] = useState({
@@ -140,15 +142,21 @@ const AdminDashboard = ({ currentUser, onLogout }) => {
     setLoading(true);
     try {
       // Load data from localStorage via apiService
-      const [usersData, subjectsData, classesData] = await Promise.all([
+      const [usersData, subjectsData, classesData, schoolProfileData, achievementsData, programsData] = await Promise.all([
         apiService.getUsers(),
         apiService.getSubjects(),
-        apiService.getClasses()
+        apiService.getClasses(),
+        apiService.getSchoolProfile(),
+        apiService.getAchievements(),
+        apiService.getPrograms()
       ]);
       
       setUsers(usersData);
       setSubjects(subjectsData);
       setClasses(classesData);
+      setSchoolProfile(schoolProfileData);
+      setAchievements(achievementsData);
+      setPrograms(programsData);
     } catch (error) {
       toast({
         title: "Error",
@@ -391,6 +399,113 @@ const AdminDashboard = ({ currentUser, onLogout }) => {
     }
   };
 
+  // School profile handlers
+  const handleSchoolProfileSubmit = async (e) => {
+    e.preventDefault();
+    
+    if (!schoolProfileForm.nama) {
+      toast({
+        title: "Error",
+        description: "Nama sekolah wajib diisi",
+        variant: "destructive"
+      });
+      return;
+    }
+
+    try {
+      const result = await apiService.updateSchoolProfile(schoolProfileForm);
+      
+      if (result.success) {
+        toast({
+          title: "Berhasil",
+          description: "Profil sekolah berhasil diperbarui"
+        });
+        
+        resetSchoolProfileForm();
+        loadAdminData();
+        setShowSchoolProfileDialog(false);
+      }
+    } catch (error) {
+      toast({
+        title: "Error",
+        description: "Gagal menyimpan profil sekolah",
+        variant: "destructive"
+      });
+    }
+  };
+
+  const handleAchievementSubmit = async (e) => {
+    e.preventDefault();
+    
+    if (!achievementForm.judul || !achievementForm.tahun) {
+      toast({
+        title: "Error",
+        description: "Judul dan tahun prestasi wajib diisi",
+        variant: "destructive"
+      });
+      return;
+    }
+
+    try {
+      const result = await apiService.addAchievement(achievementForm);
+      
+      if (result.success) {
+        toast({
+          title: "Berhasil",
+          description: "Prestasi berhasil ditambahkan"
+        });
+        
+        resetAchievementForm();
+        loadAdminData();
+        setShowAchievementDialog(false);
+      }
+    } catch (error) {
+      toast({
+        title: "Error",
+        description: "Gagal menyimpan prestasi",
+        variant: "destructive"
+      });
+    }
+  };
+
+  const handleProgramSubmit = async (e) => {
+    e.preventDefault();
+    
+    if (!programForm.nama || !programForm.deskripsi) {
+      toast({
+        title: "Error",
+        description: "Nama dan deskripsi program wajib diisi",
+        variant: "destructive"
+      });
+      return;
+    }
+
+    try {
+      const programData = {
+        ...programForm,
+        mataPelajaran: programForm.mataPelajaran.split(',').map(mp => mp.trim())
+      };
+      const result = await apiService.addProgram(programData);
+      
+      if (result.success) {
+        toast({
+          title: "Berhasil",
+          description: "Program studi berhasil ditambahkan"
+        });
+        
+        resetProgramForm();
+        loadAdminData();
+        setShowProgramDialog(false);
+      }
+    } catch (error) {
+      toast({
+        title: "Error",
+        description: "Gagal menyimpan program studi",
+        variant: "destructive"
+      });
+    }
+  };
+
   const resetClassForm = () => {
     setClassForm({
       nama: '',
@@ -398,6 +513,57 @@ const AdminDashboard = ({ currentUser, onLogout }) => {
       walikelas: ''
     });
     setEditingItem(null);
+  };
+
+  const resetSchoolProfileForm = () => {
+    setSchoolProfileForm({
+      nama: '',
+      alamat: '',
+      telepon: '',
+      email: '',
+      website: '',
+      kepalaSekolah: '',
+      tahunBerdiri: '',
+      akreditasi: '',
+      visi: '',
+      misi: ''
+    });
+  };
+
+  const resetAchievementForm = () => {
+    setAchievementForm({
+      judul: '',
+      tingkat: '',
+      tahun: '',
+      bidang: ''
+    });
+  };
+
+  const resetProgramForm = () => {
+    setProgramForm({
+      nama: '',
+      deskripsi: '',
+      mataPelajaran: '',
+      prospek: ''
+    });
+  };
+
+  const editSchoolProfile = () => {
+    if (schoolProfile) {
+      setSchoolProfileForm({
+        nama: schoolProfile.nama || '',
+        alamat: schoolProfile.alamat || '',
+        telepon: schoolProfile.telepon || '',
+        email: schoolProfile.email || '',
+        website: schoolProfile.website || '',
+        kepalaSekolah: schoolProfile.kepalaSekolah || '',
+        tahunBerdiri: schoolProfile.tahunBerdiri || '',
+        akreditasi: schoolProfile.akreditasi || '',
+        visi: schoolProfile.visi || '',
+        misi: schoolProfile.misi || ''
+      });
+    }
+    setShowSchoolProfileDialog(true);
   };
 
   const editClass = (classItem) => {
@@ -1005,7 +1171,7 @@ const AdminDashboard = ({ currentUser, onLogout }) => {
                       <DialogTrigger asChild>
                         <Button 
                           className="bg-primary text-primary-foreground w-full md:w-auto"
-                          onClick={() => setEditingItem(null)}
+                          onClick={editSchoolProfile}
                         >
                           <Plus className="h-4 w-4 mr-2" />
                           Edit Profil
@@ -1108,33 +1274,65 @@ const AdminDashboard = ({ currentUser, onLogout }) => {
                   </div>
                 </CardHeader>
                 <CardContent>
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                    <div className="space-y-3">
-                      <div>
-                        <h4 className="font-medium text-sm text-muted-foreground">Nama Sekolah</h4>
-                        <p className="font-medium">SMA Negeri 1 Nosu</p>
+                  {schoolProfile ? (
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                      <div className="space-y-3">
+                        <div>
+                          <h4 className="font-medium text-sm text-muted-foreground">Nama Sekolah</h4>
+                          <p className="font-medium">{schoolProfile.nama}</p>
+                        </div>
+                        <div>
+                          <h4 className="font-medium text-sm text-muted-foreground">Kepala Sekolah</h4>
+                          <p>{schoolProfile.kepalaSekolah}</p>
+                        </div>
+                        <div>
+                          <h4 className="font-medium text-sm text-muted-foreground">Alamat</h4>
+                          <p>{schoolProfile.alamat}</p>
+                        </div>
+                        {schoolProfile.tahunBerdiri && (
+                          <div>
+                            <h4 className="font-medium text-sm text-muted-foreground">Tahun Berdiri</h4>
+                            <p>{schoolProfile.tahunBerdiri}</p>
+                          </div>
+                        )}
+                        {schoolProfile.akreditasi && (
+                          <div>
+                            <h4 className="font-medium text-sm text-muted-foreground">Akreditasi</h4>
+                            <p>Akreditasi {schoolProfile.akreditasi}</p>
+                          </div>
+                        )}
                       </div>
-                      <div>
-                        <h4 className="font-medium text-sm text-muted-foreground">Kepala Sekolah</h4>
-                        <p>Drs. John Doe, M.Pd</p>
-                      </div>
-                      <div>
-                        <h4 className="font-medium text-sm text-muted-foreground">Alamat</h4>
-                        <p>Jl. Pendidikan No. 123, Nosu, Kabupaten Banggai</p>
+                      <div className="space-y-3">
+                        <div>
+                          <h4 className="font-medium text-sm text-muted-foreground">Kontak</h4>
+                          <p>Telepon: {schoolProfile.telepon}</p>
+                          <p>Email: {schoolProfile.email}</p>
+                        </div>
+                        {schoolProfile.website && (
+                          <div>
+                            <h4 className="font-medium text-sm text-muted-foreground">Website</h4>
+                            <p>{schoolProfile.website}</p>
+                          </div>
+                        )}
+                        {schoolProfile.visi && (
+                          <div>
+                            <h4 className="font-medium text-sm text-muted-foreground">Visi</h4>
+                            <p className="text-sm">{schoolProfile.visi}</p>
+                          </div>
+                        )}
+                        {schoolProfile.misi && (
+                          <div>
+                            <h4 className="font-medium text-sm text-muted-foreground">Misi</h4>
+                            <p className="text-sm">{schoolProfile.misi}</p>
+                          </div>
+                        )}
                       </div>
                     </div>
-                    <div className="space-y-3">
-                      <div>
-                        <h4 className="font-medium text-sm text-muted-foreground">Kontak</h4>
-                        <p>Telepon: (0461) 123456</p>
-                        <p>Email: admin@sman1nosu.sch.id</p>
-                      </div>
-                      <div>
-                        <h4 className="font-medium text-sm text-muted-foreground">Website</h4>
-                        <p>https://sman1nosu.sch.id</p>
-                      </div>
+                  ) : (
+                    <div className="text-center py-8">
+                      <p className="text-muted-foreground">Belum ada profil sekolah. Klik "Edit Profil" untuk menambahkan.</p>
                     </div>
-                  </div>
+                  )}
                 </CardContent>
               </Card>
 
@@ -1173,44 +1371,6 @@ const AdminDashboard = ({ currentUser, onLogout }) => {
                               onChange={(e) => setAchievementForm(prev => ({ ...prev, judul: e.target.value }))}
                               placeholder="Nama prestasi"
                             />
-                          </div>
-                          <div className="space-y-2">
-                            <Label>Deskripsi</Label>
-                            <textarea
-                              className="w-full p-2 border rounded-md"
-                              rows={3}
-                              value={achievementForm.deskripsi}
-                              onChange={(e) => setAchievementForm(prev => ({ ...prev, deskripsi: e.target.value }))}
-                              placeholder="Deskripsi prestasi"
-                            />
-                          </div>
-                          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                            <div className="space-y-2">
-                              <Label>Tanggal</Label>
-                              <Input
-                                type="date"
-                                value={achievementForm.tanggal}
-                                onChange={(e) => setAchievementForm(prev => ({ ...prev, tanggal: e.target.value }))}
-                              />
-                            </div>
-                            <div className="space-y-2">
-                              <Label>Kategori</Label>
-                              <Select 
-                                value={achievementForm.kategori}
-                                onValueChange={(value) => setAchievementForm(prev => ({ ...prev, kategori: value }))}
-                              >
-                                <SelectTrigger>
-                                  <SelectValue placeholder="Pilih kategori" />
-                                </SelectTrigger>
-                                <SelectContent>
-                                  <SelectItem value="akademik">Akademik</SelectItem>
-                                  <SelectItem value="olahraga">Olahraga</SelectItem>
-                                  <SelectItem value="seni">Seni & Budaya</SelectItem>
-                                  <SelectItem value="teknologi">Teknologi</SelectItem>
-                                  <SelectItem value="lainnya">Lainnya</SelectItem>
-                                </SelectContent>
-                              </Select>
-                            </div>
                           </div>
                           <div className="space-y-2">
                             <Label>Tingkat</Label>
@@ -1326,21 +1486,20 @@ const AdminDashboard = ({ currentUser, onLogout }) => {
                             />
                           </div>
                           <div className="space-y-2">
-                            <Label>Durasi</Label>
+                            <Label>Mata Pelajaran</Label>
                             <Input
-                              value={programForm.durasi}
-                              onChange={(e) => setProgramForm(prev => ({ ...prev, durasi: e.target.value }))}
-                              placeholder="Contoh: 3 tahun"
+                              value={programForm.mataPelajaran}
+                              onChange={(e) => setProgramForm(prev => ({ ...prev, mataPelajaran: e.target.value }))}
+                              placeholder="Pisahkan dengan koma, contoh: Matematika, Fisika, Kimia"
                             />
                           </div>
                           <div className="space-y-2">
-                            <Label>Syarat Masuk</Label>
-                            <textarea
-                              className="w-full p-2 border rounded-md"
+                            <Label>Prospek Karir</Label>
+                            <Textarea
                               rows={3}
-                              value={programForm.syarat}
-                              onChange={(e) => setProgramForm(prev => ({ ...prev, syarat: e.target.value }))}
-                              placeholder="Syarat dan ketentuan program"
+                              value={programForm.prospek}
+                              onChange={(e) => setProgramForm(prev => ({ ...prev, prospek: e.target.value }))}
+                              placeholder="Contoh: Kedokteran, Teknik, Farmasi"
                             />
                           </div>
                           <div className="flex flex-col md:flex-row gap-2">
