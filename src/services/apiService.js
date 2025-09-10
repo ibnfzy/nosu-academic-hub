@@ -24,6 +24,9 @@ const STORAGE_KEYS = {
   ATTENDANCE: "akademik_attendance",
   CURRENT_USER: "akademik_current_user",
   ACADEMIC_YEARS: "akademik_years",
+  SCHOOL_PROFILE: "akademik_school_profile",
+  ACHIEVEMENTS: "akademik_achievements",
+  PROGRAMS: "akademik_programs",
 };
 
 // Generic API/localStorage abstraction
@@ -719,6 +722,107 @@ const apiService = {
     }
   },
 
+  // ============= SCHOOL PROFILE METHODS =============
+  async getSchoolProfile() {
+    if (USE_API) {
+      const response = await authFetch(`${API_BASE_URL}/admin/school-profile`);
+      return await response.json();
+    } else {
+      const profile = JSON.parse(
+        localStorage.getItem(STORAGE_KEYS.SCHOOL_PROFILE) || "null"
+      );
+      return profile;
+    }
+  },
+
+  async updateSchoolProfile(profileData) {
+    if (USE_API) {
+      const response = await authFetch(`${API_BASE_URL}/admin/school-profile`, {
+        method: "PUT",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(profileData),
+      });
+      return await response.json();
+    } else {
+      const profile = {
+        ...profileData,
+        updatedAt: new Date().toISOString(),
+      };
+      localStorage.setItem(STORAGE_KEYS.SCHOOL_PROFILE, JSON.stringify(profile));
+      return { success: true, data: profile };
+    }
+  },
+
+  async getAchievements() {
+    if (USE_API) {
+      const response = await authFetch(`${API_BASE_URL}/admin/achievements`);
+      return await response.json();
+    } else {
+      const achievements = JSON.parse(
+        localStorage.getItem(STORAGE_KEYS.ACHIEVEMENTS) || "[]"
+      );
+      return achievements;
+    }
+  },
+
+  async addAchievement(achievementData) {
+    if (USE_API) {
+      const response = await authFetch(`${API_BASE_URL}/admin/achievements`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(achievementData),
+      });
+      return await response.json();
+    } else {
+      const achievements = JSON.parse(
+        localStorage.getItem(STORAGE_KEYS.ACHIEVEMENTS) || "[]"
+      );
+      const newAchievement = {
+        id: Date.now().toString(),
+        ...achievementData,
+        createdAt: new Date().toISOString(),
+      };
+      achievements.push(newAchievement);
+      localStorage.setItem(STORAGE_KEYS.ACHIEVEMENTS, JSON.stringify(achievements));
+      return { success: true, data: newAchievement };
+    }
+  },
+
+  async getPrograms() {
+    if (USE_API) {
+      const response = await authFetch(`${API_BASE_URL}/admin/programs`);
+      return await response.json();
+    } else {
+      const programs = JSON.parse(
+        localStorage.getItem(STORAGE_KEYS.PROGRAMS) || "[]"
+      );
+      return programs;
+    }
+  },
+
+  async addProgram(programData) {
+    if (USE_API) {
+      const response = await authFetch(`${API_BASE_URL}/admin/programs`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(programData),
+      });
+      return await response.json();
+    } else {
+      const programs = JSON.parse(
+        localStorage.getItem(STORAGE_KEYS.PROGRAMS) || "[]"
+      );
+      const newProgram = {
+        id: Date.now().toString(),
+        ...programData,
+        createdAt: new Date().toISOString(),
+      };
+      programs.push(newProgram);
+      localStorage.setItem(STORAGE_KEYS.PROGRAMS, JSON.stringify(programs));
+      return { success: true, data: newProgram };
+    }
+  },
+
   // ============= UTILITY METHODS =============
   initializeData() {
     // Initialize with sample data if localStorage is empty
@@ -755,6 +859,20 @@ const apiService = {
       localStorage.setItem(
         STORAGE_KEYS.ACADEMIC_YEARS,
         JSON.stringify(sampleData.academicYears)
+      );
+      
+      // Initialize school profile, achievements, and programs
+      localStorage.setItem(
+        STORAGE_KEYS.SCHOOL_PROFILE,
+        JSON.stringify(sampleData.schoolProfile)
+      );
+      localStorage.setItem(
+        STORAGE_KEYS.ACHIEVEMENTS,
+        JSON.stringify(sampleData.achievements)
+      );
+      localStorage.setItem(
+        STORAGE_KEYS.PROGRAMS,
+        JSON.stringify(sampleData.programs)
       );
     }
   },

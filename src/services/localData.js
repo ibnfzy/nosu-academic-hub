@@ -308,6 +308,70 @@ const attendance = [
   }
 ];
 
+// School Profile Data
+const schoolProfile = {
+  nama: 'SMA Negeri 1 Nosu',
+  kepalaSekolah: 'Drs. Abdul Rahman, M.Pd',
+  alamat: 'Jl. Pendidikan No. 1, Nosu, Kabupaten Mamuju Utara, Sulawesi Barat 91571',
+  telepon: '(0426) 123456',
+  email: 'info@sman1nosu.sch.id',
+  website: 'https://sman1nosu.sch.id',
+  tahunBerdiri: '1985',
+  akreditasi: 'A',
+  visi: 'Mewujudkan generasi yang unggul dalam prestasi, berkarakter mulia, dan berwawasan global',
+  misi: 'Menyelenggarakan pendidikan berkualitas dengan mengembangkan potensi siswa secara optimal, menanamkan nilai-nilai karakter dan budaya, serta mempersiapkan siswa menghadapi tantangan masa depan'
+};
+
+// School Achievements
+const achievements = [
+  {
+    id: '1',
+    judul: 'Juara 1 Olimpiade Matematika Tingkat Kabupaten 2024',
+    tingkat: 'Kabupaten',
+    tahun: '2024',
+    bidang: 'Akademik'
+  },
+  {
+    id: '2',
+    judul: 'Juara 2 Lomba Karya Tulis Ilmiah Tingkat Provinsi 2024',
+    tingkat: 'Provinsi',
+    tahun: '2024',
+    bidang: 'Akademik'
+  },
+  {
+    id: '3',
+    judul: 'Sekolah Adiwiyata Tingkat Kabupaten 2023',
+    tingkat: 'Kabupaten',
+    tahun: '2023',
+    bidang: 'Lingkungan'
+  },
+  {
+    id: '4',
+    judul: 'Akreditasi A dari BAN-S/M',
+    tingkat: 'Nasional',
+    tahun: '2023',
+    bidang: 'Kelembagaan'
+  }
+];
+
+// Study Programs
+const programs = [
+  {
+    id: '1',
+    nama: 'IPA (Ilmu Pengetahuan Alam)',
+    deskripsi: 'Program unggulan dengan fokus pada sains dan teknologi untuk mempersiapkan siswa melanjutkan ke perguruan tinggi bidang SAINTEK',
+    mataPelajaran: ['Matematika', 'Fisika', 'Kimia', 'Biologi', 'Bahasa Indonesia', 'Bahasa Inggris'],
+    prospek: 'Kedokteran, Teknik, Farmasi, MIPA'
+  },
+  {
+    id: '2',
+    nama: 'IPS (Ilmu Pengetahuan Sosial)',
+    deskripsi: 'Program yang mengembangkan pemahaman sosial dan ekonomi untuk mempersiapkan siswa melanjutkan ke perguruan tinggi bidang SOSHUM',
+    mataPelajaran: ['Ekonomi', 'Sosiologi', 'Geografi', 'Sejarah', 'Bahasa Indonesia', 'Bahasa Inggris'],
+    prospek: 'Hukum, Ekonomi, Manajemen, Komunikasi'
+  }
+];
+
 // Export all sample data
 const sampleData = {
   users,
@@ -317,7 +381,10 @@ const sampleData = {
   subjects,
   grades,
   attendance,
-  academicYears
+  academicYears,
+  schoolProfile,
+  achievements,
+  programs
 };
 
 export default sampleData;
