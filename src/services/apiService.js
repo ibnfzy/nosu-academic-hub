@@ -887,6 +887,22 @@ const apiService = {
     }
   },
 
+  async deleteRegistrationLink(linkId) {
+    if (USE_API) {
+      const response = await authFetch(`${API_BASE_URL}/admin/registration-links/${linkId}`, {
+        method: "DELETE",
+      });
+      return await response.json();
+    } else {
+      const registrationLinks = JSON.parse(
+        localStorage.getItem(STORAGE_KEYS.REGISTRATION_LINKS) || "[]"
+      );
+      const filtered = registrationLinks.filter((l) => l.id !== linkId);
+      localStorage.setItem(STORAGE_KEYS.REGISTRATION_LINKS, JSON.stringify(filtered));
+      return { success: true };
+    }
+  },
+
   // ============= UTILITY METHODS =============
   initializeData() {
     // Initialize with sample data if localStorage is empty

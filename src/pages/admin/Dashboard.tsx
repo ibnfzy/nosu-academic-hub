@@ -707,13 +707,14 @@ const AdminDashboard = ({ currentUser, onLogout }) => {
   const deleteRegistrationLink = async (registrationId) => {
     if (window.confirm('Apakah Anda yakin ingin menghapus link pendaftaran ini?')) {
       try {
-        // Note: Add delete method in apiService if needed
-        const updatedRegistrations = registrationLinks.filter(r => r.id !== registrationId);
-        setRegistrationLinks(updatedRegistrations);
-        toast({
-          title: "Berhasil",
-          description: "Link pendaftaran berhasil dihapus"
-        });
+        const result = await apiService.deleteRegistrationLink(registrationId);
+        if (result.success) {
+          toast({
+            title: "Berhasil",
+            description: "Link pendaftaran berhasil dihapus"
+          });
+          loadAdminData();
+        }
       } catch (error) {
         toast({
           title: "Error",
