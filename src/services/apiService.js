@@ -993,58 +993,67 @@ const apiService = {
   initializeData() {
     // Initialize with sample data if localStorage is empty
     if (!localStorage.getItem(STORAGE_KEYS.USERS)) {
-      // Muat sample data dari modul ESM
-      localStorage.setItem(
-        STORAGE_KEYS.USERS,
-        JSON.stringify(sampleData.users)
-      );
-      localStorage.setItem(
-        STORAGE_KEYS.STUDENTS,
-        JSON.stringify(sampleData.students)
-      );
-      localStorage.setItem(
-        STORAGE_KEYS.TEACHERS,
-        JSON.stringify(sampleData.teachers)
-      );
-      localStorage.setItem(
-        STORAGE_KEYS.CLASSES,
-        JSON.stringify(sampleData.classes)
-      );
-      localStorage.setItem(
-        STORAGE_KEYS.SUBJECTS,
-        JSON.stringify(sampleData.subjects)
-      );
-      localStorage.setItem(
-        STORAGE_KEYS.GRADES,
-        JSON.stringify(sampleData.grades)
-      );
-      localStorage.setItem(
-        STORAGE_KEYS.ATTENDANCE,
-        JSON.stringify(sampleData.attendance)
-      );
-      localStorage.setItem(
-        STORAGE_KEYS.ACADEMIC_YEARS,
-        JSON.stringify(sampleData.academicYears)
-      );
-      
-      // Initialize school profile, achievements, and programs
-      localStorage.setItem(
-        STORAGE_KEYS.SCHOOL_PROFILE,
-        JSON.stringify(sampleData.schoolProfile)
-      );
-      localStorage.setItem(
-        STORAGE_KEYS.ACHIEVEMENTS,
-        JSON.stringify(sampleData.achievements)
-      );
-      localStorage.setItem(
-        STORAGE_KEYS.PROGRAMS,
-        JSON.stringify(sampleData.programs)
-      );
-      localStorage.setItem(
-        STORAGE_KEYS.REGISTRATION_LINKS,
-        JSON.stringify(sampleData.registrationLinks)
-      );
+      this.loadSampleData();
     }
+  },
+
+  // Force reload sample data (for development/testing)
+  forceInitializeData() {
+    this.loadSampleData();
+  },
+
+  loadSampleData() {
+    // Load all sample data into localStorage
+    localStorage.setItem(
+      STORAGE_KEYS.USERS,
+      JSON.stringify(sampleData.users)
+    );
+    localStorage.setItem(
+      STORAGE_KEYS.STUDENTS,
+      JSON.stringify(sampleData.students)
+    );
+    localStorage.setItem(
+      STORAGE_KEYS.TEACHERS,
+      JSON.stringify(sampleData.teachers)
+    );
+    localStorage.setItem(
+      STORAGE_KEYS.CLASSES,
+      JSON.stringify(sampleData.classes)
+    );
+    localStorage.setItem(
+      STORAGE_KEYS.SUBJECTS,
+      JSON.stringify(sampleData.subjects)
+    );
+    localStorage.setItem(
+      STORAGE_KEYS.GRADES,
+      JSON.stringify(sampleData.grades)
+    );
+    localStorage.setItem(
+      STORAGE_KEYS.ATTENDANCE,
+      JSON.stringify(sampleData.attendance)
+    );
+    localStorage.setItem(
+      STORAGE_KEYS.ACADEMIC_YEARS,
+      JSON.stringify(sampleData.academicYears)
+    );
+    
+    // Initialize school profile, achievements, programs, and registration links
+    localStorage.setItem(
+      STORAGE_KEYS.SCHOOL_PROFILE,
+      JSON.stringify(sampleData.schoolProfile)
+    );
+    localStorage.setItem(
+      STORAGE_KEYS.ACHIEVEMENTS,
+      JSON.stringify(sampleData.achievements)
+    );
+    localStorage.setItem(
+      STORAGE_KEYS.PROGRAMS,
+      JSON.stringify(sampleData.programs)
+    );
+    localStorage.setItem(
+      STORAGE_KEYS.REGISTRATION_LINKS,
+      JSON.stringify(sampleData.registrationLinks)
+    );
   },
 };
 

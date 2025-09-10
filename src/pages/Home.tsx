@@ -29,8 +29,8 @@ const Home = ({ currentUser, onLogin, onLogout }) => {
   });
 
   useEffect(() => {
-    // Initialize sample data jika belum ada
-    apiService.initializeData();
+    // Force initialize with enhanced data
+    apiService.forceInitializeData();
     loadHomeData();
   }, []);
 
