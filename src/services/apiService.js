@@ -16,7 +16,7 @@ const API_BASE_URL = "http://localhost:3000/api"; // Ganti dengan URL backend
 // LocalStorage Keys
 const STORAGE_KEYS = {
   USERS: "akademik_users",
-  STUDENTS: "akademik_students",
+  STUDENTS: "akademik_students", 
   TEACHERS: "akademik_teachers",
   CLASSES: "akademik_classes",
   SUBJECTS: "akademik_subjects",
@@ -27,6 +27,7 @@ const STORAGE_KEYS = {
   SCHOOL_PROFILE: "akademik_school_profile",
   ACHIEVEMENTS: "akademik_achievements",
   PROGRAMS: "akademik_programs",
+  REGISTRATION_LINKS: "akademik_registration_links",
 };
 
 // Generic API/localStorage abstraction
@@ -823,6 +824,42 @@ const apiService = {
     }
   },
 
+  async getRegistrationLinks() {
+    if (USE_API) {
+      const response = await authFetch(`${API_BASE_URL}/admin/registration-links`);
+      return await response.json();
+    } else {
+      const registrationLinks = JSON.parse(
+        localStorage.getItem(STORAGE_KEYS.REGISTRATION_LINKS) || "[]"
+      );
+      return registrationLinks;
+    }
+  },
+
+  async addRegistrationLink(linkData) {
+    if (USE_API) {
+      const response = await authFetch(`${API_BASE_URL}/admin/registration-links`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(linkData),
+      });
+      return await response.json();
+    } else {
+      const registrationLinks = JSON.parse(
+        localStorage.getItem(STORAGE_KEYS.REGISTRATION_LINKS) || "[]"
+      );
+      const newLink = {
+        id: Date.now().toString(),
+        ...linkData,
+        status: 'Aktif', // Default status
+        createdAt: new Date().toISOString(),
+      };
+      registrationLinks.push(newLink);
+      localStorage.setItem(STORAGE_KEYS.REGISTRATION_LINKS, JSON.stringify(registrationLinks));
+      return { success: true, data: newLink };
+    }
+  },
+
   // ============= UTILITY METHODS =============
   initializeData() {
     // Initialize with sample data if localStorage is empty
@@ -873,6 +910,10 @@ const apiService = {
       localStorage.setItem(
         STORAGE_KEYS.PROGRAMS,
         JSON.stringify(sampleData.programs)
+      );
+      localStorage.setItem(
+        STORAGE_KEYS.REGISTRATION_LINKS,
+        JSON.stringify(sampleData.registrationLinks)
       );
     }
   },

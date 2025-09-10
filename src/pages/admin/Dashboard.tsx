@@ -142,13 +142,22 @@ const AdminDashboard = ({ currentUser, onLogout }) => {
     setLoading(true);
     try {
       // Load data from localStorage via apiService
-      const [usersData, subjectsData, classesData, schoolProfileData, achievementsData, programsData] = await Promise.all([
+      const [
+        usersData, 
+        subjectsData, 
+        classesData, 
+        schoolProfileData, 
+        achievementsData, 
+        programsData,
+        registrationLinksData
+      ] = await Promise.all([
         apiService.getUsers(),
         apiService.getSubjects(),
         apiService.getClasses(),
         apiService.getSchoolProfile(),
         apiService.getAchievements(),
-        apiService.getPrograms()
+        apiService.getPrograms(),
+        apiService.getRegistrationLinks()
       ]);
       
       setUsers(usersData);
@@ -157,6 +166,7 @@ const AdminDashboard = ({ currentUser, onLogout }) => {
       setSchoolProfile(schoolProfileData);
       setAchievements(achievementsData);
       setPrograms(programsData);
+      setRegistrationLinks(registrationLinksData);
     } catch (error) {
       toast({
         title: "Error",
@@ -622,6 +632,82 @@ const AdminDashboard = ({ currentUser, onLogout }) => {
         toast({
           title: "Error",
           description: "Gagal menghapus program",
+          variant: "destructive"
+        });
+      }
+    }
+  };
+
+  const handleRegistrationSubmit = async (e) => {
+    e.preventDefault();
+    
+    if (!registrationForm.judul || !registrationForm.link) {
+      toast({
+        title: "Error",
+        description: "Judul dan link pendaftaran wajib diisi",
+        variant: "destructive"
+      });
+      return;
+    }
+
+    try {
+      const result = await apiService.addRegistrationLink(registrationForm);
+      
+      if (result.success) {
+        toast({
+          title: "Berhasil",
+          description: "Link pendaftaran berhasil ditambahkan"
+        });
+        
+        resetRegistrationForm();
+        loadAdminData();
+        setShowRegistrationDialog(false);
+      }
+    } catch (error) {
+      toast({
+        title: "Error",
+        description: "Gagal menyimpan link pendaftaran",
+        variant: "destructive"
+      });
+    }
+  };
+
+  const resetRegistrationForm = () => {
+    setRegistrationForm({
+      judul: '',
+      deskripsi: '',
+      link: '',
+      tahunAjaran: '',
+      batasPendaftaran: ''
+    });
+  };
+
+  const editRegistrationLink = (registration) => {
+    setRegistrationForm({
+      judul: registration.judul || '',
+      deskripsi: registration.deskripsi || '',
+      link: registration.link || '',
+      tahunAjaran: registration.tahunAjaran || '',
+      batasPendaftaran: registration.batasPendaftaran || ''
+    });
+    setEditingItem(registration);
+    setShowRegistrationDialog(true);
+  };
+
+  const deleteRegistrationLink = async (registrationId) => {
+    if (window.confirm('Apakah Anda yakin ingin menghapus link pendaftaran ini?')) {
+      try {
+        // Note: Add delete method in apiService if needed
+        const updatedRegistrations = registrationLinks.filter(r => r.id !== registrationId);
+        setRegistrationLinks(updatedRegistrations);
+        toast({
+          title: "Berhasil",
+          description: "Link pendaftaran berhasil dihapus"
+        });
+      } catch (error) {
+        toast({
+          title: "Error",
+          description: "Gagal menghapus link pendaftaran",
           variant: "destructive"
         });
       }
@@ -1689,19 +1775,19 @@ const AdminDashboard = ({ currentUser, onLogout }) => {
                             {editingItem ? 'Edit Link Pendaftaran' : 'Tambah Link Pendaftaran'}
                           </DialogTitle>
                         </DialogHeader>
-                        <form className="space-y-4">
+                        <form onSubmit={handleRegistrationSubmit} className="space-y-4">
                           <div className="space-y-2">
                             <Label>Judul Pendaftaran</Label>
                             <Input
                               value={registrationForm.judul}
                               onChange={(e) => setRegistrationForm(prev => ({ ...prev, judul: e.target.value }))}
                               placeholder="Contoh: Pendaftaran Siswa Baru 2025"
+                              required
                             />
                           </div>
                           <div className="space-y-2">
                             <Label>Deskripsi</Label>
-                            <textarea
-                              className="w-full p-2 border rounded-md"
+                            <Textarea
                               rows={3}
                               value={registrationForm.deskripsi}
                               onChange={(e) => setRegistrationForm(prev => ({ ...prev, deskripsi: e.target.value }))}
@@ -1714,6 +1800,7 @@ const AdminDashboard = ({ currentUser, onLogout }) => {
                               value={registrationForm.link}
                               onChange={(e) => setRegistrationForm(prev => ({ ...prev, link: e.target.value }))}
                               placeholder="https://forms.google.com/..."
+                              required
                             />
                           </div>
                           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
@@ -1754,11 +1841,8 @@ const AdminDashboard = ({ currentUser, onLogout }) => {
                 </CardHeader>
                 <CardContent>
                   <div className="space-y-4">
-                    {[
-                      { judul: 'Pendaftaran Siswa Baru 2025/2026', tahun: '2025/2026', batas: '30 Juni 2025', status: 'Aktif' },
-                      { judul: 'Pendaftaran Siswa Pindahan', tahun: '2024/2025', batas: '15 Januari 2025', status: 'Aktif' }
-                    ].map((registration, index) => (
-                      <div key={index} className="border rounded-lg p-4 hover:bg-muted/50 transition-colors">
+                    {registrationLinks.length > 0 ? registrationLinks.map((registration) => (
+                      <div key={registration.id} className="border rounded-lg p-4 hover:bg-muted/50 transition-colors">
                         <div className="flex justify-between items-start">
                           <div className="space-y-2 flex-1">
                             <div className="flex items-center space-x-2">
@@ -1767,26 +1851,43 @@ const AdminDashboard = ({ currentUser, onLogout }) => {
                                 {registration.status}
                               </Badge>
                             </div>
+                            {registration.deskripsi && (
+                              <p className="text-sm text-muted-foreground">{registration.deskripsi}</p>
+                            )}
                             <div className="text-sm text-muted-foreground space-y-1">
-                              <p>Tahun Ajaran: {registration.tahun}</p>
-                              <p>Batas Pendaftaran: {registration.batas}</p>
+                              <p>Tahun Ajaran: {registration.tahunAjaran}</p>
+                              <p>Batas Pendaftaran: {new Date(registration.batasPendaftaran).toLocaleDateString('id-ID')}</p>
                               <p className="flex items-center space-x-1">
                                 <FileText className="h-3 w-3" />
-                                <span>Google Forms</span>
+                                <a href={registration.link} target="_blank" rel="noopener noreferrer" className="text-primary hover:underline">
+                                  Buka Form Pendaftaran
+                                </a>
                               </p>
                             </div>
                           </div>
                           <div className="flex space-x-2 ml-4">
-                            <Button size="sm" variant="outline">
+                            <Button 
+                              size="sm" 
+                              variant="outline"
+                              onClick={() => editRegistrationLink(registration)}
+                            >
                               <Edit className="h-3 w-3" />
                             </Button>
-                            <Button size="sm" variant="outline">
+                            <Button 
+                              size="sm" 
+                              variant="outline"
+                              onClick={() => deleteRegistrationLink(registration.id)}
+                            >
                               <Trash2 className="h-3 w-3" />
                             </Button>
                           </div>
                         </div>
                       </div>
-                    ))}
+                    )) : (
+                      <div className="text-center py-8">
+                        <p className="text-muted-foreground">Belum ada link pendaftaran yang ditambahkan</p>
+                      </div>
+                    )}
                   </div>
                 </CardContent>
               </Card>

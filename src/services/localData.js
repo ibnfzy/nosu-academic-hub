@@ -372,6 +372,28 @@ const programs = [
   }
 ];
 
+//Registration Links
+const registrationLinks = [
+  {
+    id: '1',
+    judul: 'Pendaftaran Siswa Baru 2025/2026',
+    deskripsi: 'Pendaftaran online untuk siswa baru tahun ajaran 2025/2026. Silakan lengkapi formulir dan upload dokumen yang diperlukan.',
+    link: 'https://forms.google.com/d/e/1FAIpQLSfExample1',
+    tahunAjaran: '2025/2026',
+    batasPendaftaran: '2025-06-30',
+    status: 'Aktif'
+  },
+  {
+    id: '2', 
+    judul: 'Pendaftaran Siswa Pindahan',
+    deskripsi: 'Pendaftaran khusus untuk siswa pindahan dari sekolah lain. Harap sertakan dokumen transfer dan rapor terakhir.',
+    link: 'https://forms.google.com/d/e/1FAIpQLSfExample2',
+    tahunAjaran: '2024/2025',
+    batasPendaftaran: '2025-01-15',
+    status: 'Aktif'
+  }
+];
+
 // Export all sample data
 const sampleData = {
   users,
@@ -384,7 +406,8 @@ const sampleData = {
   academicYears,
   schoolProfile,
   achievements,
-  programs
+  programs,
+  registrationLinks
 };
 
 export default sampleData;
