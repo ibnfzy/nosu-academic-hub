@@ -457,15 +457,24 @@ const AdminDashboard = ({ currentUser, onLogout }) => {
     }
 
     try {
-      const result = await apiService.addAchievement(achievementForm);
+      let result;
+      
+      if (editingItem) {
+        // Update existing achievement
+        result = await apiService.updateAchievement(editingItem.id, achievementForm);
+      } else {
+        // Add new achievement
+        result = await apiService.addAchievement(achievementForm);
+      }
       
       if (result.success) {
         toast({
           title: "Berhasil",
-          description: "Prestasi berhasil ditambahkan"
+          description: `Prestasi berhasil ${editingItem ? 'diperbarui' : 'ditambahkan'}`
         });
         
         resetAchievementForm();
+        setEditingItem(null);
         loadAdminData();
         setShowAchievementDialog(false);
       }
@@ -491,19 +500,28 @@ const AdminDashboard = ({ currentUser, onLogout }) => {
     }
 
     try {
+      let result;
       const programData = {
         ...programForm,
         mataPelajaran: programForm.mataPelajaran.split(',').map(mp => mp.trim())
       };
-      const result = await apiService.addProgram(programData);
+      
+      if (editingItem) {
+        // Update existing program
+        result = await apiService.updateProgram(editingItem.id, programData);
+      } else {
+        // Add new program
+        result = await apiService.addProgram(programData);
+      }
       
       if (result.success) {
         toast({
           title: "Berhasil",
-          description: "Program studi berhasil ditambahkan"
+          description: `Program studi berhasil ${editingItem ? 'diperbarui' : 'ditambahkan'}`
         });
         
         resetProgramForm();
+        setEditingItem(null);
         loadAdminData();
         setShowProgramDialog(false);
       }
@@ -547,6 +565,7 @@ const AdminDashboard = ({ currentUser, onLogout }) => {
       tahun: '',
       bidang: ''
     });
+    setEditingItem(null);
   };
 
   const resetProgramForm = () => {
@@ -556,6 +575,7 @@ const AdminDashboard = ({ currentUser, onLogout }) => {
       mataPelajaran: '',
       prospek: ''
     });
+    setEditingItem(null);
   };
 
   const editSchoolProfile = () => {
@@ -590,13 +610,14 @@ const AdminDashboard = ({ currentUser, onLogout }) => {
   const deleteAchievement = async (achievementId) => {
     if (window.confirm('Apakah Anda yakin ingin menghapus prestasi ini?')) {
       try {
-        // Note: Add delete method in apiService if needed
-        const updatedAchievements = achievements.filter(a => a.id !== achievementId);
-        setAchievements(updatedAchievements);
-        toast({
-          title: "Berhasil",
-          description: "Prestasi berhasil dihapus"
-        });
+        const result = await apiService.deleteAchievement(achievementId);
+        if (result.success) {
+          toast({
+            title: "Berhasil",
+            description: "Prestasi berhasil dihapus"
+          });
+          loadAdminData();
+        }
       } catch (error) {
         toast({
           title: "Error",
@@ -621,13 +642,14 @@ const AdminDashboard = ({ currentUser, onLogout }) => {
   const deleteProgram = async (programId) => {
     if (window.confirm('Apakah Anda yakin ingin menghapus program ini?')) {
       try {
-        // Note: Add delete method in apiService if needed
-        const updatedPrograms = programs.filter(p => p.id !== programId);
-        setPrograms(updatedPrograms);
-        toast({
-          title: "Berhasil",
-          description: "Program berhasil dihapus"
-        });
+        const result = await apiService.deleteProgram(programId);
+        if (result.success) {
+          toast({
+            title: "Berhasil",
+            description: "Program berhasil dihapus"
+          });
+          loadAdminData();
+        }
       } catch (error) {
         toast({
           title: "Error",
@@ -1529,7 +1551,10 @@ const AdminDashboard = ({ currentUser, onLogout }) => {
                       <DialogTrigger asChild>
                         <Button 
                           className="bg-success text-white w-full md:w-auto"
-                          onClick={() => setEditingItem(null)}
+                          onClick={() => {
+                            setEditingItem(null);
+                            resetAchievementForm();
+                          }}
                         >
                           <Plus className="h-4 w-4 mr-2" />
                           Tambah Prestasi
@@ -1642,7 +1667,10 @@ const AdminDashboard = ({ currentUser, onLogout }) => {
                       <DialogTrigger asChild>
                         <Button 
                           className="bg-accent text-white w-full md:w-auto"
-                          onClick={() => setEditingItem(null)}
+                          onClick={() => {
+                            setEditingItem(null);
+                            resetProgramForm();
+                          }}
                         >
                           <Plus className="h-4 w-4 mr-2" />
                           Tambah Program

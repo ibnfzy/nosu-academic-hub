@@ -789,6 +789,49 @@ const apiService = {
     }
   },
 
+  async updateAchievement(achievementId, achievementData) {
+    if (USE_API) {
+      const response = await authFetch(`${API_BASE_URL}/admin/achievements/${achievementId}`, {
+        method: "PUT",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(achievementData),
+      });
+      return await response.json();
+    } else {
+      const achievements = JSON.parse(
+        localStorage.getItem(STORAGE_KEYS.ACHIEVEMENTS) || "[]"
+      );
+      const achievementIndex = achievements.findIndex(a => a.id === achievementId);
+      
+      if (achievementIndex !== -1) {
+        achievements[achievementIndex] = {
+          ...achievements[achievementIndex],
+          ...achievementData,
+          updatedAt: new Date().toISOString(),
+        };
+        localStorage.setItem(STORAGE_KEYS.ACHIEVEMENTS, JSON.stringify(achievements));
+        return { success: true, data: achievements[achievementIndex] };
+      }
+      return { success: false, message: "Achievement not found" };
+    }
+  },
+
+  async deleteAchievement(achievementId) {
+    if (USE_API) {
+      const response = await authFetch(`${API_BASE_URL}/admin/achievements/${achievementId}`, {
+        method: "DELETE",
+      });
+      return await response.json();
+    } else {
+      const achievements = JSON.parse(
+        localStorage.getItem(STORAGE_KEYS.ACHIEVEMENTS) || "[]"
+      );
+      const filtered = achievements.filter((a) => a.id !== achievementId);
+      localStorage.setItem(STORAGE_KEYS.ACHIEVEMENTS, JSON.stringify(filtered));
+      return { success: true };
+    }
+  },
+
   async getPrograms() {
     if (USE_API) {
       const response = await authFetch(`${API_BASE_URL}/admin/programs`);
@@ -821,6 +864,49 @@ const apiService = {
       programs.push(newProgram);
       localStorage.setItem(STORAGE_KEYS.PROGRAMS, JSON.stringify(programs));
       return { success: true, data: newProgram };
+    }
+  },
+
+  async updateProgram(programId, programData) {
+    if (USE_API) {
+      const response = await authFetch(`${API_BASE_URL}/admin/programs/${programId}`, {
+        method: "PUT",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(programData),
+      });
+      return await response.json();
+    } else {
+      const programs = JSON.parse(
+        localStorage.getItem(STORAGE_KEYS.PROGRAMS) || "[]"
+      );
+      const programIndex = programs.findIndex(p => p.id === programId);
+      
+      if (programIndex !== -1) {
+        programs[programIndex] = {
+          ...programs[programIndex],
+          ...programData,
+          updatedAt: new Date().toISOString(),
+        };
+        localStorage.setItem(STORAGE_KEYS.PROGRAMS, JSON.stringify(programs));
+        return { success: true, data: programs[programIndex] };
+      }
+      return { success: false, message: "Program not found" };
+    }
+  },
+
+  async deleteProgram(programId) {
+    if (USE_API) {
+      const response = await authFetch(`${API_BASE_URL}/admin/programs/${programId}`, {
+        method: "DELETE",
+      });
+      return await response.json();
+    } else {
+      const programs = JSON.parse(
+        localStorage.getItem(STORAGE_KEYS.PROGRAMS) || "[]"
+      );
+      const filtered = programs.filter((p) => p.id !== programId);
+      localStorage.setItem(STORAGE_KEYS.PROGRAMS, JSON.stringify(filtered));
+      return { success: true };
     }
   },
 
