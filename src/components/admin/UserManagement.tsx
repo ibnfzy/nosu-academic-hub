@@ -25,11 +25,12 @@ import apiService from '@/services/apiService';
 
 interface UserManagementProps {
   users: any[];
+  classes: any[];
   activeSection: string;
   onDataChange: () => void;
 }
 
-export default function UserManagement({ users, activeSection, onDataChange }: UserManagementProps) {
+export default function UserManagement({ users, classes, activeSection, onDataChange }: UserManagementProps) {
   const [showUserDialog, setShowUserDialog] = useState(false);
   const [editingItem, setEditingItem] = useState(null);
   const [searchTerm, setSearchTerm] = useState('');
@@ -40,9 +41,16 @@ export default function UserManagement({ users, activeSection, onDataChange }: U
     nama: '',
     role: '',
     email: '',
-    nis: '',
     nisn: '',
-    nip: ''
+    nip: '',
+    jenisKelamin: '',
+    kelasId: '',
+    tanggalLahir: '',
+    alamat: '',
+    nomorHP: '',
+    namaOrangTua: '',
+    pekerjaanOrangTua: '',
+    tahunMasuk: ''
   });
 
   const { toast } = useToast();
@@ -127,9 +135,16 @@ export default function UserManagement({ users, activeSection, onDataChange }: U
       nama: '',
       role: '',
       email: '',
-      nis: '',
       nisn: '',
-      nip: ''
+      nip: '',
+      jenisKelamin: '',
+      kelasId: '',
+      tanggalLahir: '',
+      alamat: '',
+      nomorHP: '',
+      namaOrangTua: '',
+      pekerjaanOrangTua: '',
+      tahunMasuk: ''
     });
     setEditingItem(null);
   };
@@ -247,28 +262,42 @@ export default function UserManagement({ users, activeSection, onDataChange }: U
       />
     </div>
 
+    {(userForm.role === "siswa" || userForm.role === "walikelas" || activeSection === "siswa" || activeSection === "walikelas") && (
+      <div className="space-y-2">
+        <Label>Kelas {userForm.role === "walikelas" || activeSection === "walikelas" ? "*" : ""}</Label>
+        <Select
+          value={userForm.kelasId}
+          onValueChange={(value) =>
+            setUserForm((prev) => ({ ...prev, kelasId: value }))
+          }
+        >
+          <SelectTrigger>
+            <SelectValue placeholder="Pilih kelas" />
+          </SelectTrigger>
+          <SelectContent>
+            {classes.map((kelas) => (
+              <SelectItem key={kelas.id} value={kelas.id}>
+                {kelas.nama}
+              </SelectItem>
+            ))}
+          </SelectContent>
+        </Select>
+      </div>
+    )}
+
     {(userForm.role === "siswa" || activeSection === "siswa") && (
       <>
-        <div className="space-y-2">
-          <Label>NISN</Label>
-          <Input
-            value={userForm.nisn}
-            onChange={(e) =>
-              setUserForm((prev) => ({ ...prev, nisn: e.target.value }))
-            }
-          />
-        </div>
-        <div className="space-y-2">
-          <Label>NIS</Label>
-          <Input
-            value={userForm.nis}
-            onChange={(e) =>
-              setUserForm((prev) => ({ ...prev, nis: e.target.value }))
-            }
-          />
-        </div>
-      </>
-    )}
+         <div className="space-y-2">
+           <Label>NISN</Label>
+           <Input
+             value={userForm.nisn}
+             onChange={(e) =>
+               setUserForm((prev) => ({ ...prev, nisn: e.target.value }))
+             }
+           />
+         </div>
+       </>
+     )}
 
     {(userForm.role === "guru" ||
       userForm.role === "walikelas" ||
