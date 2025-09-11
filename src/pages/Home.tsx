@@ -29,6 +29,7 @@ const Home = ({ currentUser, onLogin, onLogout }) => {
   });
 
   useEffect(() => {
+    apiService.initializeData();
     loadHomeData();
   }, []);
 
