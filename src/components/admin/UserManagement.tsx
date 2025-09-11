@@ -347,181 +347,108 @@ export default function UserManagement({
                 </DialogTitle>
               </DialogHeader>
               <form onSubmit={handleUserSubmit} className="space-y-4">
-                <div className="space-y-2">
-                  <Label>Username *</Label>
-                  <Input
-                    value={userForm.username}
-                    onChange={(e) =>
-                      setUserForm((prev) => ({
-                        ...prev,
-                        username: e.target.value,
-                      }))
-                    }
-                    required
-                  />
-                </div>
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  <div className="space-y-2">
+                    <Label>Username *</Label>
+                    <Input
+                      value={userForm.username}
+                      onChange={(e) =>
+                        setUserForm((prev) => ({
+                          ...prev,
+                          username: e.target.value,
+                        }))
+                      }
+                      required
+                    />
+                  </div>
 
-                <div className="space-y-2">
-                  <Label>Password *</Label>
-                  <Input
-                    type="password"
-                    value={userForm.password}
-                    onChange={(e) =>
-                      setUserForm((prev) => ({
-                        ...prev,
-                        password: e.target.value,
-                      }))
-                    }
-                    required={!editingItem}
-                  />
-                </div>
+                  <div className="space-y-2">
+                    <Label>Password *</Label>
+                    <Input
+                      type="password"
+                      value={userForm.password}
+                      onChange={(e) =>
+                        setUserForm((prev) => ({
+                          ...prev,
+                          password: e.target.value,
+                        }))
+                      }
+                      required={!editingItem}
+                    />
+                  </div>
 
-                <div className="space-y-2">
-                  <Label>Nama Lengkap *</Label>
-                  <Input
-                    value={userForm.nama}
-                    onChange={(e) =>
-                      setUserForm((prev) => ({ ...prev, nama: e.target.value }))
-                    }
-                    required
-                  />
-                </div>
+                  <div className="space-y-2">
+                    <Label>Nama Lengkap *</Label>
+                    <Input
+                      value={userForm.nama}
+                      onChange={(e) =>
+                        setUserForm((prev) => ({
+                          ...prev,
+                          nama: e.target.value,
+                        }))
+                      }
+                      required
+                    />
+                  </div>
 
-                <div className="space-y-2">
-                  <Label>Role *</Label>
-                  <Select
-                    value={userForm.role || activeSection}
-                    onValueChange={(value) =>
-                      setUserForm((prev) => ({ ...prev, role: value }))
-                    }
-                    disabled={activeSection !== "semua"}
-                  >
-                    <SelectTrigger>
-                      <SelectValue placeholder="Pilih role" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      {activeSection === "semua" ? (
-                        roles.map((role) => (
-                          <SelectItem key={role.value} value={role.value}>
-                            {role.label}
-                          </SelectItem>
-                        ))
-                      ) : (
-                        <SelectItem value={activeSection}>
-                          {roles.find((r) => r.value === activeSection)
-                            ?.label || activeSection}
-                        </SelectItem>
-                      )}
-                    </SelectContent>
-                  </Select>
-                </div>
-
-                <div className="space-y-2">
-                  <Label>Email</Label>
-                  <Input
-                    type="email"
-                    value={userForm.email}
-                    onChange={(e) =>
-                      setUserForm((prev) => ({
-                        ...prev,
-                        email: e.target.value,
-                      }))
-                    }
-                  />
-                </div>
-
-                {(userForm.role === "siswa" || activeSection === "siswa") && (
-                  <>
-                    <div className="space-y-2">
-                      <Label>NISN *</Label>
-                      <Input
-                        value={userForm.nisn}
-                        onChange={(e) =>
-                          setUserForm((prev) => ({
-                            ...prev,
-                            nisn: e.target.value,
-                          }))
-                        }
-                        required
-                      />
-                    </div>
-                    <div className="space-y-2">
-                      <Label>Kelas *</Label>
-                      <Select
-                        value={userForm.kelasId}
-                        onValueChange={(value) =>
-                          setUserForm((prev) => ({ ...prev, kelasId: value }))
-                        }
-                      >
-                        <SelectTrigger>
-                          <SelectValue placeholder="Pilih kelas" />
-                        </SelectTrigger>
-                        <SelectContent>
-                          {classes?.map((kelas) => (
-                            <SelectItem key={kelas.id} value={kelas.id}>
-                              {kelas.namaKelas}
+                  <div className="space-y-2">
+                    <Label>Role *</Label>
+                    <Select
+                      value={userForm.role || activeSection}
+                      onValueChange={(value) =>
+                        setUserForm((prev) => ({ ...prev, role: value }))
+                      }
+                      disabled={activeSection !== "semua"}
+                    >
+                      <SelectTrigger>
+                        <SelectValue placeholder="Pilih role" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {activeSection === "semua" ? (
+                          roles.map((role) => (
+                            <SelectItem key={role.value} value={role.value}>
+                              {role.label}
                             </SelectItem>
-                          ))}
-                        </SelectContent>
-                      </Select>
-                    </div>
-                    <div className="space-y-2">
-                      <Label>Jenis Kelamin *</Label>
-                      <Select
-                        value={userForm.jenisKelamin}
-                        onValueChange={(value) =>
-                          setUserForm((prev) => ({
-                            ...prev,
-                            jenisKelamin: value,
-                          }))
-                        }
-                      >
-                        <SelectTrigger>
-                          <SelectValue placeholder="Pilih jenis kelamin" />
-                        </SelectTrigger>
-                        <SelectContent>
-                          <SelectItem value="L">Laki-laki</SelectItem>
-                          <SelectItem value="P">Perempuan</SelectItem>
-                        </SelectContent>
-                      </Select>
-                    </div>
-                    <div className="space-y-2">
-                      <Label>Tahun Masuk *</Label>
-                      <Input
-                        type="number"
-                        value={userForm.tahunMasuk}
-                        onChange={(e) =>
-                          setUserForm((prev) => ({
-                            ...prev,
-                            tahunMasuk: e.target.value,
-                          }))
-                        }
-                        placeholder="2024"
-                        required
-                      />
-                    </div>
-                  </>
-                )}
-                {(userForm.role === "guru" ||
-                  userForm.role === "walikelas" ||
-                  activeSection === "guru" ||
-                  activeSection === "walikelas") && (
-                  <>
-                    <div className="space-y-2">
-                      <Label>NIP *</Label>
-                      <Input
-                        value={userForm.nip}
-                        onChange={(e) =>
-                          setUserForm((prev) => ({
-                            ...prev,
-                            nip: e.target.value,
-                          }))
-                        }
-                        required
-                      />
-                    </div>
-                    {(userForm.role === "walikelas" ||
-                      activeSection === "walikelas") && (
+                          ))
+                        ) : (
+                          <SelectItem value={activeSection}>
+                            {roles.find((r) => r.value === activeSection)
+                              ?.label || activeSection}
+                          </SelectItem>
+                        )}
+                      </SelectContent>
+                    </Select>
+                  </div>
+
+                  <div className="space-y-2">
+                    <Label>Email</Label>
+                    <Input
+                      type="email"
+                      value={userForm.email}
+                      onChange={(e) =>
+                        setUserForm((prev) => ({
+                          ...prev,
+                          email: e.target.value,
+                        }))
+                      }
+                    />
+                  </div>
+
+                  {(userForm.role === "siswa" || activeSection === "siswa") && (
+                    <>
+                      <div className="space-y-2">
+                        <Label>NISN *</Label>
+                        <Input
+                          value={userForm.nisn}
+                          onChange={(e) =>
+                            setUserForm((prev) => ({
+                              ...prev,
+                              nisn: e.target.value,
+                            }))
+                          }
+                          required
+                        />
+                      </div>
                       <div className="space-y-2">
                         <Label>Kelas *</Label>
                         <Select
@@ -542,126 +469,207 @@ export default function UserManagement({
                           </SelectContent>
                         </Select>
                       </div>
-                    )}
-                    <div className="space-y-2">
-                      <Label>Jenis Kelamin *</Label>
-                      <Select
-                        value={userForm.jenisKelamin}
-                        onValueChange={(value) =>
-                          setUserForm((prev) => ({
-                            ...prev,
-                            jenisKelamin: value,
-                          }))
-                        }
-                      >
-                        <SelectTrigger>
-                          <SelectValue placeholder="Pilih jenis kelamin" />
-                        </SelectTrigger>
-                        <SelectContent>
-                          <SelectItem value="L">Laki-laki</SelectItem>
-                          <SelectItem value="P">Perempuan</SelectItem>
-                        </SelectContent>
-                      </Select>
-                    </div>
-                  </>
-                )}
+                      <div className="space-y-2">
+                        <Label>Jenis Kelamin *</Label>
+                        <Select
+                          value={userForm.jenisKelamin}
+                          onValueChange={(value) =>
+                            setUserForm((prev) => ({
+                              ...prev,
+                              jenisKelamin: value,
+                            }))
+                          }
+                        >
+                          <SelectTrigger>
+                            <SelectValue placeholder="Pilih jenis kelamin" />
+                          </SelectTrigger>
+                          <SelectContent>
+                            <SelectItem value="L">Laki-laki</SelectItem>
+                            <SelectItem value="P">Perempuan</SelectItem>
+                          </SelectContent>
+                        </Select>
+                      </div>
+                      <div className="space-y-2">
+                        <Label>Tahun Masuk *</Label>
+                        <Input
+                          type="number"
+                          value={userForm.tahunMasuk}
+                          onChange={(e) =>
+                            setUserForm((prev) => ({
+                              ...prev,
+                              tahunMasuk: e.target.value,
+                            }))
+                          }
+                          placeholder="2024"
+                          required
+                        />
+                      </div>
+                    </>
+                  )}
+                  {(userForm.role === "guru" ||
+                    userForm.role === "walikelas" ||
+                    activeSection === "guru" ||
+                    activeSection === "walikelas") && (
+                    <>
+                      <div className="space-y-2">
+                        <Label>NIP *</Label>
+                        <Input
+                          value={userForm.nip}
+                          onChange={(e) =>
+                            setUserForm((prev) => ({
+                              ...prev,
+                              nip: e.target.value,
+                            }))
+                          }
+                          required
+                        />
+                      </div>
+                      {(userForm.role === "walikelas" ||
+                        activeSection === "walikelas") && (
+                        <div className="space-y-2">
+                          <Label>Kelas *</Label>
+                          <Select
+                            value={userForm.kelasId}
+                            onValueChange={(value) =>
+                              setUserForm((prev) => ({
+                                ...prev,
+                                kelasId: value,
+                              }))
+                            }
+                          >
+                            <SelectTrigger>
+                              <SelectValue placeholder="Pilih kelas" />
+                            </SelectTrigger>
+                            <SelectContent>
+                              {classes?.map((kelas) => (
+                                <SelectItem key={kelas.id} value={kelas.id}>
+                                  {kelas.namaKelas}
+                                </SelectItem>
+                              ))}
+                            </SelectContent>
+                          </Select>
+                        </div>
+                      )}
+                      <div className="space-y-2">
+                        <Label>Jenis Kelamin *</Label>
+                        <Select
+                          value={userForm.jenisKelamin}
+                          onValueChange={(value) =>
+                            setUserForm((prev) => ({
+                              ...prev,
+                              jenisKelamin: value,
+                            }))
+                          }
+                        >
+                          <SelectTrigger>
+                            <SelectValue placeholder="Pilih jenis kelamin" />
+                          </SelectTrigger>
+                          <SelectContent>
+                            <SelectItem value="L">Laki-laki</SelectItem>
+                            <SelectItem value="P">Perempuan</SelectItem>
+                          </SelectContent>
+                        </Select>
+                      </div>
+                    </>
+                  )}
 
-                {/* Additional fields for students and teachers */}
-                {(userForm.role === "siswa" ||
-                  userForm.role === "guru" ||
-                  userForm.role === "walikelas" ||
-                  activeSection === "siswa" ||
-                  activeSection === "guru" ||
-                  activeSection === "walikelas") && (
-                  <>
-                    <div className="space-y-2">
-                      <Label>Tanggal Lahir</Label>
-                      <Input
-                        type="date"
-                        value={userForm.tanggalLahir}
-                        onChange={(e) =>
-                          setUserForm((prev) => ({
-                            ...prev,
-                            tanggalLahir: e.target.value,
-                          }))
-                        }
-                      />
-                    </div>
-                    <div className="space-y-2">
-                      <Label>Alamat</Label>
-                      <Input
-                        value={userForm.alamat}
-                        onChange={(e) =>
-                          setUserForm((prev) => ({
-                            ...prev,
-                            alamat: e.target.value,
-                          }))
-                        }
-                        placeholder="Alamat lengkap"
-                      />
-                    </div>
-                    <div className="space-y-2">
-                      <Label>Nomor HP</Label>
-                      <Input
-                        value={userForm.nomorHP}
-                        onChange={(e) =>
-                          setUserForm((prev) => ({
-                            ...prev,
-                            nomorHP: e.target.value,
-                          }))
-                        }
-                        placeholder="08xxxxxxxxxx"
-                      />
-                    </div>
-                  </>
-                )}
+                  {/* Additional fields for students and teachers */}
+                  {(userForm.role === "siswa" ||
+                    userForm.role === "guru" ||
+                    userForm.role === "walikelas" ||
+                    activeSection === "siswa" ||
+                    activeSection === "guru" ||
+                    activeSection === "walikelas") && (
+                    <>
+                      <div className="space-y-2">
+                        <Label>Tanggal Lahir</Label>
+                        <Input
+                          type="date"
+                          value={userForm.tanggalLahir}
+                          onChange={(e) =>
+                            setUserForm((prev) => ({
+                              ...prev,
+                              tanggalLahir: e.target.value,
+                            }))
+                          }
+                        />
+                      </div>
+                      <div className="space-y-2">
+                        <Label>Alamat</Label>
+                        <Input
+                          value={userForm.alamat}
+                          onChange={(e) =>
+                            setUserForm((prev) => ({
+                              ...prev,
+                              alamat: e.target.value,
+                            }))
+                          }
+                          placeholder="Alamat lengkap"
+                        />
+                      </div>
+                      <div className="space-y-2">
+                        <Label>Nomor HP</Label>
+                        <Input
+                          value={userForm.nomorHP}
+                          onChange={(e) =>
+                            setUserForm((prev) => ({
+                              ...prev,
+                              nomorHP: e.target.value,
+                            }))
+                          }
+                          placeholder="08xxxxxxxxxx"
+                        />
+                      </div>
+                    </>
+                  )}
 
-                {/* Additional fields for students only */}
-                {(userForm.role === "siswa" || activeSection === "siswa") && (
-                  <>
-                    <div className="space-y-2">
-                      <Label>Nama Orang Tua</Label>
-                      <Input
-                        value={userForm.namaOrangTua}
-                        onChange={(e) =>
-                          setUserForm((prev) => ({
-                            ...prev,
-                            namaOrangTua: e.target.value,
-                          }))
-                        }
-                        placeholder="Nama orang tua/wali"
-                      />
-                    </div>
-                    <div className="space-y-2">
-                      <Label>Pekerjaan Orang Tua</Label>
-                      <Input
-                        value={userForm.pekerjaanOrangTua}
-                        onChange={(e) =>
-                          setUserForm((prev) => ({
-                            ...prev,
-                            pekerjaanOrangTua: e.target.value,
-                          }))
-                        }
-                        placeholder="Pekerjaan orang tua/wali"
-                      />
-                    </div>
-                  </>
-                )}
+                  {/* Additional fields for students only */}
+                  {(userForm.role === "siswa" || activeSection === "siswa") && (
+                    <>
+                      <div className="space-y-2">
+                        <Label>Nama Orang Tua</Label>
+                        <Input
+                          value={userForm.namaOrangTua}
+                          onChange={(e) =>
+                            setUserForm((prev) => ({
+                              ...prev,
+                              namaOrangTua: e.target.value,
+                            }))
+                          }
+                          placeholder="Nama orang tua/wali"
+                        />
+                      </div>
+                      <div className="space-y-2">
+                        <Label>Pekerjaan Orang Tua</Label>
+                        <Input
+                          value={userForm.pekerjaanOrangTua}
+                          onChange={(e) =>
+                            setUserForm((prev) => ({
+                              ...prev,
+                              pekerjaanOrangTua: e.target.value,
+                            }))
+                          }
+                          placeholder="Pekerjaan orang tua/wali"
+                        />
+                      </div>
+                    </>
+                  )}
 
-                {(userForm.role === "admin" || activeSection === "admin") && (
-                  <div className="space-y-2">
-                    <Label>NIP</Label>
-                    <Input
-                      value={userForm.nip}
-                      onChange={(e) =>
-                        setUserForm((prev) => ({
-                          ...prev,
-                          nip: e.target.value,
-                        }))
-                      }
-                    />
-                  </div>
-                )}
+                  {(userForm.role === "admin" || activeSection === "admin") && (
+                    <div className="space-y-2">
+                      <Label>NIP</Label>
+                      <Input
+                        value={userForm.nip}
+                        onChange={(e) =>
+                          setUserForm((prev) => ({
+                            ...prev,
+                            nip: e.target.value,
+                          }))
+                        }
+                      />
+                    </div>
+                  )}
+                </div>
 
                 <div className="flex gap-2 pt-4">
                   <Button type="submit" className="flex-1">
