@@ -85,6 +85,7 @@ const AdminDashboard = ({ currentUser, onLogout }) => {
           {(activeSection === 'siswa' || activeSection === 'guru' || activeSection === 'walikelas' || activeSection === 'admin' || activeSection === 'semua') && (
             <UserManagement 
               users={users}
+              classes={classes}
               activeSection={activeSection}
               onDataChange={loadAdminData}
             />
