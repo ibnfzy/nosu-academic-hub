@@ -147,7 +147,7 @@ export default function SubjectManagement({
     setSubjectForm({
       nama: "",
       kode: "",
-      kelasId: "",
+      kelasId: "all",
     });
     setEditingItem(null);
   };
@@ -159,6 +159,9 @@ export default function SubjectManagement({
   };
 
   const getClassName = (kelasId: string) => {
+    if (kelasId === "all" || !kelasId) {
+      return "Semua Kelas";
+    }
     const kelas = classes.find((c) => c.id === kelasId);
     return kelas ? kelas.nama : "Semua Kelas";
   };
@@ -230,7 +233,7 @@ export default function SubjectManagement({
                       <SelectValue placeholder="Pilih kelas (opsional)" />
                     </SelectTrigger>
                     <SelectContent>
-                      <SelectItem value="">Semua Kelas</SelectItem>
+                      <SelectItem value="all">Semua Kelas</SelectItem>
                       {classes.map((kelas) => (
                         <SelectItem key={kelas.id} value={kelas.id}>
                           {kelas.nama}

@@ -145,7 +145,7 @@ export default function ClassManagement({
     setClassForm({
       nama: "",
       tingkat: "",
-      walikelasId: "",
+      walikelasId: "unassigned",
     });
     setEditingItem(null);
   };
@@ -157,6 +157,9 @@ export default function ClassManagement({
   };
 
   const getWalikelasName = (walikelasId: string) => {
+    if (walikelasId === "unassigned" || walikelasId === "0" || !walikelasId) {
+      return "Belum ditentukan";
+    }
     const walikelas = users.find((u) => u.id === walikelasId);
     return walikelas ? walikelas.nama : "Belum ditentukan";
   };
@@ -240,7 +243,7 @@ export default function ClassManagement({
                       <SelectValue placeholder="Pilih wali kelas" />
                     </SelectTrigger>
                     <SelectContent>
-                      <SelectItem value="0">Belum ditentukan</SelectItem>
+                      <SelectItem value="unassigned">Belum ditentukan</SelectItem>
                       {availableWalikelas.map((teacher) => (
                         <SelectItem key={teacher.id} value={teacher.id}>
                           {teacher.nama} - {teacher.nip || "Tanpa NIP"}
