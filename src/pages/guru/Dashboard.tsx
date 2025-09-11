@@ -106,7 +106,7 @@ const TeacherDashboard = ({ currentUser, onLogout }) => {
   const loadTeacherData = async () => {
     setLoading(true);
     try {
-      // apiService.forceInitializeData();
+      apiService.forceInitializeData();
 
       // Ambil mapel guru
       const subjectsData = await apiService.getTeacherSubjects(
