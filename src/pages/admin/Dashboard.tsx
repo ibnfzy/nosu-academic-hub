@@ -1,22 +1,22 @@
-import { useState, useEffect } from 'react';
-import { AdminNavbar } from '@/components/AdminNavbar';
-import { useToast } from '@/hooks/use-toast';
-import apiService from '@/services/apiService';
-import { useIsMobile } from '@/hooks/use-mobile';
+import { useState, useEffect, useCallback } from "react";
+import { AdminNavbar } from "@/components/AdminNavbar";
+import { useToast } from "@/hooks/use-toast";
+import apiService from "@/services/apiService";
+import { useIsMobile } from "@/hooks/use-mobile";
 
 // Import modular components
-import UserManagement from '@/components/admin/UserManagement';
-import SubjectManagement from '@/components/admin/SubjectManagement';
-import ClassManagement from '@/components/admin/ClassManagement';
-import SchoolProfileManagement from '@/components/admin/SchoolProfileManagement';
+import UserManagement from "@/components/admin/UserManagement";
+import SubjectManagement from "@/components/admin/SubjectManagement";
+import ClassManagement from "@/components/admin/ClassManagement";
+import SchoolProfileManagement from "@/components/admin/SchoolProfileManagement";
 
 const AdminDashboard = ({ currentUser, onLogout }) => {
   const [users, setUsers] = useState([]);
   const [subjects, setSubjects] = useState([]);
   const [classes, setClasses] = useState([]);
   const [loading, setLoading] = useState(false);
-  const [activeSection, setActiveSection] = useState<string>('siswa');
-  
+  const [activeSection, setActiveSection] = useState<string>("siswa");
+
   // School management data
   const [schoolProfile, setSchoolProfile] = useState(null);
   const [achievements, setAchievements] = useState([]);
@@ -26,32 +26,48 @@ const AdminDashboard = ({ currentUser, onLogout }) => {
   const { toast } = useToast();
   const isMobile = useIsMobile();
 
-  useEffect(() => {
-    loadAdminData();
-  }, []);
-
-  const loadAdminData = async () => {
+  const loadAdminData = useCallback(async () => {
     setLoading(true);
     try {
       const [
-        usersData, 
-        subjectsData, 
-        classesData, 
-        schoolProfileData, 
-        achievementsData, 
+        usersData,
+        studentsData,
+        teachersData,
+        subjectsData,
+        classesData,
+        schoolProfileData,
+        achievementsData,
         programsData,
-        registrationLinksData
+        registrationLinksData,
       ] = await Promise.all([
         apiService.getUsers(),
+        apiService.getStudents(),
+        apiService.getTeachers(),
         apiService.getSubjects(),
         apiService.getClasses(),
         apiService.getSchoolProfile(),
         apiService.getAchievements(),
         apiService.getPrograms(),
-        apiService.getRegistrationLinks()
+        apiService.getRegistrationLinks(),
       ]);
-      
-      setUsers(usersData);
+
+      // Gabungkan data users dengan data siswa dan guru untuk menampilkan data lengkap
+      const combinedUsers = usersData.map((user) => {
+        if (user.role === "siswa") {
+          const studentData = studentsData.find(
+            (student) => student.userId === user.id
+          );
+          return { ...user, ...studentData };
+        } else if (user.role === "guru" || user.role === "walikelas") {
+          const teacherData = teachersData.find(
+            (teacher) => teacher.userId === user.id
+          );
+          return { ...user, ...teacherData };
+        }
+        return user;
+      });
+
+      setUsers(combinedUsers);
       setSubjects(subjectsData);
       setClasses(classesData);
       setSchoolProfile(schoolProfileData);
@@ -62,17 +78,22 @@ const AdminDashboard = ({ currentUser, onLogout }) => {
       toast({
         title: "Error",
         description: "Gagal memuat data admin",
-        variant: "destructive"
+        variant: "destructive",
       });
+      console.log(error);
     } finally {
       setLoading(false);
     }
-  };
+  }, [toast]);
+
+  useEffect(() => {
+    loadAdminData();
+  }, [loadAdminData]);
 
   return (
     <div className="min-h-screen bg-background">
       {/* Navigation */}
-      <AdminNavbar 
+      <AdminNavbar
         activeSection={activeSection}
         setActiveSection={setActiveSection}
         onLogout={onLogout}
@@ -82,39 +103,31 @@ const AdminDashboard = ({ currentUser, onLogout }) => {
         {/* Main Content */}
         <div className="space-y-6">
           {/* User Management Sections */}
-          {(activeSection === 'siswa' || activeSection === 'guru' || activeSection === 'walikelas' || activeSection === 'admin' || activeSection === 'semua') && (
-            <UserManagement 
+          {(activeSection === "siswa" ||
+            activeSection === "guru" ||
+            activeSection === "walikelas" ||
+            activeSection === "admin" ||
+            activeSection === "semua") && (
+            <UserManagement
               users={users}
-              classes={classes}
               activeSection={activeSection}
               onDataChange={loadAdminData}
             />
           )}
 
           {/* Subject Management */}
-          {activeSection === 'subjects' && (
-            <SubjectManagement 
-              subjects={subjects}
-              classes={classes}
-              onDataChange={loadAdminData}
-            />
+          {activeSection === "subjects" && (
+            <SubjectManagement onDataChange={loadAdminData} />
           )}
 
           {/* Class Management */}
-          {activeSection === 'classes' && (
-            <ClassManagement 
-              classes={classes}
-              users={users}
-              onDataChange={loadAdminData}
-            />
+          {activeSection === "classes" && (
+            <ClassManagement onDataChange={loadAdminData} />
           )}
 
           {/* School Profile Management */}
-          {activeSection === 'school-profile' && (
-            <SchoolProfileManagement 
-              schoolProfile={schoolProfile}
-              onDataChange={loadAdminData}
-            />
+          {activeSection === "school-profile" && (
+            <SchoolProfileManagement onDataChange={loadAdminData} />
           )}
         </div>
       </div>

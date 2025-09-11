@@ -1,52 +1,85 @@
-import { useState } from 'react';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { Button } from '@/components/ui/button';
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
-import { 
-  Dialog, 
-  DialogContent, 
-  DialogHeader, 
-  DialogTitle, 
-  DialogTrigger 
-} from '@/components/ui/dialog';
-import { Input } from '@/components/ui/input';
-import { Label } from '@/components/ui/label';
-import { 
+/* eslint-disable @typescript-eslint/no-explicit-any */
+import { useState, useEffect, useCallback } from "react";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Button } from "@/components/ui/button";
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from "@/components/ui/table";
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogTrigger,
+} from "@/components/ui/dialog";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import {
   Select,
-  SelectContent, 
-  SelectItem, 
-  SelectTrigger, 
-  SelectValue 
-} from '@/components/ui/select';
-import { Plus, Edit, Trash2, BookOpen } from 'lucide-react';
-import { useToast } from '@/hooks/use-toast';
-import apiService from '@/services/apiService';
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
+import { Plus, Edit, Trash2, BookOpen } from "lucide-react";
+import { useToast } from "@/hooks/use-toast";
+import apiService from "@/services/apiService";
 
 interface SubjectManagementProps {
-  subjects: any[];
-  classes: any[];
   onDataChange: () => void;
 }
 
-export default function SubjectManagement({ subjects, classes, onDataChange }: SubjectManagementProps) {
+export default function SubjectManagement({
+  onDataChange,
+}: SubjectManagementProps) {
   const [showSubjectDialog, setShowSubjectDialog] = useState(false);
   const [editingItem, setEditingItem] = useState(null);
+  const [subjects, setSubjects] = useState<any[]>([]);
+  const [classes, setClasses] = useState<any[]>([]);
   const [subjectForm, setSubjectForm] = useState({
-    nama: '',
-    kode: '',
-    kelasId: ''
+    nama: "",
+    kode: "",
+    kelasId: "",
   });
 
   const { toast } = useToast();
 
+  // Load data from apiService
+  const loadData = useCallback(async () => {
+    try {
+      const [subjectsData, classesData] = await Promise.all([
+        apiService.getSubjects(),
+        apiService.getClasses(),
+      ]);
+      setSubjects(subjectsData);
+      setClasses(classesData);
+    } catch (error) {
+      console.error("Error loading data:", error);
+      toast({
+        title: "Error",
+        description: "Gagal memuat data",
+        variant: "destructive",
+      });
+    }
+  }, [toast]);
+
+  useEffect(() => {
+    loadData();
+  }, [loadData]);
+
   const handleSubjectSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    
+
     if (!subjectForm.nama || !subjectForm.kode) {
       toast({
         title: "Error",
         description: "Mohon lengkapi field wajib",
-        variant: "destructive"
+        variant: "destructive",
       });
       return;
     }
@@ -54,7 +87,7 @@ export default function SubjectManagement({ subjects, classes, onDataChange }: S
     try {
       const subjectData = {
         ...subjectForm,
-        id: editingItem ? editingItem.id : Date.now().toString()
+        id: editingItem ? editingItem.id : Date.now().toString(),
       };
 
       let result;
@@ -63,14 +96,17 @@ export default function SubjectManagement({ subjects, classes, onDataChange }: S
       } else {
         result = await apiService.addSubject(subjectData);
       }
-      
+
       if (result.success) {
         toast({
           title: "Berhasil",
-          description: `Mata pelajaran berhasil ${editingItem ? 'diupdate' : 'ditambahkan'}`
+          description: `Mata pelajaran berhasil ${
+            editingItem ? "diupdate" : "ditambahkan"
+          }`,
         });
-        
+
         resetSubjectForm();
+        loadData(); // Reload data
         onDataChange();
         setShowSubjectDialog(false);
       }
@@ -78,27 +114,30 @@ export default function SubjectManagement({ subjects, classes, onDataChange }: S
       toast({
         title: "Error",
         description: "Gagal menyimpan mata pelajaran",
-        variant: "destructive"
+        variant: "destructive",
       });
     }
   };
 
   const handleDeleteSubject = async (subjectId: string) => {
-    if (window.confirm('Apakah Anda yakin ingin menghapus mata pelajaran ini?')) {
+    if (
+      window.confirm("Apakah Anda yakin ingin menghapus mata pelajaran ini?")
+    ) {
       try {
         const result = await apiService.deleteSubject(subjectId);
         if (result.success) {
           toast({
             title: "Berhasil",
-            description: "Mata pelajaran berhasil dihapus"
+            description: "Mata pelajaran berhasil dihapus",
           });
+          loadData(); // Reload data
           onDataChange();
         }
       } catch (error) {
         toast({
           title: "Error",
           description: "Gagal menghapus mata pelajaran",
-          variant: "destructive"
+          variant: "destructive",
         });
       }
     }
@@ -106,9 +145,9 @@ export default function SubjectManagement({ subjects, classes, onDataChange }: S
 
   const resetSubjectForm = () => {
     setSubjectForm({
-      nama: '',
-      kode: '',
-      kelasId: ''
+      nama: "",
+      kode: "",
+      kelasId: "",
     });
     setEditingItem(null);
   };
@@ -120,8 +159,8 @@ export default function SubjectManagement({ subjects, classes, onDataChange }: S
   };
 
   const getClassName = (kelasId: string) => {
-    const kelas = classes.find(c => c.id === kelasId);
-    return kelas ? kelas.nama : 'Semua Kelas';
+    const kelas = classes.find((c) => c.id === kelasId);
+    return kelas ? kelas.nama : "Semua Kelas";
   };
 
   return (
@@ -129,10 +168,13 @@ export default function SubjectManagement({ subjects, classes, onDataChange }: S
       <CardHeader>
         <div className="flex justify-between items-center">
           <CardTitle>Manajemen Mata Pelajaran</CardTitle>
-          <Dialog open={showSubjectDialog} onOpenChange={(open) => {
-            setShowSubjectDialog(open);
-            if (!open) resetSubjectForm();
-          }}>
+          <Dialog
+            open={showSubjectDialog}
+            onOpenChange={(open) => {
+              setShowSubjectDialog(open);
+              if (!open) resetSubjectForm();
+            }}
+          >
             <DialogTrigger asChild>
               <Button>
                 <Plus className="h-4 w-4 mr-2" />
@@ -142,7 +184,9 @@ export default function SubjectManagement({ subjects, classes, onDataChange }: S
             <DialogContent className="max-w-md">
               <DialogHeader>
                 <DialogTitle>
-                  {editingItem ? 'Edit Mata Pelajaran' : 'Tambah Mata Pelajaran Baru'}
+                  {editingItem
+                    ? "Edit Mata Pelajaran"
+                    : "Tambah Mata Pelajaran Baru"}
                 </DialogTitle>
               </DialogHeader>
               <form onSubmit={handleSubjectSubmit} className="space-y-4">
@@ -150,25 +194,37 @@ export default function SubjectManagement({ subjects, classes, onDataChange }: S
                   <Label>Nama Mata Pelajaran *</Label>
                   <Input
                     value={subjectForm.nama}
-                    onChange={(e) => setSubjectForm(prev => ({ ...prev, nama: e.target.value }))}
+                    onChange={(e) =>
+                      setSubjectForm((prev) => ({
+                        ...prev,
+                        nama: e.target.value,
+                      }))
+                    }
                     required
                   />
                 </div>
-                
+
                 <div className="space-y-2">
                   <Label>Kode Mata Pelajaran *</Label>
                   <Input
                     value={subjectForm.kode}
-                    onChange={(e) => setSubjectForm(prev => ({ ...prev, kode: e.target.value }))}
+                    onChange={(e) =>
+                      setSubjectForm((prev) => ({
+                        ...prev,
+                        kode: e.target.value,
+                      }))
+                    }
                     required
                   />
                 </div>
-                
+
                 <div className="space-y-2">
                   <Label>Kelas</Label>
-                  <Select 
+                  <Select
                     value={subjectForm.kelasId}
-                    onValueChange={(value) => setSubjectForm(prev => ({ ...prev, kelasId: value }))}
+                    onValueChange={(value) =>
+                      setSubjectForm((prev) => ({ ...prev, kelasId: value }))
+                    }
                   >
                     <SelectTrigger>
                       <SelectValue placeholder="Pilih kelas (opsional)" />
@@ -183,14 +239,14 @@ export default function SubjectManagement({ subjects, classes, onDataChange }: S
                     </SelectContent>
                   </Select>
                 </div>
-                
+
                 <div className="flex gap-2 pt-4">
                   <Button type="submit" className="flex-1">
-                    {editingItem ? 'Update' : 'Tambah'}
+                    {editingItem ? "Update" : "Tambah"}
                   </Button>
-                  <Button 
-                    type="button" 
-                    variant="outline" 
+                  <Button
+                    type="button"
+                    variant="outline"
                     onClick={() => setShowSubjectDialog(false)}
                     className="flex-1"
                   >
@@ -202,7 +258,7 @@ export default function SubjectManagement({ subjects, classes, onDataChange }: S
           </Dialog>
         </div>
       </CardHeader>
-      
+
       <CardContent>
         <div className="rounded-md border">
           <Table>
@@ -219,7 +275,9 @@ export default function SubjectManagement({ subjects, classes, onDataChange }: S
                 subjects.map((subject) => (
                   <TableRow key={subject.id}>
                     <TableCell className="font-mono">{subject.kode}</TableCell>
-                    <TableCell className="font-medium">{subject.nama}</TableCell>
+                    <TableCell className="font-medium">
+                      {subject.nama}
+                    </TableCell>
                     <TableCell>{getClassName(subject.kelasId)}</TableCell>
                     <TableCell className="text-right">
                       <div className="flex justify-end space-x-2">
@@ -243,7 +301,10 @@ export default function SubjectManagement({ subjects, classes, onDataChange }: S
                 ))
               ) : (
                 <TableRow>
-                  <TableCell colSpan={4} className="text-center py-8 text-muted-foreground">
+                  <TableCell
+                    colSpan={4}
+                    className="text-center py-8 text-muted-foreground"
+                  >
                     <BookOpen className="h-12 w-12 mx-auto mb-4 opacity-50" />
                     <p>Belum ada data mata pelajaran</p>
                   </TableCell>

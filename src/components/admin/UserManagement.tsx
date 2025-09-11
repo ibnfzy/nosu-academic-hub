@@ -1,5 +1,5 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
-import { useState, useEffect } from "react";
+import { useState, useEffect, useCallback } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -33,14 +33,12 @@ import apiService from "@/services/apiService";
 
 interface UserManagementProps {
   users: any[];
-  classes: any[];
   activeSection: string;
   onDataChange: () => void;
 }
 
 export default function UserManagement({
   users,
-  classes,
   activeSection,
   onDataChange,
 }: UserManagementProps) {
@@ -48,6 +46,7 @@ export default function UserManagement({
   const [editingItem, setEditingItem] = useState(null);
   const [searchTerm, setSearchTerm] = useState("");
   const [roleFilter, setRoleFilter] = useState("all");
+  const [classes, setClasses] = useState<any[]>([]);
   const [userForm, setUserForm] = useState({
     // Users table fields
     username: "",
@@ -71,6 +70,35 @@ export default function UserManagement({
 
   const { toast } = useToast();
 
+  // Validation functions
+  const validateNISN = (nisn: string): boolean => {
+    return /^\d{10}$/.test(nisn);
+  };
+
+  const validateNIP = (nip: string): boolean => {
+    return /^\d{18}$/.test(nip);
+  };
+
+  // Load classes data
+  const loadClasses = useCallback(async () => {
+    try {
+      const classesData = await apiService.getClasses();
+      setClasses(classesData);
+    } catch (error) {
+      console.error("Error loading classes:", error);
+      toast({
+        title: "Error",
+        description: "Gagal memuat data kelas",
+        variant: "destructive",
+      });
+    }
+  }, [toast]);
+
+  // Load classes on component mount
+  useEffect(() => {
+    loadClasses();
+  }, [loadClasses]);
+
   // Auto-set role when activeSection changes
   useEffect(() => {
     if (activeSection !== "semua" && !editingItem) {
@@ -91,10 +119,20 @@ export default function UserManagement({
     // Auto-set role based on activeSection if not already set
     const currentRole = userForm.role || activeSection;
 
-    if (!userForm.username || !userForm.nama || !currentRole) {
+    if (!userForm.username || !currentRole) {
       toast({
         title: "Error",
         description: "Mohon lengkapi field wajib",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    // Nama wajib untuk semua role kecuali admin
+    if (currentRole !== "admin" && !userForm.nama) {
+      toast({
+        title: "Error",
+        description: "Nama lengkap wajib diisi",
         variant: "destructive",
       });
       return;
@@ -111,12 +149,38 @@ export default function UserManagement({
     }
 
     if (
+      currentRole === "siswa" &&
+      userForm.nisn &&
+      !validateNISN(userForm.nisn)
+    ) {
+      toast({
+        title: "Error",
+        description: "NISN harus terdiri dari 10 angka",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    if (
       (currentRole === "guru" || currentRole === "walikelas") &&
       !userForm.nip
     ) {
       toast({
         title: "Error",
         description: "NIP wajib diisi untuk guru/walikelas",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    if (
+      (currentRole === "guru" || currentRole === "walikelas") &&
+      userForm.nip &&
+      !validateNIP(userForm.nip)
+    ) {
+      toast({
+        title: "Error",
+        description: "NIP harus terdiri dari 18 angka",
         variant: "destructive",
       });
       return;
@@ -138,6 +202,7 @@ export default function UserManagement({
         password: userForm.password,
         email: userForm.email,
         role: currentRole,
+        ...(currentRole !== "admin" && { nama: userForm.nama }), // Hanya tambahkan nama jika bukan admin
       };
 
       let payload;
@@ -196,14 +261,35 @@ export default function UserManagement({
 
       let result;
       if (editingItem) {
-        // For updates, include the ID
-        payload.id = editingItem.id;
-        result = await apiService.put(
-          `${apiEndpoint}/${editingItem.id}`,
-          payload
-        );
+        // For updates
+        switch (currentRole) {
+          case "siswa":
+            result = await apiService.updateStudent(editingItem.id, payload);
+            break;
+          case "guru":
+            result = await apiService.updateTeacher(editingItem.id, payload);
+            break;
+          case "walikelas":
+            result = await apiService.updateWalikelas(editingItem.id, payload);
+            break;
+          default:
+            result = await apiService.updateUser(editingItem.id, payload);
+        }
       } else {
-        result = await apiService.post(apiEndpoint, payload);
+        // For creation
+        switch (currentRole) {
+          case "siswa":
+            result = await apiService.createStudent(payload);
+            break;
+          case "guru":
+            result = await apiService.createTeacher(payload);
+            break;
+          case "walikelas":
+            result = await apiService.createWalikelas(payload);
+            break;
+          default:
+            result = await apiService.createUser(payload);
+        }
       }
 
       if (result.success) {
@@ -216,6 +302,7 @@ export default function UserManagement({
 
         resetUserForm();
         onDataChange();
+        loadClasses(); // Reload classes data
         setShowUserDialog(false);
       }
     } catch (error) {
@@ -230,33 +317,35 @@ export default function UserManagement({
   const handleDeleteUser = async (userId: string) => {
     if (window.confirm("Apakah Anda yakin ingin menghapus user ini?")) {
       try {
-        // Find the user to determine the correct endpoint
+        // Find the user to determine the correct delete method
         const user = users.find((u) => u.id === userId);
-        let endpoint = "/admin/users"; // default
+        let result;
 
         if (user) {
           switch (user.role) {
             case "siswa":
-              endpoint = "/admin/students";
+              result = await apiService.deleteStudent(userId);
               break;
             case "guru":
-              endpoint = "/admin/teachers";
+              result = await apiService.deleteTeacher(userId);
               break;
             case "walikelas":
-              endpoint = "/admin/walikelas";
+              result = await apiService.deleteWalikelas(userId);
               break;
             default:
-              endpoint = "/admin/users";
+              result = await apiService.deleteUser(userId);
           }
+        } else {
+          result = await apiService.deleteUser(userId);
         }
 
-        const result = await apiService.delete(`${endpoint}/${userId}`);
         if (result.success) {
           toast({
             title: "Berhasil",
             description: "User berhasil dihapus",
           });
           onDataChange();
+          loadClasses(); // Reload classes data
         }
       } catch (error) {
         toast({
@@ -293,7 +382,10 @@ export default function UserManagement({
   };
 
   const editUser = (user: any) => {
-    setUserForm(user);
+    // Untuk admin, jangan set nama karena tidak diperlukan
+    const formData = user.role === "admin" ? { ...user, nama: "" } : user;
+
+    setUserForm(formData);
     setEditingItem(user);
     setShowUserDialog(true);
   };
@@ -301,7 +393,8 @@ export default function UserManagement({
   const filteredUsers = users.filter((user) => {
     const matchesRole = roleFilter === "all" || user.role === roleFilter;
     const matchesSearch =
-      user.nama?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      (user.role !== "admin" &&
+        user.nama?.toLowerCase().includes(searchTerm.toLowerCase())) ||
       user.username?.toLowerCase().includes(searchTerm.toLowerCase()) ||
       user.email?.toLowerCase().includes(searchTerm.toLowerCase());
 
@@ -377,19 +470,21 @@ export default function UserManagement({
                     />
                   </div>
 
-                  <div className="space-y-2">
-                    <Label>Nama Lengkap *</Label>
-                    <Input
-                      value={userForm.nama}
-                      onChange={(e) =>
-                        setUserForm((prev) => ({
-                          ...prev,
-                          nama: e.target.value,
-                        }))
-                      }
-                      required
-                    />
-                  </div>
+                  {userForm.role !== "admin" && (
+                    <div className="space-y-2">
+                      <Label>Nama Lengkap *</Label>
+                      <Input
+                        value={userForm.nama}
+                        onChange={(e) =>
+                          setUserForm((prev) => ({
+                            ...prev,
+                            nama: e.target.value,
+                          }))
+                        }
+                        required
+                      />
+                    </div>
+                  )}
 
                   <div className="space-y-2">
                     <Label>Role *</Label>
@@ -440,14 +535,23 @@ export default function UserManagement({
                         <Label>NISN *</Label>
                         <Input
                           value={userForm.nisn}
-                          onChange={(e) =>
+                          onChange={(e) => {
+                            const value = e.target.value.replace(/\D/g, ""); // Only allow digits
                             setUserForm((prev) => ({
                               ...prev,
-                              nisn: e.target.value,
-                            }))
-                          }
+                              nisn: value,
+                            }));
+                          }}
+                          placeholder="Masukkan 10 angka NISN"
+                          maxLength={10}
+                          pattern="[0-9]{10}"
                           required
                         />
+                        {userForm.nisn && !validateNISN(userForm.nisn) && (
+                          <p className="text-sm text-red-500">
+                            NISN harus terdiri dari 10 angka
+                          </p>
+                        )}
                       </div>
                       <div className="space-y-2">
                         <Label>Kelas *</Label>
@@ -463,7 +567,7 @@ export default function UserManagement({
                           <SelectContent>
                             {classes?.map((kelas) => (
                               <SelectItem key={kelas.id} value={kelas.id}>
-                                {kelas.namaKelas}
+                                {kelas.nama}
                               </SelectItem>
                             ))}
                           </SelectContent>
@@ -515,14 +619,23 @@ export default function UserManagement({
                         <Label>NIP *</Label>
                         <Input
                           value={userForm.nip}
-                          onChange={(e) =>
+                          onChange={(e) => {
+                            const value = e.target.value.replace(/\D/g, ""); // Only allow digits
                             setUserForm((prev) => ({
                               ...prev,
-                              nip: e.target.value,
-                            }))
-                          }
+                              nip: value,
+                            }));
+                          }}
+                          placeholder="Masukkan 18 angka NIP"
+                          maxLength={18}
+                          pattern="[0-9]{18}"
                           required
                         />
+                        {userForm.nip && !validateNIP(userForm.nip) && (
+                          <p className="text-sm text-red-500">
+                            NIP harus terdiri dari 18 angka
+                          </p>
+                        )}
                       </div>
                       {(userForm.role === "walikelas" ||
                         activeSection === "walikelas") && (
@@ -654,21 +767,6 @@ export default function UserManagement({
                       </div>
                     </>
                   )}
-
-                  {(userForm.role === "admin" || activeSection === "admin") && (
-                    <div className="space-y-2">
-                      <Label>NIP</Label>
-                      <Input
-                        value={userForm.nip}
-                        onChange={(e) =>
-                          setUserForm((prev) => ({
-                            ...prev,
-                            nip: e.target.value,
-                          }))
-                        }
-                      />
-                    </div>
-                  )}
                 </div>
 
                 <div className="flex gap-2 pt-4">
@@ -695,7 +793,7 @@ export default function UserManagement({
           <div className="relative flex-1">
             <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-muted-foreground h-4 w-4" />
             <Input
-              placeholder="Cari berdasarkan nama, username, atau email..."
+              placeholder="Cari berdasarkan username atau email..."
               value={searchTerm}
               onChange={(e) => setSearchTerm(e.target.value)}
               className="pl-10"
@@ -723,36 +821,48 @@ export default function UserManagement({
           <Table>
             <TableHeader>
               <TableRow>
-                <TableHead>Nama</TableHead>
+                {/* Tampilkan Nama & Identitas hanya jika bukan admin */}
+                {filteredUsers.some((u) => u.role !== "admin") && (
+                  <>
+                    <TableHead>Nama</TableHead>
+                    <TableHead>Identitas</TableHead>
+                  </>
+                )}
                 <TableHead>Username</TableHead>
                 <TableHead>Role</TableHead>
-                <TableHead>Identitas</TableHead>
                 <TableHead>Email</TableHead>
                 <TableHead className="text-right">Aksi</TableHead>
               </TableRow>
             </TableHeader>
+
             <TableBody>
               {filteredUsers.length > 0 ? (
                 filteredUsers.map((user) => (
                   <TableRow key={user.id}>
-                    <TableCell className="font-medium">{user.nama}</TableCell>
+                    {/* Nama hanya tampil jika bukan admin */}
+                    {user.role !== "admin" && (
+                      <TableCell className="font-medium">{user.nama}</TableCell>
+                    )}
+
+                    {/* Identitas hanya tampil jika bukan admin */}
+                    {user.role !== "admin" && (
+                      <TableCell>
+                        {user.role === "siswa" && user.nisn ? (
+                          <div className="text-sm">NISN: {user.nisn}</div>
+                        ) : user.nip ? (
+                          <div className="text-sm">NIP: {user.nip}</div>
+                        ) : (
+                          <span className="text-muted-foreground">-</span>
+                        )}
+                      </TableCell>
+                    )}
+
                     <TableCell>{user.username}</TableCell>
                     <TableCell>
                       <Badge variant="outline">
                         {roles.find((r) => r.value === user.role)?.label ||
                           user.role}
                       </Badge>
-                    </TableCell>
-                    <TableCell>
-                      {user.role === "siswa" && user.nisn ? (
-                        <div className="text-sm">
-                          <div>NISN: {user.nisn}</div>
-                        </div>
-                      ) : user.nip ? (
-                        <div className="text-sm">NIP: {user.nip}</div>
-                      ) : (
-                        <span className="text-muted-foreground">-</span>
-                      )}
                     </TableCell>
                     <TableCell>{user.email || "-"}</TableCell>
                     <TableCell className="text-right">

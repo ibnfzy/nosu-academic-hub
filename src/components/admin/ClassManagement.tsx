@@ -1,52 +1,85 @@
-import { useState } from 'react';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { Button } from '@/components/ui/button';
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
-import { 
-  Dialog, 
-  DialogContent, 
-  DialogHeader, 
-  DialogTitle, 
-  DialogTrigger 
-} from '@/components/ui/dialog';
-import { Input } from '@/components/ui/input';
-import { Label } from '@/components/ui/label';
-import { 
+/* eslint-disable @typescript-eslint/no-explicit-any */
+import { useState, useEffect, useCallback } from "react";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Button } from "@/components/ui/button";
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from "@/components/ui/table";
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogTrigger,
+} from "@/components/ui/dialog";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import {
   Select,
-  SelectContent, 
-  SelectItem, 
-  SelectTrigger, 
-  SelectValue 
-} from '@/components/ui/select';
-import { Plus, Edit, Trash2, School } from 'lucide-react';
-import { useToast } from '@/hooks/use-toast';
-import apiService from '@/services/apiService';
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
+import { Plus, Edit, Trash2, School } from "lucide-react";
+import { useToast } from "@/hooks/use-toast";
+import apiService from "@/services/apiService";
 
 interface ClassManagementProps {
-  classes: any[];
-  users: any[];
   onDataChange: () => void;
 }
 
-export default function ClassManagement({ classes, users, onDataChange }: ClassManagementProps) {
+export default function ClassManagement({
+  onDataChange,
+}: ClassManagementProps) {
   const [showClassDialog, setShowClassDialog] = useState(false);
   const [editingItem, setEditingItem] = useState(null);
+  const [classes, setClasses] = useState<any[]>([]);
+  const [users, setUsers] = useState<any[]>([]);
   const [classForm, setClassForm] = useState({
-    nama: '',
-    tingkat: '',
-    walikelas: ''
+    nama: "",
+    tingkat: "",
+    walikelasId: "",
   });
 
   const { toast } = useToast();
 
+  // Load data from apiService
+  const loadData = useCallback(async () => {
+    try {
+      const [classesData, usersData] = await Promise.all([
+        apiService.getClasses(),
+        apiService.getUsers(),
+      ]);
+      setClasses(classesData);
+      setUsers(usersData);
+    } catch (error) {
+      console.error("Error loading data:", error);
+      toast({
+        title: "Error",
+        description: "Gagal memuat data",
+        variant: "destructive",
+      });
+    }
+  }, [toast]);
+
+  useEffect(() => {
+    loadData();
+  }, [loadData]);
+
   const handleClassSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    
+
     if (!classForm.nama || !classForm.tingkat) {
       toast({
         title: "Error",
         description: "Mohon lengkapi field wajib",
-        variant: "destructive"
+        variant: "destructive",
       });
       return;
     }
@@ -54,7 +87,7 @@ export default function ClassManagement({ classes, users, onDataChange }: ClassM
     try {
       const classData = {
         ...classForm,
-        id: editingItem ? editingItem.id : Date.now().toString()
+        id: editingItem ? editingItem.id : Date.now().toString(),
       };
 
       let result;
@@ -63,14 +96,17 @@ export default function ClassManagement({ classes, users, onDataChange }: ClassM
       } else {
         result = await apiService.addClass(classData);
       }
-      
+
       if (result.success) {
         toast({
           title: "Berhasil",
-          description: `Kelas berhasil ${editingItem ? 'diupdate' : 'ditambahkan'}`
+          description: `Kelas berhasil ${
+            editingItem ? "diupdate" : "ditambahkan"
+          }`,
         });
-        
+
         resetClassForm();
+        loadData(); // Reload data
         onDataChange();
         setShowClassDialog(false);
       }
@@ -78,27 +114,28 @@ export default function ClassManagement({ classes, users, onDataChange }: ClassM
       toast({
         title: "Error",
         description: "Gagal menyimpan kelas",
-        variant: "destructive"
+        variant: "destructive",
       });
     }
   };
 
   const handleDeleteClass = async (classId: string) => {
-    if (window.confirm('Apakah Anda yakin ingin menghapus kelas ini?')) {
+    if (window.confirm("Apakah Anda yakin ingin menghapus kelas ini?")) {
       try {
         const result = await apiService.deleteClass(classId);
         if (result.success) {
           toast({
             title: "Berhasil",
-            description: "Kelas berhasil dihapus"
+            description: "Kelas berhasil dihapus",
           });
+          loadData(); // Reload data
           onDataChange();
         }
       } catch (error) {
         toast({
           title: "Error",
           description: "Gagal menghapus kelas",
-          variant: "destructive"
+          variant: "destructive",
         });
       }
     }
@@ -106,9 +143,9 @@ export default function ClassManagement({ classes, users, onDataChange }: ClassM
 
   const resetClassForm = () => {
     setClassForm({
-      nama: '',
-      tingkat: '',
-      walikelas: ''
+      nama: "",
+      tingkat: "",
+      walikelasId: "",
     });
     setEditingItem(null);
   };
@@ -120,13 +157,16 @@ export default function ClassManagement({ classes, users, onDataChange }: ClassM
   };
 
   const getWalikelasName = (walikelasId: string) => {
-    const walikelas = users.find(u => u.id === walikelasId);
-    return walikelas ? walikelas.nama : 'Belum ditentukan';
+    const walikelas = users.find((u) => u.id === walikelasId);
+    return walikelas ? walikelas.nama : "Belum ditentukan";
   };
 
-  const availableWalikelas = users.filter(user => 
-    (user.role === 'walikelas' || user.role === 'guru') && 
-    (!classes.some(cls => cls.walikelas === user.id && cls.id !== editingItem?.id))
+  const availableWalikelas = users.filter(
+    (user) =>
+      (user.role === "walikelas" || user.role === "guru") &&
+      !classes.some(
+        (cls) => cls.walikelasId === user.id && cls.id !== editingItem?.id
+      )
   );
 
   return (
@@ -134,10 +174,13 @@ export default function ClassManagement({ classes, users, onDataChange }: ClassM
       <CardHeader>
         <div className="flex justify-between items-center">
           <CardTitle>Manajemen Kelas</CardTitle>
-          <Dialog open={showClassDialog} onOpenChange={(open) => {
-            setShowClassDialog(open);
-            if (!open) resetClassForm();
-          }}>
+          <Dialog
+            open={showClassDialog}
+            onOpenChange={(open) => {
+              setShowClassDialog(open);
+              if (!open) resetClassForm();
+            }}
+          >
             <DialogTrigger asChild>
               <Button>
                 <Plus className="h-4 w-4 mr-2" />
@@ -147,7 +190,7 @@ export default function ClassManagement({ classes, users, onDataChange }: ClassM
             <DialogContent className="max-w-md">
               <DialogHeader>
                 <DialogTitle>
-                  {editingItem ? 'Edit Kelas' : 'Tambah Kelas Baru'}
+                  {editingItem ? "Edit Kelas" : "Tambah Kelas Baru"}
                 </DialogTitle>
               </DialogHeader>
               <form onSubmit={handleClassSubmit} className="space-y-4">
@@ -155,17 +198,24 @@ export default function ClassManagement({ classes, users, onDataChange }: ClassM
                   <Label>Nama Kelas *</Label>
                   <Input
                     value={classForm.nama}
-                    onChange={(e) => setClassForm(prev => ({ ...prev, nama: e.target.value }))}
+                    onChange={(e) =>
+                      setClassForm((prev) => ({
+                        ...prev,
+                        nama: e.target.value,
+                      }))
+                    }
                     placeholder="contoh: X IPA 1"
                     required
                   />
                 </div>
-                
+
                 <div className="space-y-2">
                   <Label>Tingkat *</Label>
-                  <Select 
+                  <Select
                     value={classForm.tingkat}
-                    onValueChange={(value) => setClassForm(prev => ({ ...prev, tingkat: value }))}
+                    onValueChange={(value) =>
+                      setClassForm((prev) => ({ ...prev, tingkat: value }))
+                    }
                   >
                     <SelectTrigger>
                       <SelectValue placeholder="Pilih tingkat" />
@@ -177,34 +227,36 @@ export default function ClassManagement({ classes, users, onDataChange }: ClassM
                     </SelectContent>
                   </Select>
                 </div>
-                
+
                 <div className="space-y-2">
                   <Label>Wali Kelas</Label>
-                  <Select 
-                    value={classForm.walikelas}
-                    onValueChange={(value) => setClassForm(prev => ({ ...prev, walikelas: value }))}
+                  <Select
+                    value={classForm.walikelasId}
+                    onValueChange={(value) =>
+                      setClassForm((prev) => ({ ...prev, walikelasId: value }))
+                    }
                   >
                     <SelectTrigger>
                       <SelectValue placeholder="Pilih wali kelas" />
                     </SelectTrigger>
                     <SelectContent>
-                      <SelectItem value="">Belum ditentukan</SelectItem>
+                      <SelectItem value="0">Belum ditentukan</SelectItem>
                       {availableWalikelas.map((teacher) => (
                         <SelectItem key={teacher.id} value={teacher.id}>
-                          {teacher.nama} - {teacher.nip || 'Tanpa NIP'}
+                          {teacher.nama} - {teacher.nip || "Tanpa NIP"}
                         </SelectItem>
                       ))}
                     </SelectContent>
                   </Select>
                 </div>
-                
+
                 <div className="flex gap-2 pt-4">
                   <Button type="submit" className="flex-1">
-                    {editingItem ? 'Update' : 'Tambah'}
+                    {editingItem ? "Update" : "Tambah"}
                   </Button>
-                  <Button 
-                    type="button" 
-                    variant="outline" 
+                  <Button
+                    type="button"
+                    variant="outline"
                     onClick={() => setShowClassDialog(false)}
                     className="flex-1"
                   >
@@ -216,7 +268,7 @@ export default function ClassManagement({ classes, users, onDataChange }: ClassM
           </Dialog>
         </div>
       </CardHeader>
-      
+
       <CardContent>
         <div className="rounded-md border">
           <Table>
@@ -234,7 +286,7 @@ export default function ClassManagement({ classes, users, onDataChange }: ClassM
                   <TableRow key={kelas.id}>
                     <TableCell className="font-medium">{kelas.nama}</TableCell>
                     <TableCell>Kelas {kelas.tingkat}</TableCell>
-                    <TableCell>{getWalikelasName(kelas.walikelas)}</TableCell>
+                    <TableCell>{getWalikelasName(kelas.walikelasId)}</TableCell>
                     <TableCell className="text-right">
                       <div className="flex justify-end space-x-2">
                         <Button
@@ -257,7 +309,10 @@ export default function ClassManagement({ classes, users, onDataChange }: ClassM
                 ))
               ) : (
                 <TableRow>
-                  <TableCell colSpan={4} className="text-center py-8 text-muted-foreground">
+                  <TableCell
+                    colSpan={4}
+                    className="text-center py-8 text-muted-foreground"
+                  >
                     <School className="h-12 w-12 mx-auto mb-4 opacity-50" />
                     <p>Belum ada data kelas</p>
                   </TableCell>
