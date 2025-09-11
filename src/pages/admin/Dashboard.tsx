@@ -105,7 +105,6 @@ const AdminDashboard = ({ currentUser, onLogout }) => {
           {/* User Management Sections */}
           {(activeSection === "siswa" ||
             activeSection === "guru" ||
-            activeSection === "walikelas" ||
             activeSection === "admin" ||
             activeSection === "semua") && (
             <UserManagement

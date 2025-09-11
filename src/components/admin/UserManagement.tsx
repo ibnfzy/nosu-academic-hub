@@ -101,10 +101,12 @@ export default function UserManagement({
 
   // Auto-set role when activeSection changes
   useEffect(() => {
-    if (activeSection !== "semua" && !editingItem) {
+    if (activeSection !== "semua" && activeSection !== "guru" && !editingItem) {
       setUserForm((prev) => ({ ...prev, role: activeSection }));
+    } else if (activeSection === "guru" && !editingItem && !userForm.role) {
+      setUserForm((prev) => ({ ...prev, role: "guru" }));
     }
-  }, [activeSection, editingItem]);
+  }, [activeSection, editingItem, userForm.role]);
 
   const roles = [
     { value: "admin", label: "Administrator" },
@@ -399,6 +401,10 @@ export default function UserManagement({
       user.email?.toLowerCase().includes(searchTerm.toLowerCase());
 
     if (activeSection !== "semua") {
+      // For guru section, show both guru and walikelas
+      if (activeSection === "guru") {
+        return (user.role === "guru" || user.role === "walikelas") && matchesRole && matchesSearch;
+      }
       return user.role === activeSection && matchesRole && matchesSearch;
     }
     return matchesRole && matchesSearch;
@@ -413,9 +419,7 @@ export default function UserManagement({
             {activeSection === "siswa"
               ? "Siswa"
               : activeSection === "guru"
-              ? "Guru"
-              : activeSection === "walikelas"
-              ? "Wali Kelas"
+              ? "Guru & Wali Kelas"
               : activeSection === "admin"
               ? "Administrator"
               : "Pengguna"}
@@ -493,7 +497,7 @@ export default function UserManagement({
                       onValueChange={(value) =>
                         setUserForm((prev) => ({ ...prev, role: value }))
                       }
-                      disabled={activeSection !== "semua"}
+                      disabled={activeSection !== "semua" && activeSection !== "guru"}
                     >
                       <SelectTrigger>
                         <SelectValue placeholder="Pilih role" />
@@ -505,6 +509,11 @@ export default function UserManagement({
                               {role.label}
                             </SelectItem>
                           ))
+                        ) : activeSection === "guru" ? (
+                          <>
+                            <SelectItem value="guru">Guru</SelectItem>
+                            <SelectItem value="walikelas">Wali Kelas</SelectItem>
+                          </>
                         ) : (
                           <SelectItem value={activeSection}>
                             {roles.find((r) => r.value === activeSection)
