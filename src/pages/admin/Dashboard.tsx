@@ -1,22 +1,22 @@
-import { useState, useEffect } from 'react';
-import { AdminNavbar } from '@/components/AdminNavbar';
-import { useToast } from '@/hooks/use-toast';
-import apiService from '@/services/apiService';
-import { useIsMobile } from '@/hooks/use-mobile';
+import { useState, useEffect } from "react";
+import { AdminNavbar } from "@/components/AdminNavbar";
+import { useToast } from "@/hooks/use-toast";
+import apiService from "@/services/apiService";
+import { useIsMobile } from "@/hooks/use-mobile";
 
 // Import modular components
-import UserManagement from '@/components/admin/UserManagement';
-import SubjectManagement from '@/components/admin/SubjectManagement';
-import ClassManagement from '@/components/admin/ClassManagement';
-import SchoolProfileManagement from '@/components/admin/SchoolProfileManagement';
+import UserManagement from "@/components/admin/UserManagement";
+import SubjectManagement from "@/components/admin/SubjectManagement";
+import ClassManagement from "@/components/admin/ClassManagement";
+import SchoolProfileManagement from "@/components/admin/SchoolProfileManagement";
 
 const AdminDashboard = ({ currentUser, onLogout }) => {
   const [users, setUsers] = useState([]);
   const [subjects, setSubjects] = useState([]);
   const [classes, setClasses] = useState([]);
   const [loading, setLoading] = useState(false);
-  const [activeSection, setActiveSection] = useState<string>('siswa');
-  
+  const [activeSection, setActiveSection] = useState<string>("siswa");
+
   // School management data
   const [schoolProfile, setSchoolProfile] = useState(null);
   const [achievements, setAchievements] = useState([]);
@@ -28,19 +28,20 @@ const AdminDashboard = ({ currentUser, onLogout }) => {
 
   useEffect(() => {
     loadAdminData();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   const loadAdminData = async () => {
     setLoading(true);
     try {
       const [
-        usersData, 
-        subjectsData, 
-        classesData, 
-        schoolProfileData, 
-        achievementsData, 
+        usersData,
+        subjectsData,
+        classesData,
+        schoolProfileData,
+        achievementsData,
         programsData,
-        registrationLinksData
+        registrationLinksData,
       ] = await Promise.all([
         apiService.getUsers(),
         apiService.getSubjects(),
@@ -48,9 +49,9 @@ const AdminDashboard = ({ currentUser, onLogout }) => {
         apiService.getSchoolProfile(),
         apiService.getAchievements(),
         apiService.getPrograms(),
-        apiService.getRegistrationLinks()
+        apiService.getRegistrationLinks(),
       ]);
-      
+
       setUsers(usersData);
       setSubjects(subjectsData);
       setClasses(classesData);
@@ -62,7 +63,7 @@ const AdminDashboard = ({ currentUser, onLogout }) => {
       toast({
         title: "Error",
         description: "Gagal memuat data admin",
-        variant: "destructive"
+        variant: "destructive",
       });
     } finally {
       setLoading(false);
@@ -72,7 +73,7 @@ const AdminDashboard = ({ currentUser, onLogout }) => {
   return (
     <div className="min-h-screen bg-background">
       {/* Navigation */}
-      <AdminNavbar 
+      <AdminNavbar
         activeSection={activeSection}
         setActiveSection={setActiveSection}
         onLogout={onLogout}
@@ -82,18 +83,21 @@ const AdminDashboard = ({ currentUser, onLogout }) => {
         {/* Main Content */}
         <div className="space-y-6">
           {/* User Management Sections */}
-          {(activeSection === 'siswa' || activeSection === 'guru' || activeSection === 'walikelas' || activeSection === 'admin' || activeSection === 'semua') && (
-            <UserManagement 
+          {(activeSection === "siswa" ||
+            activeSection === "guru" ||
+            activeSection === "walikelas" ||
+            activeSection === "admin" ||
+            activeSection === "semua") && (
+            <UserManagement
               users={users}
-              classes={classes}
               activeSection={activeSection}
               onDataChange={loadAdminData}
             />
           )}
 
           {/* Subject Management */}
-          {activeSection === 'subjects' && (
-            <SubjectManagement 
+          {activeSection === "subjects" && (
+            <SubjectManagement
               subjects={subjects}
               classes={classes}
               onDataChange={loadAdminData}
@@ -101,8 +105,8 @@ const AdminDashboard = ({ currentUser, onLogout }) => {
           )}
 
           {/* Class Management */}
-          {activeSection === 'classes' && (
-            <ClassManagement 
+          {activeSection === "classes" && (
+            <ClassManagement
               classes={classes}
               users={users}
               onDataChange={loadAdminData}
@@ -110,8 +114,8 @@ const AdminDashboard = ({ currentUser, onLogout }) => {
           )}
 
           {/* School Profile Management */}
-          {activeSection === 'school-profile' && (
-            <SchoolProfileManagement 
+          {activeSection === "school-profile" && (
+            <SchoolProfileManagement
               schoolProfile={schoolProfile}
               onDataChange={loadAdminData}
             />
