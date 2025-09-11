@@ -155,11 +155,20 @@ const TeacherDashboard = ({ currentUser, onLogout }) => {
     try {
       const allGrades = await apiService.getGrades();
 
-      const teacherGrades = allGrades.filter(
-        (grade) =>
+      const teacherSubjectIds = subjects
+        .map((s) => (s && typeof s === "object" ? s.id : s))
+        .filter(Boolean);
+
+      const teacherGrades = allGrades.filter((grade) => {
+        const subjectId =
+          grade && typeof grade.subjectId === "object" && grade.subjectId !== null
+            ? grade.subjectId.id
+            : grade.subjectId;
+        return (
           grade.teacherId === currentUser.teacherId &&
-          subjects.includes(grade.subjectId.id)
-      );
+          teacherSubjectIds.includes(subjectId)
+        );
+      });
 
       const gradesWithNames = teacherGrades.map((grade) => {
         const student = students.find((s) => s.id === grade.studentId);
@@ -181,11 +190,20 @@ const TeacherDashboard = ({ currentUser, onLogout }) => {
     try {
       const allAttendance = await apiService.getAttendance();
 
-      const teacherAttendance = allAttendance.filter(
-        (att) =>
+      const teacherSubjectIds = subjects
+        .map((s) => (s && typeof s === "object" ? s.id : s))
+        .filter(Boolean);
+
+      const teacherAttendance = allAttendance.filter((att) => {
+        const attSubjectId =
+          att && typeof att.subjectId === "object" && att.subjectId !== null
+            ? att.subjectId.id
+            : att.subjectId;
+        return (
           att.teacherId === currentUser.teacherId &&
-          subjects.includes(att.subjectId)
-      );
+          teacherSubjectIds.includes(attSubjectId)
+        );
+      });
 
       const attendanceWithNames = teacherAttendance.map((att) => {
         const student = students.find((s) => s.id === att.studentId);
@@ -381,7 +399,10 @@ const TeacherDashboard = ({ currentUser, onLogout }) => {
   const handleEditGrade = (grade) => {
     setGradeForm({
       studentId: grade.studentId,
-      subjectId: grade.subjectId,
+      subjectId:
+        grade && typeof grade.subjectId === "object" && grade.subjectId !== null
+          ? grade.subjectId.id
+          : grade.subjectId,
       jenis: grade.jenis,
       nilai: grade.nilai.toString(),
       tanggal: grade.tanggal,
@@ -424,7 +445,12 @@ const TeacherDashboard = ({ currentUser, onLogout }) => {
   const handleEditAttendance = (attendance) => {
     setAttendanceForm({
       studentId: attendance.studentId,
-      subjectId: attendance.subjectId,
+      subjectId:
+        attendance &&
+        typeof attendance.subjectId === "object" &&
+        attendance.subjectId !== null
+          ? attendance.subjectId.id
+          : attendance.subjectId,
       status: attendance.status,
       keterangan: attendance.keterangan,
       tanggal: attendance.tanggal,
@@ -591,8 +617,8 @@ const TeacherDashboard = ({ currentUser, onLogout }) => {
                     </SelectTrigger>
                     <SelectContent>
                       {subjects.map((subject) => (
-                        <SelectItem key={subject} value={subject}>
-                          {getSubjectName(subject, subjects)}
+                        <SelectItem key={subject.id} value={subject.id}>
+                          {subject.nama}
                         </SelectItem>
                       ))}
                     </SelectContent>
@@ -731,8 +757,8 @@ const TeacherDashboard = ({ currentUser, onLogout }) => {
                     </SelectTrigger>
                     <SelectContent>
                       {subjects.map((subject) => (
-                        <SelectItem key={subject} value={subject}>
-                          {getSubjectName(subject, subjects)}
+                        <SelectItem key={subject.id} value={subject.id}>
+                          {subject.nama}
                         </SelectItem>
                       ))}
                     </SelectContent>
