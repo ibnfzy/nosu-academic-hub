@@ -6,6 +6,7 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@
 import { 
   Dialog, 
   DialogContent, 
+  DialogDescription,
   DialogHeader, 
   DialogTitle, 
   DialogTrigger 
@@ -200,6 +201,9 @@ export default function AttendanceManagement({ attendance, students, subjects, c
                 <DialogTitle>
                   {editingAttendance ? 'Edit Kehadiran' : 'Catat Kehadiran Siswa'}
                 </DialogTitle>
+                <DialogDescription>
+                  {editingAttendance ? 'Ubah data kehadiran siswa' : 'Catat kehadiran siswa untuk mata pelajaran'}
+                </DialogDescription>
               </DialogHeader>
               <form onSubmit={handleAddAttendance} className="space-y-4">
                 <div className="space-y-2">
@@ -231,9 +235,9 @@ export default function AttendanceManagement({ attendance, students, subjects, c
                       <SelectValue placeholder="Pilih mata pelajaran" />
                     </SelectTrigger>
                     <SelectContent>
-                      {subjects.map((subjectId) => (
-                        <SelectItem key={subjectId} value={subjectId}>
-                          {getSubjectName(subjectId)}
+                      {subjects.map((subject) => (
+                        <SelectItem key={subject.id || subject} value={subject.id || subject}>
+                          {typeof subject === 'object' ? subject.nama : getSubjectName(subject)}
                         </SelectItem>
                       ))}
                     </SelectContent>
