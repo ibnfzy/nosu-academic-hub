@@ -1,6 +1,7 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
+import { Badge } from "@/components/ui/badge";
 import {
   Table,
   TableBody,
@@ -25,35 +26,71 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { Plus, Edit, Trash2, School } from "lucide-react";
+import { Plus, Edit, Trash2, Search } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import apiService from "@/services/apiService";
 
-interface ClassManagementProps {
-  classes: any[];
+interface UserManagementProps {
   users: any[];
+  classes: any[];
+  activeSection: string;
   onDataChange: () => void;
 }
 
-export default function ClassManagement({
-  classes,
+export default function UserManagement({
   users,
+  classes,
+  activeSection,
   onDataChange,
-}: ClassManagementProps) {
-  const [showClassDialog, setShowClassDialog] = useState(false);
+}: UserManagementProps) {
+  const [showUserDialog, setShowUserDialog] = useState(false);
   const [editingItem, setEditingItem] = useState(null);
-  const [classForm, setClassForm] = useState({
+  const [searchTerm, setSearchTerm] = useState("");
+  const [roleFilter, setRoleFilter] = useState("all");
+  const [userForm, setUserForm] = useState({
+    // Users table fields
+    username: "",
+    password: "",
+    email: "",
+    role: "",
+
+    // Students/Teachers table fields
     nama: "",
-    tingkat: "",
-    walikelas: "",
+    nisn: "",
+    nip: "",
+    kelasId: "",
+    jenisKelamin: "",
+    tanggalLahir: "",
+    alamat: "",
+    nomorHP: "",
+    namaOrangTua: "",
+    pekerjaanOrangTua: "",
+    tahunMasuk: "",
   });
 
   const { toast } = useToast();
 
-  const handleClassSubmit = async (e: React.FormEvent) => {
+  // Auto-set role when activeSection changes
+  useEffect(() => {
+    if (activeSection !== "semua" && !editingItem) {
+      setUserForm((prev) => ({ ...prev, role: activeSection }));
+    }
+  }, [activeSection, editingItem]);
+
+  const roles = [
+    { value: "admin", label: "Administrator" },
+    { value: "guru", label: "Guru" },
+    { value: "walikelas", label: "Wali Kelas" },
+    { value: "siswa", label: "Siswa" },
+  ];
+
+  const handleUserSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
 
-    if (!classForm.nama || !classForm.tingkat) {
+    // Auto-set role based on activeSection if not already set
+    const currentRole = userForm.role || activeSection;
+
+    if (!userForm.username || !userForm.nama || !currentRole) {
       toast({
         title: "Error",
         description: "Mohon lengkapi field wajib",
@@ -62,169 +99,568 @@ export default function ClassManagement({
       return;
     }
 
+    // Validate role-specific required fields
+    if (currentRole === "siswa" && !userForm.nisn) {
+      toast({
+        title: "Error",
+        description: "NISN wajib diisi untuk siswa",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    if (
+      (currentRole === "guru" || currentRole === "walikelas") &&
+      !userForm.nip
+    ) {
+      toast({
+        title: "Error",
+        description: "NIP wajib diisi untuk guru/walikelas",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    if (currentRole === "walikelas" && !userForm.kelasId) {
+      toast({
+        title: "Error",
+        description: "Kelas wajib dipilih untuk walikelas",
+        variant: "destructive",
+      });
+      return;
+    }
+
     try {
-      const classData = {
-        ...classForm,
-        id: editingItem ? editingItem.id : Date.now().toString(),
+      // Prepare payload based on user type
+      const baseUserData = {
+        username: userForm.username,
+        password: userForm.password,
+        email: userForm.email,
+        role: currentRole,
       };
+
+      let payload;
+      let apiEndpoint;
+
+      if (currentRole === "siswa") {
+        payload = {
+          users: baseUserData,
+          students: {
+            nisn: userForm.nisn,
+            nama: userForm.nama,
+            kelasId: userForm.kelasId,
+            jenisKelamin: userForm.jenisKelamin,
+            tanggalLahir: userForm.tanggalLahir,
+            alamat: userForm.alamat,
+            nomorHP: userForm.nomorHP,
+            namaOrangTua: userForm.namaOrangTua,
+            pekerjaanOrangTua: userForm.pekerjaanOrangTua,
+            tahunMasuk: userForm.tahunMasuk,
+          },
+        };
+        apiEndpoint = "/admin/students";
+      } else if (currentRole === "guru") {
+        payload = {
+          users: baseUserData,
+          teachers: {
+            nip: userForm.nip,
+            nama: userForm.nama,
+            role: "guru",
+            kelasId: userForm.kelasId || null,
+            jenisKelamin: userForm.jenisKelamin,
+            alamat: userForm.alamat,
+            nomorHP: userForm.nomorHP,
+          },
+        };
+        apiEndpoint = "/admin/teachers";
+      } else if (currentRole === "walikelas") {
+        payload = {
+          users: baseUserData,
+          teachers: {
+            nip: userForm.nip,
+            nama: userForm.nama,
+            role: "walikelas",
+            kelasId: userForm.kelasId,
+            jenisKelamin: userForm.jenisKelamin,
+            alamat: userForm.alamat,
+            nomorHP: userForm.nomorHP,
+          },
+        };
+        apiEndpoint = "/admin/walikelas";
+      } else {
+        // Admin users only need users table
+        payload = baseUserData;
+        apiEndpoint = "/admin/users";
+      }
 
       let result;
       if (editingItem) {
-        result = await apiService.updateClass(classData.id, classData);
+        // For updates, include the ID
+        payload.id = editingItem.id;
+        result = await apiService.put(
+          `${apiEndpoint}/${editingItem.id}`,
+          payload
+        );
       } else {
-        result = await apiService.addClass(classData);
+        result = await apiService.post(apiEndpoint, payload);
       }
 
       if (result.success) {
         toast({
           title: "Berhasil",
-          description: `Kelas berhasil ${
+          description: `User berhasil ${
             editingItem ? "diupdate" : "ditambahkan"
           }`,
         });
 
-        resetClassForm();
+        resetUserForm();
         onDataChange();
-        setShowClassDialog(false);
+        setShowUserDialog(false);
       }
     } catch (error) {
       toast({
         title: "Error",
-        description: "Gagal menyimpan kelas",
+        description: "Gagal menyimpan user",
         variant: "destructive",
       });
     }
   };
 
-  const handleDeleteClass = async (classId: string) => {
-    if (window.confirm("Apakah Anda yakin ingin menghapus kelas ini?")) {
+  const handleDeleteUser = async (userId: string) => {
+    if (window.confirm("Apakah Anda yakin ingin menghapus user ini?")) {
       try {
-        const result = await apiService.deleteClass(classId);
+        // Find the user to determine the correct endpoint
+        const user = users.find((u) => u.id === userId);
+        let endpoint = "/admin/users"; // default
+
+        if (user) {
+          switch (user.role) {
+            case "siswa":
+              endpoint = "/admin/students";
+              break;
+            case "guru":
+              endpoint = "/admin/teachers";
+              break;
+            case "walikelas":
+              endpoint = "/admin/walikelas";
+              break;
+            default:
+              endpoint = "/admin/users";
+          }
+        }
+
+        const result = await apiService.delete(`${endpoint}/${userId}`);
         if (result.success) {
           toast({
             title: "Berhasil",
-            description: "Kelas berhasil dihapus",
+            description: "User berhasil dihapus",
           });
           onDataChange();
         }
       } catch (error) {
         toast({
           title: "Error",
-          description: "Gagal menghapus kelas",
+          description: "Gagal menghapus user",
           variant: "destructive",
         });
       }
     }
   };
 
-  const resetClassForm = () => {
-    setClassForm({
+  const resetUserForm = () => {
+    setUserForm({
+      // Users table fields
+      username: "",
+      password: "",
+      email: "",
+      role: "",
+
+      // Students/Teachers table fields
       nama: "",
-      tingkat: "",
-      walikelas: "",
+      nisn: "",
+      nip: "",
+      kelasId: "",
+      jenisKelamin: "",
+      tanggalLahir: "",
+      alamat: "",
+      nomorHP: "",
+      namaOrangTua: "",
+      pekerjaanOrangTua: "",
+      tahunMasuk: "",
     });
     setEditingItem(null);
   };
 
-  const editClass = (kelas: any) => {
-    setClassForm(kelas);
-    setEditingItem(kelas);
-    setShowClassDialog(true);
+  const editUser = (user: any) => {
+    setUserForm(user);
+    setEditingItem(user);
+    setShowUserDialog(true);
   };
 
-  const getWalikelasName = (walikelasId: string) => {
-    const walikelas = users.find((u) => u.id === walikelasId);
-    return walikelas ? walikelas.nama : "Belum ditentukan";
-  };
+  const filteredUsers = users.filter((user) => {
+    const matchesRole = roleFilter === "all" || user.role === roleFilter;
+    const matchesSearch =
+      user.nama?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      user.username?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      user.email?.toLowerCase().includes(searchTerm.toLowerCase());
 
-  const availableWalikelas = users.filter(
-    (user) =>
-      (user.role === "walikelas" || user.role === "guru") &&
-      !classes.some(
-        (cls) => cls.walikelas === user.id && cls.id !== editingItem?.id
-      )
-  );
+    if (activeSection !== "semua") {
+      return user.role === activeSection && matchesRole && matchesSearch;
+    }
+    return matchesRole && matchesSearch;
+  });
 
   return (
     <Card className="shadow-soft">
       <CardHeader>
         <div className="flex justify-between items-center">
-          <CardTitle>Manajemen Kelas</CardTitle>
+          <CardTitle>
+            Manajemen{" "}
+            {activeSection === "siswa"
+              ? "Siswa"
+              : activeSection === "guru"
+              ? "Guru"
+              : activeSection === "walikelas"
+              ? "Wali Kelas"
+              : activeSection === "admin"
+              ? "Administrator"
+              : "Pengguna"}
+          </CardTitle>
           <Dialog
-            open={showClassDialog}
+            open={showUserDialog}
             onOpenChange={(open) => {
-              setShowClassDialog(open);
-              if (!open) resetClassForm();
+              setShowUserDialog(open);
+              if (!open) resetUserForm();
             }}
           >
             <DialogTrigger asChild>
               <Button>
                 <Plus className="h-4 w-4 mr-2" />
-                Tambah Kelas
+                Tambah User
               </Button>
             </DialogTrigger>
             <DialogContent className="max-w-md">
               <DialogHeader>
                 <DialogTitle>
-                  {editingItem ? "Edit Kelas" : "Tambah Kelas Baru"}
+                  {editingItem ? "Edit User" : "Tambah User Baru"}
                 </DialogTitle>
               </DialogHeader>
-              <form onSubmit={handleClassSubmit} className="space-y-4">
+              <form onSubmit={handleUserSubmit} className="space-y-4">
                 <div className="space-y-2">
-                  <Label>Nama Kelas *</Label>
+                  <Label>Username *</Label>
                   <Input
-                    value={classForm.nama}
+                    value={userForm.username}
                     onChange={(e) =>
-                      setClassForm((prev) => ({
+                      setUserForm((prev) => ({
                         ...prev,
-                        nama: e.target.value,
+                        username: e.target.value,
                       }))
                     }
-                    placeholder="contoh: X IPA 1"
                     required
                   />
                 </div>
 
                 <div className="space-y-2">
-                  <Label>Tingkat *</Label>
-                  <Select
-                    value={classForm.tingkat}
-                    onValueChange={(value) =>
-                      setClassForm((prev) => ({ ...prev, tingkat: value }))
+                  <Label>Password *</Label>
+                  <Input
+                    type="password"
+                    value={userForm.password}
+                    onChange={(e) =>
+                      setUserForm((prev) => ({
+                        ...prev,
+                        password: e.target.value,
+                      }))
                     }
+                    required={!editingItem}
+                  />
+                </div>
+
+                <div className="space-y-2">
+                  <Label>Nama Lengkap *</Label>
+                  <Input
+                    value={userForm.nama}
+                    onChange={(e) =>
+                      setUserForm((prev) => ({ ...prev, nama: e.target.value }))
+                    }
+                    required
+                  />
+                </div>
+
+                <div className="space-y-2">
+                  <Label>Role *</Label>
+                  <Select
+                    value={userForm.role || activeSection}
+                    onValueChange={(value) =>
+                      setUserForm((prev) => ({ ...prev, role: value }))
+                    }
+                    disabled={activeSection !== "semua"}
                   >
                     <SelectTrigger>
-                      <SelectValue placeholder="Pilih tingkat" />
+                      <SelectValue placeholder="Pilih role" />
                     </SelectTrigger>
                     <SelectContent>
-                      <SelectItem value="X">Kelas X</SelectItem>
-                      <SelectItem value="XI">Kelas XI</SelectItem>
-                      <SelectItem value="XII">Kelas XII</SelectItem>
+                      {activeSection === "semua" ? (
+                        roles.map((role) => (
+                          <SelectItem key={role.value} value={role.value}>
+                            {role.label}
+                          </SelectItem>
+                        ))
+                      ) : (
+                        <SelectItem value={activeSection}>
+                          {roles.find((r) => r.value === activeSection)
+                            ?.label || activeSection}
+                        </SelectItem>
+                      )}
                     </SelectContent>
                   </Select>
                 </div>
 
                 <div className="space-y-2">
-                  <Label>Wali Kelas</Label>
-                  <Select
-                    value={classForm.walikelas}
-                    onValueChange={(value) =>
-                      setClassForm((prev) => ({ ...prev, walikelas: value }))
+                  <Label>Email</Label>
+                  <Input
+                    type="email"
+                    value={userForm.email}
+                    onChange={(e) =>
+                      setUserForm((prev) => ({
+                        ...prev,
+                        email: e.target.value,
+                      }))
                     }
-                  >
-                    <SelectTrigger>
-                      <SelectValue placeholder="Pilih wali kelas" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="">Belum ditentukan</SelectItem>
-                      {availableWalikelas.map((teacher) => (
-                        <SelectItem key={teacher.id} value={teacher.id}>
-                          {teacher.nama} - {teacher.nip || "Tanpa NIP"}
-                        </SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
+                  />
                 </div>
+
+                {(userForm.role === "siswa" || activeSection === "siswa") && (
+                  <>
+                    <div className="space-y-2">
+                      <Label>NISN *</Label>
+                      <Input
+                        value={userForm.nisn}
+                        onChange={(e) =>
+                          setUserForm((prev) => ({
+                            ...prev,
+                            nisn: e.target.value,
+                          }))
+                        }
+                        required
+                      />
+                    </div>
+                    <div className="space-y-2">
+                      <Label>Kelas *</Label>
+                      <Select
+                        value={userForm.kelasId}
+                        onValueChange={(value) =>
+                          setUserForm((prev) => ({ ...prev, kelasId: value }))
+                        }
+                      >
+                        <SelectTrigger>
+                          <SelectValue placeholder="Pilih kelas" />
+                        </SelectTrigger>
+                        <SelectContent>
+                          {classes?.map((kelas) => (
+                            <SelectItem key={kelas.id} value={kelas.id}>
+                              {kelas.namaKelas}
+                            </SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
+                    </div>
+                    <div className="space-y-2">
+                      <Label>Jenis Kelamin *</Label>
+                      <Select
+                        value={userForm.jenisKelamin}
+                        onValueChange={(value) =>
+                          setUserForm((prev) => ({
+                            ...prev,
+                            jenisKelamin: value,
+                          }))
+                        }
+                      >
+                        <SelectTrigger>
+                          <SelectValue placeholder="Pilih jenis kelamin" />
+                        </SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="L">Laki-laki</SelectItem>
+                          <SelectItem value="P">Perempuan</SelectItem>
+                        </SelectContent>
+                      </Select>
+                    </div>
+                    <div className="space-y-2">
+                      <Label>Tahun Masuk *</Label>
+                      <Input
+                        type="number"
+                        value={userForm.tahunMasuk}
+                        onChange={(e) =>
+                          setUserForm((prev) => ({
+                            ...prev,
+                            tahunMasuk: e.target.value,
+                          }))
+                        }
+                        placeholder="2024"
+                        required
+                      />
+                    </div>
+                  </>
+                )}
+                {(userForm.role === "guru" ||
+                  userForm.role === "walikelas" ||
+                  activeSection === "guru" ||
+                  activeSection === "walikelas") && (
+                  <>
+                    <div className="space-y-2">
+                      <Label>NIP *</Label>
+                      <Input
+                        value={userForm.nip}
+                        onChange={(e) =>
+                          setUserForm((prev) => ({
+                            ...prev,
+                            nip: e.target.value,
+                          }))
+                        }
+                        required
+                      />
+                    </div>
+                    {(userForm.role === "walikelas" ||
+                      activeSection === "walikelas") && (
+                      <div className="space-y-2">
+                        <Label>Kelas *</Label>
+                        <Select
+                          value={userForm.kelasId}
+                          onValueChange={(value) =>
+                            setUserForm((prev) => ({ ...prev, kelasId: value }))
+                          }
+                        >
+                          <SelectTrigger>
+                            <SelectValue placeholder="Pilih kelas" />
+                          </SelectTrigger>
+                          <SelectContent>
+                            {classes?.map((kelas) => (
+                              <SelectItem key={kelas.id} value={kelas.id}>
+                                {kelas.namaKelas}
+                              </SelectItem>
+                            ))}
+                          </SelectContent>
+                        </Select>
+                      </div>
+                    )}
+                    <div className="space-y-2">
+                      <Label>Jenis Kelamin *</Label>
+                      <Select
+                        value={userForm.jenisKelamin}
+                        onValueChange={(value) =>
+                          setUserForm((prev) => ({
+                            ...prev,
+                            jenisKelamin: value,
+                          }))
+                        }
+                      >
+                        <SelectTrigger>
+                          <SelectValue placeholder="Pilih jenis kelamin" />
+                        </SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="L">Laki-laki</SelectItem>
+                          <SelectItem value="P">Perempuan</SelectItem>
+                        </SelectContent>
+                      </Select>
+                    </div>
+                  </>
+                )}
+
+                {/* Additional fields for students and teachers */}
+                {(userForm.role === "siswa" ||
+                  userForm.role === "guru" ||
+                  userForm.role === "walikelas" ||
+                  activeSection === "siswa" ||
+                  activeSection === "guru" ||
+                  activeSection === "walikelas") && (
+                  <>
+                    <div className="space-y-2">
+                      <Label>Tanggal Lahir</Label>
+                      <Input
+                        type="date"
+                        value={userForm.tanggalLahir}
+                        onChange={(e) =>
+                          setUserForm((prev) => ({
+                            ...prev,
+                            tanggalLahir: e.target.value,
+                          }))
+                        }
+                      />
+                    </div>
+                    <div className="space-y-2">
+                      <Label>Alamat</Label>
+                      <Input
+                        value={userForm.alamat}
+                        onChange={(e) =>
+                          setUserForm((prev) => ({
+                            ...prev,
+                            alamat: e.target.value,
+                          }))
+                        }
+                        placeholder="Alamat lengkap"
+                      />
+                    </div>
+                    <div className="space-y-2">
+                      <Label>Nomor HP</Label>
+                      <Input
+                        value={userForm.nomorHP}
+                        onChange={(e) =>
+                          setUserForm((prev) => ({
+                            ...prev,
+                            nomorHP: e.target.value,
+                          }))
+                        }
+                        placeholder="08xxxxxxxxxx"
+                      />
+                    </div>
+                  </>
+                )}
+
+                {/* Additional fields for students only */}
+                {(userForm.role === "siswa" || activeSection === "siswa") && (
+                  <>
+                    <div className="space-y-2">
+                      <Label>Nama Orang Tua</Label>
+                      <Input
+                        value={userForm.namaOrangTua}
+                        onChange={(e) =>
+                          setUserForm((prev) => ({
+                            ...prev,
+                            namaOrangTua: e.target.value,
+                          }))
+                        }
+                        placeholder="Nama orang tua/wali"
+                      />
+                    </div>
+                    <div className="space-y-2">
+                      <Label>Pekerjaan Orang Tua</Label>
+                      <Input
+                        value={userForm.pekerjaanOrangTua}
+                        onChange={(e) =>
+                          setUserForm((prev) => ({
+                            ...prev,
+                            pekerjaanOrangTua: e.target.value,
+                          }))
+                        }
+                        placeholder="Pekerjaan orang tua/wali"
+                      />
+                    </div>
+                  </>
+                )}
+
+                {(userForm.role === "admin" || activeSection === "admin") && (
+                  <div className="space-y-2">
+                    <Label>NIP</Label>
+                    <Input
+                      value={userForm.nip}
+                      onChange={(e) =>
+                        setUserForm((prev) => ({
+                          ...prev,
+                          nip: e.target.value,
+                        }))
+                      }
+                    />
+                  </div>
+                )}
 
                 <div className="flex gap-2 pt-4">
                   <Button type="submit" className="flex-1">
@@ -233,7 +669,7 @@ export default function ClassManagement({
                   <Button
                     type="button"
                     variant="outline"
-                    onClick={() => setShowClassDialog(false)}
+                    onClick={() => setShowUserDialog(false)}
                     className="flex-1"
                   >
                     Batal
@@ -246,36 +682,83 @@ export default function ClassManagement({
       </CardHeader>
 
       <CardContent>
+        <div className="flex flex-col md:flex-row gap-4 mb-6">
+          <div className="relative flex-1">
+            <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-muted-foreground h-4 w-4" />
+            <Input
+              placeholder="Cari berdasarkan nama, username, atau email..."
+              value={searchTerm}
+              onChange={(e) => setSearchTerm(e.target.value)}
+              className="pl-10"
+            />
+          </div>
+
+          {activeSection === "semua" && (
+            <Select value={roleFilter} onValueChange={setRoleFilter}>
+              <SelectTrigger className="w-full md:w-48">
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="all">Semua Role</SelectItem>
+                {roles.map((role) => (
+                  <SelectItem key={role.value} value={role.value}>
+                    {role.label}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          )}
+        </div>
+
         <div className="rounded-md border">
           <Table>
             <TableHeader>
               <TableRow>
-                <TableHead>Nama Kelas</TableHead>
-                <TableHead>Tingkat</TableHead>
-                <TableHead>Wali Kelas</TableHead>
+                <TableHead>Nama</TableHead>
+                <TableHead>Username</TableHead>
+                <TableHead>Role</TableHead>
+                <TableHead>Identitas</TableHead>
+                <TableHead>Email</TableHead>
                 <TableHead className="text-right">Aksi</TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
-              {classes.length > 0 ? (
-                classes.map((kelas) => (
-                  <TableRow key={kelas.id}>
-                    <TableCell className="font-medium">{kelas.nama}</TableCell>
-                    <TableCell>Kelas {kelas.tingkat}</TableCell>
-                    <TableCell>{getWalikelasName(kelas.walikelas)}</TableCell>
+              {filteredUsers.length > 0 ? (
+                filteredUsers.map((user) => (
+                  <TableRow key={user.id}>
+                    <TableCell className="font-medium">{user.nama}</TableCell>
+                    <TableCell>{user.username}</TableCell>
+                    <TableCell>
+                      <Badge variant="outline">
+                        {roles.find((r) => r.value === user.role)?.label ||
+                          user.role}
+                      </Badge>
+                    </TableCell>
+                    <TableCell>
+                      {user.role === "siswa" && user.nisn ? (
+                        <div className="text-sm">
+                          <div>NISN: {user.nisn}</div>
+                        </div>
+                      ) : user.nip ? (
+                        <div className="text-sm">NIP: {user.nip}</div>
+                      ) : (
+                        <span className="text-muted-foreground">-</span>
+                      )}
+                    </TableCell>
+                    <TableCell>{user.email || "-"}</TableCell>
                     <TableCell className="text-right">
                       <div className="flex justify-end space-x-2">
                         <Button
                           size="sm"
                           variant="outline"
-                          onClick={() => editClass(kelas)}
+                          onClick={() => editUser(user)}
                         >
                           <Edit className="h-4 w-4" />
                         </Button>
                         <Button
                           size="sm"
                           variant="outline"
-                          onClick={() => handleDeleteClass(kelas.id)}
+                          onClick={() => handleDeleteUser(user.id)}
                         >
                           <Trash2 className="h-4 w-4" />
                         </Button>
@@ -286,11 +769,10 @@ export default function ClassManagement({
               ) : (
                 <TableRow>
                   <TableCell
-                    colSpan={4}
+                    colSpan={6}
                     className="text-center py-8 text-muted-foreground"
                   >
-                    <School className="h-12 w-12 mx-auto mb-4 opacity-50" />
-                    <p>Belum ada data kelas</p>
+                    Tidak ada data pengguna
                   </TableCell>
                 </TableRow>
               )}
