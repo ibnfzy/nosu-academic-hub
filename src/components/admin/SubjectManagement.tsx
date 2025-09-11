@@ -41,10 +41,12 @@ export default function SubjectManagement({
   const [editingItem, setEditingItem] = useState(null);
   const [subjects, setSubjects] = useState<any[]>([]);
   const [classes, setClasses] = useState<any[]>([]);
+  const [teachers, setTeachers] = useState<any[]>([]);
   const [subjectForm, setSubjectForm] = useState({
     nama: "",
     kode: "",
     kelasId: "",
+    teacherId: "",
   });
 
   const { toast } = useToast();
@@ -52,12 +54,14 @@ export default function SubjectManagement({
   // Load data from apiService
   const loadData = useCallback(async () => {
     try {
-      const [subjectsData, classesData] = await Promise.all([
+      const [subjectsData, classesData, teachersData] = await Promise.all([
         apiService.getSubjects(),
         apiService.getClasses(),
+        apiService.getTeachers(),
       ]);
       setSubjects(subjectsData);
       setClasses(classesData);
+      setTeachers(teachersData);
     } catch (error) {
       console.error("Error loading data:", error);
       toast({
@@ -148,6 +152,7 @@ export default function SubjectManagement({
       nama: "",
       kode: "",
       kelasId: "all",
+      teacherId: "",
     });
     setEditingItem(null);
   };
@@ -164,6 +169,15 @@ export default function SubjectManagement({
     }
     const kelas = classes.find((c) => c.id === kelasId);
     return kelas ? kelas.nama : "Semua Kelas";
+  };
+
+  const getTeacherName = (teacherId: string) => {
+    if (teacherId === null) {
+      return "Belum ada guru";
+    }
+
+    const teacher = teachers.find((t) => t.id === teacherId);
+    return teacher ? teacher.nama : "Belum ada guru";
   };
 
   return (
@@ -243,6 +257,27 @@ export default function SubjectManagement({
                   </Select>
                 </div>
 
+                <div className="space-y-2">
+                  <Label>Guru</Label>
+                  <Select
+                    value={subjectForm.teacherId}
+                    onValueChange={(val) =>
+                      setSubjectForm((prev) => ({ ...prev, teacherId: val }))
+                    }
+                  >
+                    <SelectTrigger>
+                      <SelectValue placeholder="Pilih guru mata pelajaran" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {teachers.map((t) => (
+                        <SelectItem key={t.id} value={t.id}>
+                          {t.nama} - NIP : {t.nip}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+
                 <div className="flex gap-2 pt-4">
                   <Button type="submit" className="flex-1">
                     {editingItem ? "Update" : "Tambah"}
@@ -270,6 +305,7 @@ export default function SubjectManagement({
                 <TableHead>Kode</TableHead>
                 <TableHead>Nama Mata Pelajaran</TableHead>
                 <TableHead>Kelas</TableHead>
+                <TableHead>Guru</TableHead>
                 <TableHead className="text-right">Aksi</TableHead>
               </TableRow>
             </TableHeader>
@@ -282,6 +318,7 @@ export default function SubjectManagement({
                       {subject.nama}
                     </TableCell>
                     <TableCell>{getClassName(subject.kelasId)}</TableCell>
+                    <TableCell>{getTeacherName(subject.teacherId)}</TableCell>
                     <TableCell className="text-right">
                       <div className="flex justify-end space-x-2">
                         <Button

@@ -158,21 +158,26 @@ const classes = [
   },
 ];
 
-// SUBJECTS - mata pelajaran
+// SUBJECTS (sudah ada teacherId di dalamnya)
 const subjects = [
-  { id: "1", nama: "Matematika", kode: "MAT", kelompok: "A" },
-  { id: "2", nama: "Bahasa Indonesia", kode: "BIN", kelompok: "A" },
-  { id: "3", nama: "Bahasa Inggris", kode: "BIG", kelompok: "A" },
-  { id: "4", nama: "Fisika", kode: "FIS", kelompok: "C" },
-  { id: "5", nama: "Kimia", kode: "KIM", kelompok: "C" },
-  { id: "6", nama: "Biologi", kode: "BIO", kelompok: "C" },
-];
-
-// TEACHER_SUBJECTS - guru yang mengajar mapel tertentu
-const teacherSubjects = [
-  { id: "1", teacherId: "3", subjectId: "1" }, // Pak Ahmad Hidayat -> Matematika
-  { id: "2", teacherId: "4", subjectId: "2" }, // Bu Ratna -> Bahasa Indonesia
-  { id: "3", teacherId: "4", subjectId: "3" }, // Bu Ratna -> Bahasa Inggris
+  { id: "1", nama: "Matematika", kode: "MAT", kelompok: "A", teacherId: "3" },
+  {
+    id: "2",
+    nama: "Bahasa Indonesia",
+    kode: "BIN",
+    kelompok: "A",
+    teacherId: "4",
+  },
+  {
+    id: "3",
+    nama: "Bahasa Inggris",
+    kode: "BIG",
+    kelompok: "A",
+    teacherId: "4",
+  },
+  { id: "4", nama: "Fisika", kode: "FIS", kelompok: "C", teacherId: null },
+  { id: "5", nama: "Kimia", kode: "KIM", kelompok: "C", teacherId: null },
+  { id: "6", nama: "Biologi", kode: "BIO", kelompok: "C", teacherId: null },
 ];
 
 // ACADEMIC YEARS - tahun ajaran
@@ -372,7 +377,6 @@ const sampleData = {
   teachers,
   classes,
   subjects,
-  teacherSubjects,
   academicYears,
   grades,
   attendance,

@@ -30,7 +30,6 @@ const Home = ({ currentUser, onLogin, onLogout }) => {
 
   useEffect(() => {
     // Force initialize with enhanced data
-    apiService.initializeData();
     loadHomeData();
   }, []);
 
