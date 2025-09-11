@@ -69,7 +69,7 @@ const students = [
   {
     id: "1", // Student ID
     userId: "2", // Foreign key to users table
-    nisn: "2024001",
+    nisn: "2024001001", // ✅ 10 digit
     nama: "Ahmad Fadli",
     kelasId: "1",
     jenisKelamin: "L",
@@ -83,7 +83,7 @@ const students = [
   {
     id: "2", // Student ID
     userId: "3", // Foreign key to users table
-    nisn: "2024002",
+    nisn: "2024001002", // ✅ 10 digit
     nama: "Siti Aminah",
     kelasId: "1",
     jenisKelamin: "P",
@@ -104,7 +104,6 @@ const teachers = [
     nip: "196501011990031003",
     nama: "Drs. Budi Santoso",
     role: "walikelas",
-    kelasId: "1",
     jenisKelamin: "L",
     alamat: "Jl. Guru No. 1, Nosu",
     nomorHP: "081234567892",
@@ -115,7 +114,6 @@ const teachers = [
     nip: "196801151991032004",
     nama: "Dra. Sari Dewi",
     role: "walikelas",
-    kelasId: "2",
     jenisKelamin: "P",
     alamat: "Jl. Guru No. 2, Nosu",
     nomorHP: "081234567893",
@@ -126,7 +124,6 @@ const teachers = [
     nip: "197205101999031005",
     nama: "Ahmad Hidayat, S.Pd",
     role: "guru",
-    kelasId: null,
     jenisKelamin: "L",
     alamat: "Jl. Guru No. 3, Nosu",
     nomorHP: "081234567894",
@@ -137,7 +134,6 @@ const teachers = [
     nip: "197808201999032006",
     nama: "Dr. Ratna Sari",
     role: "guru",
-    kelasId: null,
     jenisKelamin: "P",
     alamat: "Jl. Guru No. 4, Nosu",
     nomorHP: "081234567895",
@@ -148,13 +144,13 @@ const teachers = [
 const classes = [
   { id: "1", nama: "X IPA 1", tingkat: 10, jurusan: "IPA", walikelasId: "1" },
   { id: "2", nama: "X IPA 2", tingkat: 10, jurusan: "IPA", walikelasId: "2" },
-  { id: "3", nama: "XI IPA 1", tingkat: 11, jurusan: "IPA", walikelasId: null },
+  { id: "3", nama: "XI IPA 1", tingkat: 11, jurusan: "IPA", walikelasId: 3 },
   {
     id: "4",
     nama: "XII IPA 1",
     tingkat: 12,
     jurusan: "IPA",
-    walikelasId: null,
+    walikelasId: 3,
   },
 ];
 
@@ -212,44 +208,57 @@ const academicYears = [
 const grades = [
   {
     id: "1",
+    studentId: "2",
+    subjectId: "1",
+    jenis: "Ujian",
+    nilai: 85,
+    tanggal: "2024-07-20",
+    teacherId: "3",
+    kelasId: "1",
+    tahunAjaran: "2024/2025",
+    semester: 1,
+    verified: false,
+  },
+  {
+    id: "2",
+    studentId: "2",
+    subjectId: "2",
+    jenis: "Kuis",
+    nilai: 90,
+    tanggal: "2024-07-21",
+    teacherId: "3",
+    kelasId: "1",
+    tahunAjaran: "2024/2025",
+    semester: 1,
+    verified: false,
+  },
+];
+
+const attendance = [
+  {
+    id: "1",
     studentId: "1",
     subjectId: "1",
-    academicYearId: "3",
-    type: "Ujian",
-    skor: 85,
+    tanggal: "2024-07-20",
+    status: "hadir",
+    keterangan: "",
+    teacherId: "3",
+    kelasId: "1",
+    tahunAjaran: "2024/2025",
+    semester: 1,
   },
   {
     id: "2",
     studentId: "1",
-    subjectId: "2",
-    academicYearId: "3",
-    type: "Kuis",
-    skor: 90,
-  },
-  {
-    id: "3",
-    studentId: "2",
     subjectId: "1",
-    academicYearId: "3",
-    type: "Ujian",
-    skor: 78,
+    tanggal: "2024-07-21",
+    status: "sakit",
+    keterangan: "",
+    teacherId: "3",
+    kelasId: "1",
+    tahunAjaran: "2024/2025",
+    semester: 1,
   },
-  {
-    id: "4",
-    studentId: "2",
-    subjectId: "3",
-    academicYearId: "3",
-    type: "PR",
-    skor: 88,
-  },
-];
-
-// ATTENDANCE - kehadiran siswa
-const attendance = [
-  { id: "1", studentId: "1", date: "2024-07-20", status: "Hadir" },
-  { id: "2", studentId: "1", date: "2024-07-21", status: "Sakit" },
-  { id: "3", studentId: "2", date: "2024-07-20", status: "Izin" },
-  { id: "4", studentId: "2", date: "2024-07-21", status: "Hadir" },
 ];
 
 // SCHOOL PROFILE - profil sekolah

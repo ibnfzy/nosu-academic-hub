@@ -29,6 +29,7 @@ const AdminDashboard = ({ currentUser, onLogout }) => {
   const loadAdminData = useCallback(async () => {
     setLoading(true);
     try {
+      // apiService.forceInitializeData();
       const [
         usersData,
         studentsData,

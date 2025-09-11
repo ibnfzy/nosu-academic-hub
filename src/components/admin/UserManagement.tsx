@@ -101,7 +101,7 @@ export default function UserManagement({
 
   // Auto-set role when activeSection changes
   useEffect(() => {
-    if (activeSection !== "semua" && activeSection !== "guru" && !editingItem) {
+    if (activeSection !== "guru" && !editingItem) {
       setUserForm((prev) => ({ ...prev, role: activeSection }));
     } else if (activeSection === "guru" && !editingItem && !userForm.role) {
       setUserForm((prev) => ({ ...prev, role: "guru" }));
@@ -111,7 +111,6 @@ export default function UserManagement({
   const roles = [
     { value: "admin", label: "Administrator" },
     { value: "guru", label: "Guru" },
-    { value: "walikelas", label: "Wali Kelas" },
     { value: "siswa", label: "Siswa" },
   ];
 
@@ -183,15 +182,6 @@ export default function UserManagement({
       toast({
         title: "Error",
         description: "NIP harus terdiri dari 18 angka",
-        variant: "destructive",
-      });
-      return;
-    }
-
-    if (currentRole === "walikelas" && !userForm.kelasId) {
-      toast({
-        title: "Error",
-        description: "Kelas wajib dipilih untuk walikelas",
         variant: "destructive",
       });
       return;
@@ -269,10 +259,8 @@ export default function UserManagement({
             result = await apiService.updateStudent(editingItem.id, payload);
             break;
           case "guru":
-            result = await apiService.updateTeacher(editingItem.id, payload);
-            break;
           case "walikelas":
-            result = await apiService.updateWalikelas(editingItem.id, payload);
+            result = await apiService.updateTeacher(editingItem.id, payload);
             break;
           default:
             result = await apiService.updateUser(editingItem.id, payload);
@@ -284,10 +272,8 @@ export default function UserManagement({
             result = await apiService.createStudent(payload);
             break;
           case "guru":
-            result = await apiService.createTeacher(payload);
-            break;
           case "walikelas":
-            result = await apiService.createWalikelas(payload);
+            result = await apiService.createTeacher(payload);
             break;
           default:
             result = await apiService.createUser(payload);
@@ -329,10 +315,8 @@ export default function UserManagement({
               result = await apiService.deleteStudent(userId);
               break;
             case "guru":
-              result = await apiService.deleteTeacher(userId);
-              break;
             case "walikelas":
-              result = await apiService.deleteWalikelas(userId);
+              result = await apiService.deleteTeacher(userId);
               break;
             default:
               result = await apiService.deleteUser(userId);
@@ -365,7 +349,7 @@ export default function UserManagement({
       username: "",
       password: "",
       email: "",
-      role: "",
+      role: activeSection === "guru" ? "guru" : activeSection,
 
       // Students/Teachers table fields
       nama: "",
@@ -403,7 +387,11 @@ export default function UserManagement({
     if (activeSection !== "semua") {
       // For guru section, show both guru and walikelas
       if (activeSection === "guru") {
-        return (user.role === "guru" || user.role === "walikelas") && matchesRole && matchesSearch;
+        return (
+          (user.role === "guru" || user.role === "walikelas") &&
+          matchesRole &&
+          matchesSearch
+        );
       }
       return user.role === activeSection && matchesRole && matchesSearch;
     }
@@ -427,6 +415,7 @@ export default function UserManagement({
           <Dialog
             open={showUserDialog}
             onOpenChange={(open) => {
+              resetUserForm();
               setShowUserDialog(open);
               if (!open) resetUserForm();
             }}
@@ -497,7 +486,9 @@ export default function UserManagement({
                       onValueChange={(value) =>
                         setUserForm((prev) => ({ ...prev, role: value }))
                       }
-                      disabled={activeSection !== "semua" && activeSection !== "guru"}
+                      disabled={
+                        activeSection !== "semua" && activeSection !== "guru"
+                      }
                     >
                       <SelectTrigger>
                         <SelectValue placeholder="Pilih role" />
@@ -512,7 +503,9 @@ export default function UserManagement({
                         ) : activeSection === "guru" ? (
                           <>
                             <SelectItem value="guru">Guru</SelectItem>
-                            <SelectItem value="walikelas">Wali Kelas</SelectItem>
+                            <SelectItem value="walikelas">
+                              Wali Kelas
+                            </SelectItem>
                           </>
                         ) : (
                           <SelectItem value={activeSection}>
@@ -561,26 +554,6 @@ export default function UserManagement({
                             NISN harus terdiri dari 10 angka
                           </p>
                         )}
-                      </div>
-                      <div className="space-y-2">
-                        <Label>Kelas *</Label>
-                        <Select
-                          value={userForm.kelasId}
-                          onValueChange={(value) =>
-                            setUserForm((prev) => ({ ...prev, kelasId: value }))
-                          }
-                        >
-                          <SelectTrigger>
-                            <SelectValue placeholder="Pilih kelas" />
-                          </SelectTrigger>
-                          <SelectContent>
-                            {classes?.map((kelas) => (
-                              <SelectItem key={kelas.id} value={kelas.id}>
-                                {kelas.nama}
-                              </SelectItem>
-                            ))}
-                          </SelectContent>
-                        </Select>
                       </div>
                       <div className="space-y-2">
                         <Label>Jenis Kelamin *</Label>
@@ -646,32 +619,6 @@ export default function UserManagement({
                           </p>
                         )}
                       </div>
-                      {(userForm.role === "walikelas" ||
-                        activeSection === "walikelas") && (
-                        <div className="space-y-2">
-                          <Label>Kelas *</Label>
-                          <Select
-                            value={userForm.kelasId}
-                            onValueChange={(value) =>
-                              setUserForm((prev) => ({
-                                ...prev,
-                                kelasId: value,
-                              }))
-                            }
-                          >
-                            <SelectTrigger>
-                              <SelectValue placeholder="Pilih kelas" />
-                            </SelectTrigger>
-                            <SelectContent>
-                              {classes?.map((kelas) => (
-                                <SelectItem key={kelas.id} value={kelas.id}>
-                                  {kelas.namaKelas}
-                                </SelectItem>
-                              ))}
-                            </SelectContent>
-                          </Select>
-                        </div>
-                      )}
                       <div className="space-y-2">
                         <Label>Jenis Kelamin *</Label>
                         <Select

@@ -78,6 +78,16 @@ const apiService = {
       const users = JSON.parse(
         localStorage.getItem(STORAGE_KEYS.USERS) || "[]"
       );
+      const students = JSON.parse(
+        localStorage.getItem(STORAGE_KEYS.STUDENTS) || "[]"
+      );
+      const teachers = JSON.parse(
+        localStorage.getItem(STORAGE_KEYS.TEACHERS) || "[]"
+      );
+      const classes = JSON.parse(
+        localStorage.getItem(STORAGE_KEYS.CLASSES) || "[]"
+      );
+
       const user = users.find(
         (u) =>
           u.username === username && u.password === password && u.role === role
@@ -86,12 +96,36 @@ const apiService = {
       if (user) {
         const sessionUser = { ...user };
         delete sessionUser.password; // Remove password from session
+
+        // Tambahkan studentId / teacherId sesuai role
+        if (role === "siswa") {
+          const student = students.find((s) => s.userId === user.id);
+          if (student) {
+            sessionUser.studentId = student.id;
+            sessionUser.kelasId = student.kelasId;
+            sessionUser.nisn = student.nisn;
+          }
+        } else if (role === "guru" || role === "walikelas") {
+          const teacher = teachers.find((t) => t.userId === user.id);
+          const classe = classes.find((c) => c.walikelasId === teacher.id);
+
+          if (teacher) {
+            sessionUser.teacherId = teacher.id;
+            sessionUser.nip = teacher.nip;
+          }
+
+          if (role === "walikelas") {
+            sessionUser.kelasId = classe.id || null;
+          }
+        }
+
         localStorage.setItem(
           STORAGE_KEYS.CURRENT_USER,
           JSON.stringify(sessionUser)
         );
         return { success: true, user: sessionUser };
       }
+
       return { success: false, message: "Invalid credentials" };
     }
   },
@@ -216,11 +250,29 @@ const apiService = {
       );
       return await response.json();
     } else {
-      const teachers = JSON.parse(
-        localStorage.getItem(STORAGE_KEYS.TEACHERS) || "[]"
+      const subjects = JSON.parse(
+        localStorage.getItem(STORAGE_KEYS.SUBJECTS) || "[]"
       );
-      const teacher = teachers.find((t) => t.id === teacherId);
-      return teacher ? teacher.mataPelajaran : [];
+      // Ambil semua mapel yang diajar guru ini
+      return subjects.filter((s) => s.teacherId === teacherId);
+    }
+  },
+
+  async getGrades() {
+    if (USE_API) {
+      const response = await this.authFetch(`${API_BASE_URL}/guru/grades`);
+      return await response.json();
+    } else {
+      return JSON.parse(localStorage.getItem(STORAGE_KEYS.GRADES) || "[]");
+    }
+  },
+
+  async getAttendance() {
+    if (USE_API) {
+      const response = await this.authFetch(`${API_BASE_URL}/guru/attendance`);
+      return await response.json();
+    } else {
+      return JSON.parse(localStorage.getItem(STORAGE_KEYS.ATTENDANCE) || "[]");
     }
   },
 
@@ -273,6 +325,100 @@ const apiService = {
       attendance.push(newAttendance);
       localStorage.setItem(STORAGE_KEYS.ATTENDANCE, JSON.stringify(attendance));
       return { success: true, data: newAttendance };
+    }
+  },
+
+  async editGrade(teacherId, gradeData) {
+    if (USE_API) {
+      const response = await this.authFetch(
+        `${API_BASE_URL}/guru/${teacherId}/nilai/${gradeData.id}`,
+        {
+          method: "PUT",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify(gradeData),
+        }
+      );
+      return await response.json();
+    } else {
+      const grades = JSON.parse(
+        localStorage.getItem(STORAGE_KEYS.GRADES) || "[]"
+      );
+      const idx = grades.findIndex((g) => g.id === gradeData.id);
+
+      if (idx !== -1) {
+        grades[idx] = {
+          ...grades[idx],
+          ...gradeData,
+          updatedAt: new Date().toISOString(),
+        };
+        localStorage.setItem(STORAGE_KEYS.GRADES, JSON.stringify(grades));
+        return { success: true, data: grades[idx] };
+      }
+      return { success: false, message: "Grade not found" };
+    }
+  },
+
+  async editGrade(teacherId, gradeData) {
+    if (USE_API) {
+      const response = await this.authFetch(
+        `${API_BASE_URL}/guru/${teacherId}/nilai/${gradeData.id}`,
+        {
+          method: "PUT",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify(gradeData),
+        }
+      );
+      return await response.json();
+    } else {
+      const grades = JSON.parse(
+        localStorage.getItem(STORAGE_KEYS.GRADES) || "[]"
+      );
+      const idx = grades.findIndex((g) => g.id === gradeData.id);
+
+      if (idx !== -1) {
+        grades[idx] = {
+          ...grades[idx],
+          ...gradeData,
+          updatedAt: new Date().toISOString(),
+        };
+        localStorage.setItem(STORAGE_KEYS.GRADES, JSON.stringify(grades));
+        return { success: true, data: grades[idx] };
+      }
+      return { success: false, message: "Grade not found" };
+    }
+  },
+
+  async deleteGrade(teacherId, gradeId) {
+    if (USE_API) {
+      const response = await this.authFetch(
+        `${API_BASE_URL}/guru/${teacherId}/nilai/${gradeId}`,
+        { method: "DELETE" }
+      );
+      return await response.json();
+    } else {
+      const grades = JSON.parse(
+        localStorage.getItem(STORAGE_KEYS.GRADES) || "[]"
+      );
+      const updated = grades.filter((g) => g.id !== gradeId);
+      localStorage.setItem(STORAGE_KEYS.GRADES, JSON.stringify(updated));
+      return { success: true };
+    }
+  },
+
+  async deleteAttendance(teacherId, attendanceId) {
+    if (USE_API) {
+      const response = await this.authFetch(
+        `${API_BASE_URL}/guru/${teacherId}/kehadiran/${attendanceId}`,
+        { method: "DELETE" }
+      );
+      return await response.json();
+    } else {
+      const attendance = JSON.parse(
+        localStorage.getItem(STORAGE_KEYS.ATTENDANCE) || "[]"
+      );
+      const updated = attendance.filter((a) => a.id !== attendanceId);
+      localStorage.setItem(STORAGE_KEYS.ATTENDANCE, JSON.stringify(updated));
+      return { success: true };
     }
   },
 
@@ -683,152 +829,6 @@ const apiService = {
       const filteredTeachers = teachers.filter((t) => t.id !== teacherId);
       const filteredUsers = users.filter(
         (u) => u.id !== (teacher?.userId || teacherId)
-      );
-
-      localStorage.setItem(
-        STORAGE_KEYS.TEACHERS,
-        JSON.stringify(filteredTeachers)
-      );
-      localStorage.setItem(STORAGE_KEYS.USERS, JSON.stringify(filteredUsers));
-
-      return { success: true };
-    }
-  },
-
-  // ============= WALIKELAS MANAGEMENT =============
-  async getWalikelas() {
-    if (USE_API) {
-      const response = await this.authFetch(`${API_BASE_URL}/admin/walikelas`);
-      return await response.json();
-    } else {
-      const teachers = JSON.parse(
-        localStorage.getItem(STORAGE_KEYS.TEACHERS) || "[]"
-      );
-      return teachers.filter((t) => t.role === "walikelas");
-    }
-  },
-
-  async createWalikelas(walikelasData) {
-    if (USE_API) {
-      const response = await this.authFetch(`${API_BASE_URL}/admin/walikelas`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(walikelasData),
-      });
-      return await response.json();
-    } else {
-      const teachers = JSON.parse(
-        localStorage.getItem(STORAGE_KEYS.TEACHERS) || "[]"
-      );
-      const users = JSON.parse(
-        localStorage.getItem(STORAGE_KEYS.USERS) || "[]"
-      );
-
-      // Create user first
-      const newUser = {
-        id: Date.now().toString(),
-        ...walikelasData.users,
-        createdAt: new Date().toISOString(),
-      };
-      users.push(newUser);
-
-      // Create walikelas (stored as teacher with role walikelas)
-      const newWalikelas = {
-        id: (Date.now() + 1).toString(), // Different ID for walikelas
-        userId: newUser.id, // Foreign key to user
-        ...walikelasData.teachers,
-        createdAt: new Date().toISOString(),
-      };
-      teachers.push(newWalikelas);
-
-      localStorage.setItem(STORAGE_KEYS.USERS, JSON.stringify(users));
-      localStorage.setItem(STORAGE_KEYS.TEACHERS, JSON.stringify(teachers));
-
-      return {
-        success: true,
-        data: { ...newUser, ...newWalikelas, password: undefined },
-      };
-    }
-  },
-
-  async updateWalikelas(walikelasId, walikelasData) {
-    if (USE_API) {
-      const response = await this.authFetch(
-        `${API_BASE_URL}/admin/walikelas/${walikelasId}`,
-        {
-          method: "PUT",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify(walikelasData),
-        }
-      );
-      return await response.json();
-    } else {
-      const teachers = JSON.parse(
-        localStorage.getItem(STORAGE_KEYS.TEACHERS) || "[]"
-      );
-      const users = JSON.parse(
-        localStorage.getItem(STORAGE_KEYS.USERS) || "[]"
-      );
-
-      const teacherIndex = teachers.findIndex((t) => t.id === walikelasId);
-      const teacher = teachers[teacherIndex];
-
-      if (teacherIndex !== -1 && teacher) {
-        const userIndex = users.findIndex((u) => u.id === teacher.userId);
-
-        if (userIndex !== -1) {
-          // Update user
-          users[userIndex] = {
-            ...users[userIndex],
-            ...walikelasData.users,
-            updatedAt: new Date().toISOString(),
-          };
-        }
-
-        // Update walikelas
-        teachers[teacherIndex] = {
-          ...teachers[teacherIndex],
-          ...walikelasData.teachers,
-          updatedAt: new Date().toISOString(),
-        };
-
-        localStorage.setItem(STORAGE_KEYS.USERS, JSON.stringify(users));
-        localStorage.setItem(STORAGE_KEYS.TEACHERS, JSON.stringify(teachers));
-
-        return {
-          success: true,
-          data: {
-            ...users[userIndex],
-            ...teachers[teacherIndex],
-            password: undefined,
-          },
-        };
-      }
-      return { success: false, message: "Walikelas not found" };
-    }
-  },
-
-  async deleteWalikelas(walikelasId) {
-    if (USE_API) {
-      const response = await this.authFetch(
-        `${API_BASE_URL}/admin/walikelas/${walikelasId}`,
-        {
-          method: "DELETE",
-        }
-      );
-      return await response.json();
-    } else {
-      const teachers = JSON.parse(
-        localStorage.getItem(STORAGE_KEYS.TEACHERS) || "[]"
-      );
-      const users = JSON.parse(
-        localStorage.getItem(STORAGE_KEYS.USERS) || "[]"
-      );
-
-      const teacher = teachers.find((t) => t.id === walikelasId);
-      const filteredTeachers = teachers.filter((t) => t.id !== walikelasId);
-      const filteredUsers = users.filter(
-        (u) => u.id !== (teacher?.userId || walikelasId)
       );
 
       localStorage.setItem(

@@ -1,78 +1,97 @@
-import { useState } from 'react';
-import { useNavigate } from 'react-router-dom';
-import { Button } from '@/components/ui/button';
-import { Card, CardContent } from '@/components/ui/card';
-import { 
-  Dialog, 
-  DialogContent, 
-  DialogHeader, 
-  DialogTitle, 
-  DialogTrigger 
-} from '@/components/ui/dialog';
-import { Input } from '@/components/ui/input';
-import { Label } from '@/components/ui/label';
-import { 
-  Select, 
-  SelectContent, 
-  SelectItem, 
-  SelectTrigger, 
-  SelectValue 
-} from '@/components/ui/select';
-import { 
-  User, 
-  UserCheck, 
-  GraduationCap, 
-  Shield, 
+import { useState } from "react";
+import { useNavigate } from "react-router-dom";
+import { Button } from "@/components/ui/button";
+import { Card, CardContent } from "@/components/ui/card";
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogTrigger,
+} from "@/components/ui/dialog";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
+import {
+  User,
+  UserCheck,
+  GraduationCap,
+  Shield,
   LogIn,
   LogOut,
-  School
-} from 'lucide-react';
-import { useToast } from '@/hooks/use-toast';
-import apiService from '@/services/apiService';
+  School,
+} from "lucide-react";
+import { useToast } from "@/hooks/use-toast";
+import apiService from "@/services/apiService";
 
 const Navbar = ({ currentUser, onLogin, onLogout }) => {
   const navigate = useNavigate();
   const [loginData, setLoginData] = useState({
-    username: '',
-    password: '',
-    role: ''
+    username: "",
+    password: "",
+    role: "",
   });
   const [isLoading, setIsLoading] = useState(false);
   const [showLogin, setShowLogin] = useState(false);
   const { toast } = useToast();
 
   const roleOptions = [
-    { value: 'siswa', label: 'Siswa', icon: User, color: 'text-primary' },
-    { value: 'guru', label: 'Guru Mata Pelajaran', icon: GraduationCap, color: 'text-accent' },
-    { value: 'walikelas', label: 'Wali Kelas', icon: UserCheck, color: 'text-success' },
-    { value: 'admin', label: 'Administrator', icon: Shield, color: 'text-warning' }
+    { value: "siswa", label: "Siswa", icon: User, color: "text-primary" },
+    {
+      value: "guru",
+      label: "Guru Mata Pelajaran",
+      icon: GraduationCap,
+      color: "text-accent",
+    },
+    {
+      value: "walikelas",
+      label: "Wali Kelas",
+      icon: UserCheck,
+      color: "text-success",
+    },
+    {
+      value: "admin",
+      label: "Administrator",
+      icon: Shield,
+      color: "text-warning",
+    },
   ];
 
   const handleLogin = async (e) => {
     e.preventDefault();
-    
+
     if (!loginData.username || !loginData.password || !loginData.role) {
       toast({
         title: "Error",
         description: "Mohon lengkapi semua field",
-        variant: "destructive"
+        variant: "destructive",
       });
       return;
     }
 
     setIsLoading(true);
-    
+
     try {
-      const result = await apiService.login(loginData.username, loginData.password, loginData.role);
-      
+      const result = await apiService.login(
+        loginData.username,
+        loginData.password,
+        loginData.role
+      );
+
       if (result.success) {
         onLogin(result.user);
         setShowLogin(false);
-        setLoginData({ username: '', password: '', role: '' });
-        
+        setLoginData({ username: "", password: "", role: "" });
+
         toast({
           title: "Login Berhasil",
-          description: `Selamat datang, ${result.user.nama}!`
+          description: `Selamat datang, ${result.user.nama}!`,
         });
 
         // Redirect ke dashboard sesuai role
@@ -81,15 +100,17 @@ const Navbar = ({ currentUser, onLogin, onLogout }) => {
         toast({
           title: "Login Gagal",
           description: result.message || "Username atau password salah",
-          variant: "destructive"
+          variant: "destructive",
         });
       }
     } catch (error) {
       toast({
         title: "Error",
         description: "Terjadi kesalahan sistem",
-        variant: "destructive"
+        variant: "destructive",
       });
+
+      console.log(error);
     } finally {
       setIsLoading(false);
     }
@@ -99,30 +120,30 @@ const Navbar = ({ currentUser, onLogin, onLogout }) => {
     try {
       await apiService.logout();
       onLogout();
-      navigate('/');
-      
+      navigate("/");
+
       toast({
         title: "Logout Berhasil",
-        description: "Sampai jumpa!"
+        description: "Sampai jumpa!",
       });
     } catch (error) {
       toast({
         title: "Error",
         description: "Terjadi kesalahan saat logout",
-        variant: "destructive"
+        variant: "destructive",
       });
     }
   };
 
   const getRoleIcon = (role) => {
-    const roleOption = roleOptions.find(opt => opt.value === role);
+    const roleOption = roleOptions.find((opt) => opt.value === role);
     if (!roleOption) return User;
     return roleOption.icon;
   };
 
   const getRoleColor = (role) => {
-    const roleOption = roleOptions.find(opt => opt.value === role);
-    if (!roleOption) return 'text-muted-foreground';
+    const roleOption = roleOptions.find((opt) => opt.value === role);
+    if (!roleOption) return "text-muted-foreground";
     return roleOption.color;
   };
 
@@ -151,20 +172,30 @@ const Navbar = ({ currentUser, onLogin, onLogout }) => {
                   <div className="flex items-center space-x-2">
                     {(() => {
                       const Icon = getRoleIcon(currentUser.role);
-                      return <Icon className={`h-4 w-4 ${getRoleColor(currentUser.role)}`} />;
+                      return (
+                        <Icon
+                          className={`h-4 w-4 ${getRoleColor(
+                            currentUser.role
+                          )}`}
+                        />
+                      );
                     })()}
                     <div className="text-sm">
-                      <p className="font-medium text-foreground">{currentUser.nama}</p>
+                      <p className="font-medium text-foreground">
+                        {currentUser.nama}
+                      </p>
                       <p className="text-xs text-muted-foreground capitalize">
-                        {currentUser.role === 'walikelas' ? 'Wali Kelas' : 
-                         currentUser.role === 'guru' ? 'Guru' : 
-                         currentUser.role}
+                        {currentUser.role === "walikelas"
+                          ? "Wali Kelas"
+                          : currentUser.role === "guru"
+                          ? "Guru"
+                          : currentUser.role}
                       </p>
                     </div>
                   </div>
                 </Card>
-                
-                <Button 
+
+                <Button
                   onClick={handleLogout}
                   variant="outline"
                   size="sm"
@@ -188,13 +219,15 @@ const Navbar = ({ currentUser, onLogin, onLogout }) => {
                       Login Sistem Akademik
                     </DialogTitle>
                   </DialogHeader>
-                  
+
                   <form onSubmit={handleLogin} className="space-y-4">
                     <div className="space-y-2">
                       <Label htmlFor="role">Masuk Sebagai</Label>
-                      <Select 
-                        value={loginData.role} 
-                        onValueChange={(value) => setLoginData(prev => ({ ...prev, role: value }))}
+                      <Select
+                        value={loginData.role}
+                        onValueChange={(value) =>
+                          setLoginData((prev) => ({ ...prev, role: value }))
+                        }
                       >
                         <SelectTrigger>
                           <SelectValue placeholder="Pilih peran Anda" />
@@ -203,7 +236,9 @@ const Navbar = ({ currentUser, onLogin, onLogout }) => {
                           {roleOptions.map((option) => (
                             <SelectItem key={option.value} value={option.value}>
                               <div className="flex items-center space-x-2">
-                                <option.icon className={`h-4 w-4 ${option.color}`} />
+                                <option.icon
+                                  className={`h-4 w-4 ${option.color}`}
+                                />
                                 <span>{option.label}</span>
                               </div>
                             </SelectItem>
@@ -219,10 +254,12 @@ const Navbar = ({ currentUser, onLogin, onLogout }) => {
                         type="text"
                         placeholder="Masukkan username"
                         value={loginData.username}
-                        onChange={(e) => setLoginData(prev => ({ 
-                          ...prev, 
-                          username: e.target.value 
-                        }))}
+                        onChange={(e) =>
+                          setLoginData((prev) => ({
+                            ...prev,
+                            username: e.target.value,
+                          }))
+                        }
                       />
                     </div>
 
@@ -233,24 +270,28 @@ const Navbar = ({ currentUser, onLogin, onLogout }) => {
                         type="password"
                         placeholder="Masukkan password"
                         value={loginData.password}
-                        onChange={(e) => setLoginData(prev => ({ 
-                          ...prev, 
-                          password: e.target.value 
-                        }))}
+                        onChange={(e) =>
+                          setLoginData((prev) => ({
+                            ...prev,
+                            password: e.target.value,
+                          }))
+                        }
                       />
                     </div>
 
-                    <Button 
-                      type="submit" 
+                    <Button
+                      type="submit"
                       className="w-full gradient-primary"
                       disabled={isLoading}
                     >
-                      {isLoading ? 'Memproses...' : 'Login'}
+                      {isLoading ? "Memproses..." : "Login"}
                     </Button>
                   </form>
 
                   <div className="mt-4 p-3 bg-muted rounded-lg">
-                    <p className="text-xs text-muted-foreground mb-2">Demo Credentials:</p>
+                    <p className="text-xs text-muted-foreground mb-2">
+                      Demo Credentials:
+                    </p>
                     <div className="text-xs space-y-1">
                       <p>• Admin: admin / admin123</p>
                       <p>• Siswa: 2024001 / siswa123</p>
