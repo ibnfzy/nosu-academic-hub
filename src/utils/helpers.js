@@ -206,16 +206,16 @@ export const isGradeVerified = (grade) => {
  */
 export const getSubjectName = (subjectId) => {
   const subjects = [
-    { id: '1', nama: 'Matematika' },
-    { id: '2', nama: 'Bahasa Indonesia' },
-    { id: '3', nama: 'Bahasa Inggris' },
-    { id: '4', nama: 'Fisika' },
-    { id: '5', nama: 'Kimia' },
-    { id: '6', nama: 'Biologi' }
+    { id: "1", nama: "Matematika" },
+    { id: "2", nama: "Bahasa Indonesia" },
+    { id: "3", nama: "Bahasa Inggris" },
+    { id: "4", nama: "Fisika" },
+    { id: "5", nama: "Kimia" },
+    { id: "6", nama: "Biologi" },
   ];
 
-  const subject = subjects.find(s => s.id === subjectId);
-  return subject ? subject.nama : 'Mata Pelajaran';
+  const subject = subjects.find((s) => s.id === subjectId);
+  return subject ? subject.nama : "Mata Pelajaran";
 };
 
 /**
@@ -224,9 +224,11 @@ export const getSubjectName = (subjectId) => {
  * @returns {number} - Nilai rata-rata harian
  */
 export const calculateDailyGrade = (grades) => {
-  const dailyGrades = grades.filter(g => g.jenis === 'Kuis' || g.jenis === 'Tugas');
+  const dailyGrades = grades.filter(
+    (g) => g.jenis === "Kuis" || g.jenis === "Tugas"
+  );
   if (dailyGrades.length === 0) return 0;
-  
+
   const total = dailyGrades.reduce((sum, grade) => sum + (grade.nilai || 0), 0);
   return Math.round((total / dailyGrades.length) * 100) / 100;
 };
@@ -238,8 +240,8 @@ export const calculateDailyGrade = (grades) => {
  */
 export const groupGradesBySubject = (grades) => {
   const grouped = {};
-  
-  grades.forEach(grade => {
+
+  grades.forEach((grade) => {
     const subjectId = grade.subjectId;
     if (!grouped[subjectId]) {
       grouped[subjectId] = {
@@ -249,37 +251,37 @@ export const groupGradesBySubject = (grades) => {
         tugas: [],
         uts: null,
         uas: null,
-        ulangan: []
+        ulangan: [],
       };
     }
-    
+
     switch (grade.jenis) {
-      case 'Kuis':
+      case "Kuis":
         grouped[subjectId].kuis.push(grade);
         break;
-      case 'Tugas':
+      case "Tugas":
         grouped[subjectId].tugas.push(grade);
         break;
-      case 'UTS':
+      case "UTS":
         grouped[subjectId].uts = grade;
         break;
-      case 'UAS':
+      case "UAS":
         grouped[subjectId].uas = grade;
         break;
-      case 'Ulangan Harian':
+      case "Ulangan Harian":
         grouped[subjectId].ulangan.push(grade);
         break;
     }
   });
-  
+
   // Hitung nilai harian untuk setiap mata pelajaran
-  Object.keys(grouped).forEach(subjectId => {
+  Object.keys(grouped).forEach((subjectId) => {
     const subject = grouped[subjectId];
     const dailyGrades = [...subject.kuis, ...subject.tugas];
     subject.nilaiHarian = calculateDailyGrade(dailyGrades);
     subject.rataUlangan = calculateAverage(subject.ulangan);
   });
-  
+
   return grouped;
 };
 
@@ -289,8 +291,15 @@ export const groupGradesBySubject = (grades) => {
  * @returns {string} - HTML raport
  */
 export const generateReportHTML = (reportData) => {
-  const { student, grades, attendance, tahunAjaran, semester, walikelas } =
-    reportData;
+  const {
+    student,
+    grades,
+    attendance,
+    tahunAjaran,
+    semester,
+    walikelas,
+    profileSchool,
+  } = reportData;
 
   if (!student) return "";
 
@@ -379,8 +388,10 @@ export const generateReportHTML = (reportData) => {
       <div class="header">
         <h1>RAPOR SISWA</h1>
         <h2>SMA NEGERI 1 NOSU</h2>
-        <p>Jl. Pendidikan No. 1, Nosu, Kabupaten Mamuju Utara, Sulawesi Barat</p>
-        <p>Telepon: (0426) 123456 | Email: info@sman1nosu.sch.id</p>
+        <p>${profileSchool?.alamat}</p>
+        <p>Telepon: ${profileSchool?.telepon} | Email: ${
+    profileSchool?.email
+  }</p>
       </div>
       
       <div class="student-info">
@@ -420,22 +431,31 @@ export const generateReportHTML = (reportData) => {
         </thead>
         <tbody>
           ${Object.values(groupedGrades)
-            .map(
-              (subject, index) => {
-                const finalGrade = subject.uas?.nilai || subject.uts?.nilai || subject.nilaiHarian || subject.rataUlangan || 0;
-                return `
+            .map((subject, index) => {
+              const finalGrade =
+                subject.uas?.nilai ||
+                subject.uts?.nilai ||
+                subject.nilaiHarian ||
+                subject.rataUlangan ||
+                0;
+              return `
             <tr>
               <td>${index + 1}</td>
               <td style="text-align: left;">${subject.subjectName}</td>
-              <td>${subject.nilaiHarian > 0 ? subject.nilaiHarian : (subject.rataUlangan > 0 ? subject.rataUlangan : "-")}</td>
+              <td>${
+                subject.nilaiHarian > 0
+                  ? subject.nilaiHarian
+                  : subject.rataUlangan > 0
+                  ? subject.rataUlangan
+                  : "-"
+              }</td>
               <td>${subject.uts?.nilai || "-"}</td>
               <td>${subject.uas?.nilai || "-"}</td>
               <td><strong>${finalGrade}</strong></td>
               <td>${getGradePredicate(finalGrade)}</td>
             </tr>
-          `
-              }
-            )
+          `;
+            })
             .join("")}
         </tbody>
       </table>
@@ -458,8 +478,8 @@ export const generateReportHTML = (reportData) => {
         <div class="signature-block">
           <p>Mengetahui, <br> <strong>Kepala Sekolah</strong></p>
           <div class="signature-space"></div>
-          <p>Drs. Kepala Sekolah</p>
-          <p>NIP. 196001011985031001</p>
+          <p>${profileSchool?.kepalaSekolah}</p>
+          <p>NIP. ${profileSchool?.nipKepalaSekolah}</p>
         </div>
         <div class="signature-block">
           <p><br>Wali Kelas</p>

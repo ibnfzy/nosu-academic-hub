@@ -172,6 +172,9 @@ const apiService = {
       const classes = JSON.parse(
         localStorage.getItem(STORAGE_KEYS.CLASSES) || "[]"
       );
+      const profileSchool = JSON.parse(
+        localStorage.getItem(STORAGE_KEYS.SCHOOL_PROFILE) || "[]"
+      );
       let walikelas = null;
 
       if (student) {
@@ -200,6 +203,7 @@ const apiService = {
         walikelas: walikelas
           ? { nama: walikelas.nama, nip: walikelas.nip }
           : null,
+        profileSchool,
       };
     }
   },
@@ -281,7 +285,42 @@ const apiService = {
       const users = JSON.parse(
         localStorage.getItem(STORAGE_KEYS.USERS) || "[]"
       );
-      return users.map((u) => ({ ...u, password: undefined })); // Don't expose passwords
+      const students = JSON.parse(
+        localStorage.getItem(STORAGE_KEYS.STUDENTS) || "[]"
+      );
+      const teachers = JSON.parse(
+        localStorage.getItem(STORAGE_KEYS.TEACHERS) || "[]"
+      );
+
+      return users.map((u) => {
+        let extraData = {};
+
+        if (u.role === "siswa") {
+          const student = students.find((s) => s.userId === u.id);
+          extraData = {
+            nama: student?.nama || u.username,
+            nisn: student?.nisn || null,
+            kelasId: student?.kelasId || null,
+          };
+        } else if (u.role === "guru" || u.role === "walikelas") {
+          const teacher = teachers.find((t) => t.userId === u.id);
+          extraData = {
+            nama: teacher?.nama || u.username,
+            nip: teacher?.nip || null,
+            kelasId: teacher?.kelasId || null,
+          };
+        } else if (u.role === "admin") {
+          extraData = {
+            nama: "-", // admin tidak punya nama guru/siswa
+          };
+        }
+
+        return {
+          ...u,
+          ...extraData,
+          password: undefined, // jangan expose password
+        };
+      });
     }
   },
 

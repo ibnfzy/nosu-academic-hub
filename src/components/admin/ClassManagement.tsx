@@ -156,11 +156,11 @@ export default function ClassManagement({
     setShowClassDialog(true);
   };
 
-  const getWalikelasName = (walikelasId: string) => {
-    if (walikelasId === "unassigned" || walikelasId === "0" || !walikelasId) {
+  const getWalikelasName = (userId: string) => {
+    if (userId === "unassigned" || userId === "0" || !userId) {
       return "Belum ditentukan";
     }
-    const walikelas = users.find((u) => u.id === walikelasId);
+    const walikelas = users.find((u) => u.id === userId);
     return walikelas ? walikelas.nama : "Belum ditentukan";
   };
 
@@ -243,7 +243,9 @@ export default function ClassManagement({
                       <SelectValue placeholder="Pilih wali kelas" />
                     </SelectTrigger>
                     <SelectContent>
-                      <SelectItem value="unassigned">Belum ditentukan</SelectItem>
+                      <SelectItem value="unassigned">
+                        Belum ditentukan
+                      </SelectItem>
                       {availableWalikelas.map((teacher) => (
                         <SelectItem key={teacher.id} value={teacher.id}>
                           {teacher.nama} - {teacher.nip || "Tanpa NIP"}
