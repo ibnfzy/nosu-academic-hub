@@ -91,7 +91,7 @@ const AdminDashboard = ({ currentUser, onLogout }) => {
           )}
 
           {/* Subject Management */}
-          {activeSection === 'matpel' && (
+          {activeSection === 'subjects' && (
             <SubjectManagement 
               subjects={subjects}
               classes={classes}
@@ -100,7 +100,7 @@ const AdminDashboard = ({ currentUser, onLogout }) => {
           )}
 
           {/* Class Management */}
-          {activeSection === 'kelas' && (
+          {activeSection === 'classes' && (
             <ClassManagement 
               classes={classes}
               users={users}
@@ -109,7 +109,7 @@ const AdminDashboard = ({ currentUser, onLogout }) => {
           )}
 
           {/* School Profile Management */}
-          {activeSection === 'profil' && (
+          {activeSection === 'school-profile' && (
             <SchoolProfileManagement 
               schoolProfile={schoolProfile}
               onDataChange={loadAdminData}
