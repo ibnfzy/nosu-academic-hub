@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
@@ -25,45 +25,27 @@ import apiService from '@/services/apiService';
 
 interface UserManagementProps {
   users: any[];
-  classes: any[];
   activeSection: string;
   onDataChange: () => void;
 }
 
-export default function UserManagement({ users, classes, activeSection, onDataChange }: UserManagementProps) {
+export default function UserManagement({ users, activeSection, onDataChange }: UserManagementProps) {
   const [showUserDialog, setShowUserDialog] = useState(false);
   const [editingItem, setEditingItem] = useState(null);
   const [searchTerm, setSearchTerm] = useState('');
   const [roleFilter, setRoleFilter] = useState('all');
   const [userForm, setUserForm] = useState({
-    // Users table fields
     username: '',
     password: '',
-    email: '',
-    role: '',
-    
-    // Students/Teachers table fields
     nama: '',
+    role: '',
+    email: '',
+    nis: '',
     nisn: '',
-    nip: '',
-    kelasId: '',
-    jenisKelamin: '',
-    tanggalLahir: '',
-    alamat: '',
-    nomorHP: '',
-    namaOrangTua: '',
-    pekerjaanOrangTua: '',
-    tahunMasuk: ''
+    nip: ''
   });
 
   const { toast } = useToast();
-
-  // Auto-set role when activeSection changes
-  useEffect(() => {
-    if (activeSection !== 'semua' && !editingItem) {
-      setUserForm(prev => ({ ...prev, role: activeSection }));
-    }
-  }, [activeSection, editingItem]);
 
   const roles = [
     { value: 'admin', label: 'Administrator' },
@@ -75,10 +57,7 @@ export default function UserManagement({ users, classes, activeSection, onDataCh
   const handleUserSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     
-    // Auto-set role based on activeSection if not already set
-    const currentRole = userForm.role || activeSection;
-    
-    if (!userForm.username || !userForm.nama || !currentRole) {
+    if (!userForm.username || !userForm.nama || !userForm.role) {
       toast({
         title: "Error",
         description: "Mohon lengkapi field wajib",
@@ -87,104 +66,18 @@ export default function UserManagement({ users, classes, activeSection, onDataCh
       return;
     }
 
-    // Validate role-specific required fields
-    if (currentRole === 'siswa' && !userForm.nisn) {
-      toast({
-        title: "Error",
-        description: "NISN wajib diisi untuk siswa",
-        variant: "destructive"
-      });
-      return;
-    }
-
-    if ((currentRole === 'guru' || currentRole === 'walikelas') && !userForm.nip) {
-      toast({
-        title: "Error",
-        description: "NIP wajib diisi untuk guru/walikelas",
-        variant: "destructive"
-      });
-      return;
-    }
-
-    if (currentRole === 'walikelas' && !userForm.kelasId) {
-      toast({
-        title: "Error",
-        description: "Kelas wajib dipilih untuk walikelas",
-        variant: "destructive"
-      });
-      return;
-    }
-
     try {
-      // Prepare payload based on user type
-      const baseUserData = {
-        username: userForm.username,
-        password: userForm.password,
-        email: userForm.email,
-        role: currentRole
+      const userData = {
+        ...userForm,
+        role: userForm.role || activeSection,
+        id: editingItem ? editingItem.id : Date.now().toString()
       };
-
-      let payload;
-      let apiEndpoint;
-
-      if (currentRole === 'siswa') {
-        payload = {
-          users: baseUserData,
-          students: {
-            nisn: userForm.nisn,
-            nama: userForm.nama,
-            kelasId: userForm.kelasId,
-            jenisKelamin: userForm.jenisKelamin,
-            tanggalLahir: userForm.tanggalLahir,
-            alamat: userForm.alamat,
-            nomorHP: userForm.nomorHP,
-            namaOrangTua: userForm.namaOrangTua,
-            pekerjaanOrangTua: userForm.pekerjaanOrangTua,
-            tahunMasuk: userForm.tahunMasuk
-          }
-        };
-        apiEndpoint = '/admin/students';
-      } else if (currentRole === 'guru') {
-        payload = {
-          users: baseUserData,
-          teachers: {
-            nip: userForm.nip,
-            nama: userForm.nama,
-            role: 'guru',
-            kelasId: userForm.kelasId || null,
-            jenisKelamin: userForm.jenisKelamin,
-            alamat: userForm.alamat,
-            nomorHP: userForm.nomorHP
-          }
-        };
-        apiEndpoint = '/admin/teachers';
-      } else if (currentRole === 'walikelas') {
-        payload = {
-          users: baseUserData,
-          teachers: {
-            nip: userForm.nip,
-            nama: userForm.nama,
-            role: 'walikelas',
-            kelasId: userForm.kelasId,
-            jenisKelamin: userForm.jenisKelamin,
-            alamat: userForm.alamat,
-            nomorHP: userForm.nomorHP
-          }
-        };
-        apiEndpoint = '/admin/walikelas';
-      } else {
-        // Admin users only need users table
-        payload = baseUserData;
-        apiEndpoint = '/admin/users';
-      }
 
       let result;
       if (editingItem) {
-        // For updates, include the ID
-        payload.id = editingItem.id;
-        result = await apiService.put(`${apiEndpoint}/${editingItem.id}`, payload);
+        result = await apiService.updateUser(userData.id, userData);
       } else {
-        result = await apiService.post(apiEndpoint, payload);
+        result = await apiService.addUser(userData);
       }
       
       if (result.success) {
@@ -209,27 +102,7 @@ export default function UserManagement({ users, classes, activeSection, onDataCh
   const handleDeleteUser = async (userId: string) => {
     if (window.confirm('Apakah Anda yakin ingin menghapus user ini?')) {
       try {
-        // Find the user to determine the correct endpoint
-        const user = users.find(u => u.id === userId);
-        let endpoint = '/admin/users'; // default
-        
-        if (user) {
-          switch (user.role) {
-            case 'siswa':
-              endpoint = '/admin/students';
-              break;
-            case 'guru':
-              endpoint = '/admin/teachers';
-              break;
-            case 'walikelas':
-              endpoint = '/admin/walikelas';
-              break;
-            default:
-              endpoint = '/admin/users';
-          }
-        }
-        
-        const result = await apiService.delete(`${endpoint}/${userId}`);
+        const result = await apiService.deleteUser(userId);
         if (result.success) {
           toast({
             title: "Berhasil",
@@ -249,24 +122,14 @@ export default function UserManagement({ users, classes, activeSection, onDataCh
 
   const resetUserForm = () => {
     setUserForm({
-      // Users table fields
       username: '',
       password: '',
-      email: '',
-      role: '',
-      
-      // Students/Teachers table fields
       nama: '',
+      role: '',
+      email: '',
+      nis: '',
       nisn: '',
-      nip: '',
-      kelasId: '',
-      jenisKelamin: '',
-      tanggalLahir: '',
-      alamat: '',
-      nomorHP: '',
-      namaOrangTua: '',
-      pekerjaanOrangTua: '',
-      tahunMasuk: ''
+      nip: ''
     });
     setEditingItem(null);
   };
@@ -317,249 +180,127 @@ export default function UserManagement({ users, classes, activeSection, onDataCh
                 </DialogTitle>
               </DialogHeader>
               <form onSubmit={handleUserSubmit} className="space-y-4">
-                <div className="space-y-2">
-                  <Label>Username *</Label>
-                  <Input
-                    value={userForm.username}
-                    onChange={(e) => setUserForm(prev => ({ ...prev, username: e.target.value }))}
-                    required
-                  />
-                </div>
-                
-                <div className="space-y-2">
-                  <Label>Password *</Label>
-                  <Input
-                    type="password"
-                    value={userForm.password}
-                    onChange={(e) => setUserForm(prev => ({ ...prev, password: e.target.value }))}
-                    required={!editingItem}
-                  />
-                </div>
-                
-                <div className="space-y-2">
-                  <Label>Nama Lengkap *</Label>
-                  <Input
-                    value={userForm.nama}
-                    onChange={(e) => setUserForm(prev => ({ ...prev, nama: e.target.value }))}
-                    required
-                  />
-                </div>
-                
-                <div className="space-y-2">
-                  <Label>Role *</Label>
-                  <Select 
-                    value={userForm.role || activeSection}
-                    onValueChange={(value) => setUserForm(prev => ({ ...prev, role: value }))}
-                    disabled={activeSection !== 'semua'}
-                  >
-                    <SelectTrigger>
-                      <SelectValue placeholder="Pilih role" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      {activeSection === 'semua' ? (
-                        roles.map((role) => (
-                          <SelectItem key={role.value} value={role.value}>
-                            {role.label}
-                          </SelectItem>
-                        ))
-                      ) : (
-                        <SelectItem value={activeSection}>
-                          {roles.find(r => r.value === activeSection)?.label || activeSection}
-                        </SelectItem>
-                      )}
-                    </SelectContent>
-                  </Select>
-                </div>
-                
-                <div className="space-y-2">
-                  <Label>Email</Label>
-                  <Input
-                    type="email"
-                    value={userForm.email}
-                    onChange={(e) => setUserForm(prev => ({ ...prev, email: e.target.value }))}
-                  />
-                </div>
-                
-                {(userForm.role === 'siswa' || activeSection === 'siswa') && (
-                  <>
-                    <div className="space-y-2">
-                      <Label>NISN *</Label>
-                      <Input
-                        value={userForm.nisn}
-                        onChange={(e) => setUserForm(prev => ({ ...prev, nisn: e.target.value }))}
-                        required
-                      />
-                    </div>
-                    <div className="space-y-2">
-                      <Label>Kelas *</Label>
-                      <Select 
-                        value={userForm.kelasId}
-                        onValueChange={(value) => setUserForm(prev => ({ ...prev, kelasId: value }))}
-                      >
-                        <SelectTrigger>
-                          <SelectValue placeholder="Pilih kelas" />
-                        </SelectTrigger>
-                        <SelectContent>
-                          {classes?.map((kelas) => (
-                            <SelectItem key={kelas.id} value={kelas.id}>
-                              {kelas.namaKelas}
-                            </SelectItem>
-                          ))}
-                        </SelectContent>
-                      </Select>
-                    </div>
-                    <div className="space-y-2">
-                      <Label>Jenis Kelamin *</Label>
-                      <Select 
-                        value={userForm.jenisKelamin}
-                        onValueChange={(value) => setUserForm(prev => ({ ...prev, jenisKelamin: value }))}
-                      >
-                        <SelectTrigger>
-                          <SelectValue placeholder="Pilih jenis kelamin" />
-                        </SelectTrigger>
-                        <SelectContent>
-                          <SelectItem value="L">Laki-laki</SelectItem>
-                          <SelectItem value="P">Perempuan</SelectItem>
-                        </SelectContent>
-                      </Select>
-                    </div>
-                    <div className="space-y-2">
-                      <Label>Tahun Masuk *</Label>
-                      <Input
-                        type="number"
-                        value={userForm.tahunMasuk}
-                        onChange={(e) => setUserForm(prev => ({ ...prev, tahunMasuk: e.target.value }))}
-                        placeholder="2024"
-                        required
-                      />
-                    </div>
-                  </>
-                )}
-                {(userForm.role === 'guru' || userForm.role === 'walikelas' || activeSection === 'guru' || activeSection === 'walikelas') && (
-                  <>
-                    <div className="space-y-2">
-                      <Label>NIP *</Label>
-                      <Input
-                        value={userForm.nip}
-                        onChange={(e) => setUserForm(prev => ({ ...prev, nip: e.target.value }))}
-                        required
-                      />
-                    </div>
-                    {(userForm.role === 'walikelas' || activeSection === 'walikelas') && (
-                      <div className="space-y-2">
-                        <Label>Kelas *</Label>
-                        <Select 
-                          value={userForm.kelasId}
-                          onValueChange={(value) => setUserForm(prev => ({ ...prev, kelasId: value }))}
-                        >
-                          <SelectTrigger>
-                            <SelectValue placeholder="Pilih kelas" />
-                          </SelectTrigger>
-                          <SelectContent>
-                            {classes?.map((kelas) => (
-                              <SelectItem key={kelas.id} value={kelas.id}>
-                                {kelas.namaKelas}
-                              </SelectItem>
-                            ))}
-                          </SelectContent>
-                        </Select>
-                      </div>
-                    )}
-                    <div className="space-y-2">
-                      <Label>Jenis Kelamin *</Label>
-                      <Select 
-                        value={userForm.jenisKelamin}
-                        onValueChange={(value) => setUserForm(prev => ({ ...prev, jenisKelamin: value }))}
-                      >
-                        <SelectTrigger>
-                          <SelectValue placeholder="Pilih jenis kelamin" />
-                        </SelectTrigger>
-                        <SelectContent>
-                          <SelectItem value="L">Laki-laki</SelectItem>
-                          <SelectItem value="P">Perempuan</SelectItem>
-                        </SelectContent>
-                      </Select>
-                    </div>
-                  </>
-                )}
-                
-                {/* Additional fields for students and teachers */}
-                {(userForm.role === 'siswa' || userForm.role === 'guru' || userForm.role === 'walikelas' || 
-                  activeSection === 'siswa' || activeSection === 'guru' || activeSection === 'walikelas') && (
-                  <>
-                    <div className="space-y-2">
-                      <Label>Tanggal Lahir</Label>
-                      <Input
-                        type="date"
-                        value={userForm.tanggalLahir}
-                        onChange={(e) => setUserForm(prev => ({ ...prev, tanggalLahir: e.target.value }))}
-                      />
-                    </div>
-                    <div className="space-y-2">
-                      <Label>Alamat</Label>
-                      <Input
-                        value={userForm.alamat}
-                        onChange={(e) => setUserForm(prev => ({ ...prev, alamat: e.target.value }))}
-                        placeholder="Alamat lengkap"
-                      />
-                    </div>
-                    <div className="space-y-2">
-                      <Label>Nomor HP</Label>
-                      <Input
-                        value={userForm.nomorHP}
-                        onChange={(e) => setUserForm(prev => ({ ...prev, nomorHP: e.target.value }))}
-                        placeholder="08xxxxxxxxxx"
-                      />
-                    </div>
-                  </>
-                )}
-                
-                {/* Additional fields for students only */}
-                {(userForm.role === 'siswa' || activeSection === 'siswa') && (
-                  <>
-                    <div className="space-y-2">
-                      <Label>Nama Orang Tua</Label>
-                      <Input
-                        value={userForm.namaOrangTua}
-                        onChange={(e) => setUserForm(prev => ({ ...prev, namaOrangTua: e.target.value }))}
-                        placeholder="Nama orang tua/wali"
-                      />
-                    </div>
-                    <div className="space-y-2">
-                      <Label>Pekerjaan Orang Tua</Label>
-                      <Input
-                        value={userForm.pekerjaanOrangTua}
-                        onChange={(e) => setUserForm(prev => ({ ...prev, pekerjaanOrangTua: e.target.value }))}
-                        placeholder="Pekerjaan orang tua/wali"
-                      />
-                    </div>
-                  </>
-                )}
-                
-                {(userForm.role === 'admin' || activeSection === 'admin') && (
-                  <div className="space-y-2">
-                    <Label>NIP</Label>
-                    <Input
-                      value={userForm.nip}
-                      onChange={(e) => setUserForm(prev => ({ ...prev, nip: e.target.value }))}
-                    />
-                  </div>
-                )}
-                
-                <div className="flex gap-2 pt-4">
-                  <Button type="submit" className="flex-1">
-                    {editingItem ? 'Update' : 'Tambah'}
-                  </Button>
-                  <Button 
-                    type="button" 
-                    variant="outline" 
-                    onClick={() => setShowUserDialog(false)}
-                    className="flex-1"
-                  >
-                    Batal
-                  </Button>
-                </div>
-              </form>
+  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+    <div className="space-y-2">
+      <Label>Username *</Label>
+      <Input
+        value={userForm.username}
+        onChange={(e) =>
+          setUserForm((prev) => ({ ...prev, username: e.target.value }))
+        }
+        required
+      />
+    </div>
+
+    <div className="space-y-2">
+      <Label>Password *</Label>
+      <Input
+        type="password"
+        value={userForm.password}
+        onChange={(e) =>
+          setUserForm((prev) => ({ ...prev, password: e.target.value }))
+        }
+        required={!editingItem}
+      />
+    </div>
+
+    <div className="space-y-2">
+      <Label>Nama Lengkap *</Label>
+      <Input
+        value={userForm.nama}
+        onChange={(e) =>
+          setUserForm((prev) => ({ ...prev, nama: e.target.value }))
+        }
+        required
+      />
+    </div>
+
+    <div className="space-y-2">
+      <Label>Role *</Label>
+      <Select
+        value={userForm.role}
+        onValueChange={(value) =>
+          setUserForm((prev) => ({ ...prev, role: value }))
+        }
+      >
+        <SelectTrigger>
+          <SelectValue placeholder="Pilih role" />
+        </SelectTrigger>
+        <SelectContent>
+          {roles.map((role) => (
+            <SelectItem key={role.value} value={role.value}>
+              {role.label}
+            </SelectItem>
+          ))}
+        </SelectContent>
+      </Select>
+    </div>
+
+    <div className="space-y-2">
+      <Label>Email</Label>
+      <Input
+        type="email"
+        value={userForm.email}
+        onChange={(e) =>
+          setUserForm((prev) => ({ ...prev, email: e.target.value }))
+        }
+      />
+    </div>
+
+    {(userForm.role === "siswa" || activeSection === "siswa") && (
+      <>
+        <div className="space-y-2">
+          <Label>NISN</Label>
+          <Input
+            value={userForm.nisn}
+            onChange={(e) =>
+              setUserForm((prev) => ({ ...prev, nisn: e.target.value }))
+            }
+          />
+        </div>
+        <div className="space-y-2">
+          <Label>NIS</Label>
+          <Input
+            value={userForm.nis}
+            onChange={(e) =>
+              setUserForm((prev) => ({ ...prev, nis: e.target.value }))
+            }
+          />
+        </div>
+      </>
+    )}
+
+    {(userForm.role === "guru" ||
+      userForm.role === "walikelas" ||
+      userForm.role === "admin") && (
+      <div className="space-y-2">
+        <Label>NIP</Label>
+        <Input
+          value={userForm.nip}
+          onChange={(e) =>
+            setUserForm((prev) => ({ ...prev, nip: e.target.value }))
+          }
+        />
+      </div>
+    )}
+  </div>
+
+  {/* Tombol Submit & Batal */}
+  <div className="flex gap-2 pt-4">
+    <Button type="submit" className="flex-1">
+      {editingItem ? "Update" : "Tambah"}
+    </Button>
+    <Button
+      type="button"
+      variant="outline"
+      onClick={() => setShowUserDialog(false)}
+      className="flex-1"
+    >
+      Batal
+    </Button>
+  </div>
+</form>
+
             </DialogContent>
           </Dialog>
         </div>
@@ -618,9 +359,10 @@ export default function UserManagement({ users, classes, activeSection, onDataCh
                       </Badge>
                     </TableCell>
                     <TableCell>
-                      {user.role === 'siswa' && user.nisn ? (
+                      {user.role === 'siswa' && (user.nisn || user.nis) ? (
                         <div className="text-sm">
-                          <div>NISN: {user.nisn}</div>
+                          {user.nisn && <div>NISN: {user.nisn}</div>}
+                          {user.nis && <div>NIS: {user.nis}</div>}
                         </div>
                       ) : user.nip ? (
                         <div className="text-sm">NIP: {user.nip}</div>
