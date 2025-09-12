@@ -3,6 +3,11 @@
 
 Dokumentasi lengkap endpoint API untuk Sistem Informasi Akademik. Backend developer dapat menggunakan dokumentasi ini sebagai spesifikasi untuk implementasi REST API.
 
+**Configuration Note:** 
+- Current mode: `USE_API = false` (menggunakan localStorage untuk prototype)
+- Production mode: `USE_API = true` (menggunakan REST API endpoints)
+- Base URL: `http://localhost:3000/api`
+
 ---
 
 ## 🔐 Authentication Endpoints
@@ -29,7 +34,8 @@ Dokumentasi lengkap endpoint API untuk Sistem Informasi Akademik. Backend develo
     "role": "string",
     "email": "string",
     "kelasId": "string", // untuk siswa dan walikelas
-    "mataPelajaran": ["string"], // untuk guru
+    "studentId": "string", // untuk siswa
+    "teacherId": "string", // untuk guru dan walikelas
     "nisn": "string", // untuk siswa
     "nip": "string", // untuk guru dan walikelas
     "createdAt": "datetime"
@@ -146,7 +152,8 @@ Dokumentasi lengkap endpoint API untuk Sistem Informasi Akademik. Backend develo
   "walikelas": {
     "nama": "string",
     "nip": "string"
-  }
+  },
+  "profileSchool": {} // Data profil sekolah
 }
 ```
 
@@ -160,13 +167,22 @@ Dokumentasi lengkap endpoint API untuk Sistem Informasi Akademik. Backend develo
 ```json
 [
   {
-    "subjectId": "string",
-    "subjectName": "string", 
-    "kelasIds": ["string"],
-    "kelasNames": ["string"]
+    "id": "string",
+    "nama": "string",
+    "kode": "string",
+    "teacherId": "string",
+    "kelompok": "A|B|C"
   }
 ]
 ```
+
+### GET /guru/grades
+**Deskripsi:** Mendapatkan semua data nilai (untuk filtering di frontend)
+**Response:** Array of grade objects
+
+### GET /guru/attendance  
+**Deskripsi:** Mendapatkan semua data kehadiran (untuk filtering di frontend)
+**Response:** Array of attendance objects
 
 ### POST /guru/:id/nilai
 **Deskripsi:** Menambah nilai siswa
@@ -202,6 +218,20 @@ Dokumentasi lengkap endpoint API untuk Sistem Informasi Akademik. Backend develo
     "verified": false,
     "createdAt": "datetime"
   }
+}
+```
+
+### PUT /guru/:id/nilai/:gradeId
+**Deskripsi:** Edit nilai siswa
+**Request Body:** Same as POST /guru/:id/nilai
+**Response:** Same as POST response with updated data
+
+### DELETE /guru/:id/nilai/:gradeId
+**Deskripsi:** Hapus nilai siswa
+**Response:**
+```json
+{
+  "success": true
 }
 ```
 
@@ -241,6 +271,20 @@ Dokumentasi lengkap endpoint API untuk Sistem Informasi Akademik. Backend develo
 }
 ```
 
+### PUT /guru/:id/kehadiran/:attendanceId
+**Deskripsi:** Edit kehadiran siswa
+**Request Body:** Same as POST /guru/:id/kehadiran
+**Response:** Same as POST response with updated data
+
+### DELETE /guru/:id/kehadiran/:attendanceId
+**Deskripsi:** Hapus data kehadiran siswa
+**Response:**
+```json
+{
+  "success": true
+}
+```
+
 ---
 
 ## 🧑‍🏫 Homeroom Teacher (Walikelas) Endpoints
@@ -252,6 +296,7 @@ Dokumentasi lengkap endpoint API untuk Sistem Informasi Akademik. Backend develo
 [
   {
     "id": "string",
+    "userId": "string",
     "nisn": "string",
     "nama": "string",
     "kelasId": "string",
@@ -261,7 +306,10 @@ Dokumentasi lengkap endpoint API untuk Sistem Informasi Akademik. Backend develo
     "nomorHP": "string",
     "namaOrangTua": "string",
     "pekerjaanOrangTua": "string",
-    "tahunMasuk": "string"
+    "tahunMasuk": "string",
+    "username": "string",
+    "email": "string",
+    "role": "siswa"
   }
 ]
 ```
@@ -272,15 +320,7 @@ Dokumentasi lengkap endpoint API untuk Sistem Informasi Akademik. Backend develo
 - `tahun` (query): Tahun ajaran
 - `semester` (query): Semester
 
-**Response:**
-```json
-[
-  {
-    // Same structure as student grades
-    // but includes all students in the class
-  }
-]
-```
+**Response:** Array of grade objects (filtered by tahunAjaran and semester)
 
 ### PUT /walikelas/:id/verifikasi/:nilaiId
 **Deskripsi:** Verifikasi nilai siswa
@@ -303,37 +343,56 @@ Dokumentasi lengkap endpoint API untuk Sistem Informasi Akademik. Backend develo
 - `tahun` (query): Tahun ajaran
 - `semester` (query): Semester
 
-**Response:**
-```json
-[
-  {
-    // Same structure as student attendance  
-    // but includes all students in the class
-  }
-]
-```
+**Response:** Array of attendance objects (filtered by tahunAjaran and semester)
 
 ### POST /walikelas/:id/kelas/siswa
 **Deskripsi:** Menambah siswa baru ke kelas
 **Request Body:**
 ```json
 {
+  "username": "string",
+  "password": "string",
+  "email": "string",
   "nisn": "string",
   "nama": "string", 
+  "kelasId": "string",
   "jenisKelamin": "L|P",
   "tanggalLahir": "date",
   "alamat": "string",
   "nomorHP": "string",
   "namaOrangTua": "string",
   "pekerjaanOrangTua": "string",
-  "kelasId": "string",
   "tahunMasuk": "string"
+}
+```
+
+**Response:**
+```json
+{
+  "success": true,
+  "data": {
+    "id": "string",
+    "userId": "string",
+    "nisn": "string",
+    "nama": "string",
+    "kelasId": "string",
+    "jenisKelamin": "L|P",
+    "tanggalLahir": "date",
+    "alamat": "string",
+    "nomorHP": "string",
+    "namaOrangTua": "string",
+    "pekerjaanOrangTua": "string",
+    "tahunMasuk": "string",
+    "username": "string",
+    "email": "string",
+    "createdAt": "datetime"
+  }
 }
 ```
 
 ### PUT /walikelas/:id/kelas/siswa/:studentId
 **Deskripsi:** Update data siswa
-**Request Body:** Same as POST
+**Request Body:** Same as POST (password optional)
 
 ### DELETE /walikelas/:id/kelas/siswa/:studentId
 **Deskripsi:** Hapus siswa dari kelas
@@ -344,6 +403,14 @@ Dokumentasi lengkap endpoint API untuk Sistem Informasi Akademik. Backend develo
   "message": "Siswa berhasil dihapus"
 }
 ```
+
+### GET /walikelas/:id/siswa/:studentId/raport
+**Deskripsi:** Mendapatkan raport siswa tertentu di kelas
+**Parameters:**
+- `tahun` (query): Tahun ajaran
+- `semester` (query): Semester
+
+**Response:** Same structure as /siswa/:id/raport
 
 ---
 
@@ -359,15 +426,15 @@ Dokumentasi lengkap endpoint API untuk Sistem Informasi Akademik. Backend develo
   {
     "id": "string",
     "username": "string",
-    "nama": "string",
+    "nama": "string", // dari data siswa/guru atau '-' untuk admin
     "role": "siswa|guru|walikelas|admin",
     "email": "string",
     "kelasId": "string", // untuk siswa dan walikelas
-    "mataPelajaran": ["string"], // untuk guru
     "nisn": "string", // untuk siswa
     "nip": "string", // untuk guru dan walikelas
     "createdAt": "datetime",
     "updatedAt": "datetime"
+    // password tidak di-expose
   }
 ]
 ```
@@ -383,7 +450,6 @@ Dokumentasi lengkap endpoint API untuk Sistem Informasi Akademik. Backend develo
   "role": "siswa|guru|walikelas|admin",
   "email": "string",
   "kelasId": "string", // untuk siswa dan walikelas
-  "mataPelajaran": ["string"], // untuk guru
   "nisn": "string", // untuk siswa
   "nip": "string" // untuk guru dan walikelas
 }
@@ -398,6 +464,112 @@ Dokumentasi lengkap endpoint API untuk Sistem Informasi Akademik. Backend develo
 
 ---
 
+### Student Management
+
+#### GET /admin/students
+**Deskripsi:** Mendapatkan semua data siswa
+**Response:**
+```json
+[
+  {
+    "id": "string",
+    "userId": "string",
+    "nisn": "string",
+    "nama": "string",
+    "kelasId": "string",
+    "jenisKelamin": "L|P",
+    "tanggalLahir": "date",
+    "alamat": "string",
+    "nomorHP": "string",
+    "namaOrangTua": "string",
+    "pekerjaanOrangTua": "string",
+    "tahunMasuk": "string",
+    "createdAt": "datetime"
+  }
+]
+```
+
+#### POST /admin/students
+**Deskripsi:** Tambah siswa baru
+**Request Body:**
+```json
+{
+  "users": {
+    "username": "string",
+    "password": "string",
+    "role": "siswa",
+    "email": "string"
+  },
+  "students": {
+    "nisn": "string",
+    "nama": "string",
+    "kelasId": "string",
+    "jenisKelamin": "L|P",
+    "tanggalLahir": "date",
+    "alamat": "string",
+    "nomorHP": "string",
+    "namaOrangTua": "string",
+    "pekerjaanOrangTua": "string",
+    "tahunMasuk": "string"
+  }
+}
+```
+
+#### PUT /admin/students/:id
+**Deskripsi:** Update data siswa
+**Request Body:** Same as POST
+
+#### DELETE /admin/students/:id
+**Deskripsi:** Hapus siswa (akan menghapus user terkait juga)
+
+---
+
+### Teacher Management
+
+#### GET /admin/teachers
+**Deskripsi:** Mendapatkan semua data guru
+**Response:**
+```json
+[
+  {
+    "id": "string",
+    "userId": "string", 
+    "nip": "string",
+    "nama": "string",
+    "kelasId": "string", // untuk walikelas
+    "createdAt": "datetime"
+  }
+]
+```
+
+#### POST /admin/teachers
+**Deskripsi:** Tambah guru baru
+**Request Body:**
+```json
+{
+  "users": {
+    "username": "string",
+    "password": "string",
+    "role": "guru|walikelas",
+    "email": "string"
+  },
+  "teachers": {
+    "nip": "string",
+    "nama": "string",
+    "kelasId": "string" // untuk walikelas
+  }
+}
+```
+
+#### PUT /admin/teachers/:id
+**Deskripsi:** Update data guru
+**Request Body:** Same as POST
+
+#### DELETE /admin/teachers/:id
+**Deskripsi:** Hapus guru (akan menghapus user terkait juga)
+
+---
+
 ### Subject Management
 
 #### GET /admin/matapelajaran
@@ -409,6 +581,7 @@ Dokumentasi lengkap endpoint API untuk Sistem Informasi Akademik. Backend develo
     "id": "string",
     "nama": "string",
     "kode": "string",
+    "teacherId": "string",
     "kelompok": "A|B|C", // Kelompok mata pelajaran
     "createdAt": "datetime",
     "updatedAt": "datetime"
@@ -423,6 +596,7 @@ Dokumentasi lengkap endpoint API untuk Sistem Informasi Akademik. Backend develo
 {
   "nama": "string",
   "kode": "string", 
+  "teacherId": "string",
   "kelompok": "A|B|C"
 }
 ```
@@ -498,42 +672,30 @@ Dokumentasi lengkap endpoint API untuk Sistem Informasi Akademik. Backend develo
   "npsn": "string",
   "statusSekolah": "string",
   "bentukPendidikan": "string",
-  "waktuPenyelenggaraan": "string",
-  "jumlahSiswa": number,
-  "jumlahGuru": number,
-  "jumlahKaryawan": number,
-  "luas": "string",
-  "visi": "string",
-  "misi": ["string"],
-  "tujuan": ["string"],
-  "fasilitas": ["string"],
-  "createdAt": "datetime",
   "updatedAt": "datetime"
 }
 ```
 
 #### PUT /admin/school-profile
 **Deskripsi:** Update profil sekolah
-**Request Body:** Same structure as GET response
+**Request Body:** Same as GET response structure (without id and timestamps)
 
 ---
 
 ### Achievement Management
 
 #### GET /admin/achievements
-**Deskripsi:** Mendapatkan daftar prestasi
+**Deskripsi:** Mendapatkan daftar prestasi sekolah
 **Response:**
 ```json
 [
   {
     "id": "string",
-    "judul": "string",
-    "tingkat": "Kecamatan|Kabupaten|Provinsi|Nasional|Internasional",
+    "nama": "string",
+    "kategori": "string",
+    "tingkat": "string",
     "tahun": "string",
-    "bidang": "Akademik|Olahraga|Seni|Lingkungan|Kelembagaan",
-    "penyelenggara": "string",
-    "peserta": "string",
-    "tanggal": "date",
+    "deskripsi": "string",
     "createdAt": "datetime",
     "updatedAt": "datetime"
   }
@@ -545,13 +707,11 @@ Dokumentasi lengkap endpoint API untuk Sistem Informasi Akademik. Backend develo
 **Request Body:**
 ```json
 {
-  "judul": "string",
+  "nama": "string",
+  "kategori": "string",
   "tingkat": "string",
   "tahun": "string",
-  "bidang": "string",
-  "penyelenggara": "string",
-  "peserta": "string",
-  "tanggal": "date"
+  "deskripsi": "string"
 }
 ```
 
@@ -574,15 +734,8 @@ Dokumentasi lengkap endpoint API untuk Sistem Informasi Akademik. Backend develo
   {
     "id": "string",
     "nama": "string",
-    "kode": "string",
     "deskripsi": "string",
-    "mataPelajaran": ["string"],
-    "mataPelajaranPeminatan": ["string"],
-    "prospek": ["string"],
-    "syaratMasuk": ["string"],
-    "jumlahSiswa": number,
-    "kapasitas": number,
-    "fasilitas": ["string"],
+    "kepalaProgram": "string",
     "createdAt": "datetime",
     "updatedAt": "datetime"
   }
@@ -595,15 +748,8 @@ Dokumentasi lengkap endpoint API untuk Sistem Informasi Akademik. Backend develo
 ```json
 {
   "nama": "string",
-  "kode": "string",
   "deskripsi": "string",
-  "mataPelajaran": ["string"],
-  "mataPelajaranPeminatan": ["string"],
-  "prospek": ["string"],
-  "syaratMasuk": ["string"],
-  "jumlahSiswa": number,
-  "kapasitas": number,
-  "fasilitas": ["string"]
+  "kepalaProgram": "string"
 }
 ```
 
@@ -619,24 +765,16 @@ Dokumentasi lengkap endpoint API untuk Sistem Informasi Akademik. Backend develo
 ### Registration Link Management
 
 #### GET /admin/registration-links
-**Deskripsi:** Mendapatkan daftar link pendaftaran
+**Deskripsi:** Mendapatkan daftar link registrasi
 **Response:**
 ```json
 [
   {
     "id": "string",
-    "judul": "string",
-    "deskripsi": "string",
+    "nama": "string",
     "link": "string",
-    "tahunAjaran": "string",
-    "jalur": "string",
-    "mulaiPendaftaran": "date",
-    "batasPendaftaran": "date",
-    "biayaPendaftaran": number,
-    "kuota": number,
-    "syarat": ["string"],
-    "dokumen": ["string"],
-    "status": "Aktif|Nonaktif|Segera Dibuka",
+    "status": "Aktif|Nonaktif",
+    "deskripsi": "string",
     "createdAt": "datetime",
     "updatedAt": "datetime"
   }
@@ -644,148 +782,102 @@ Dokumentasi lengkap endpoint API untuk Sistem Informasi Akademik. Backend develo
 ```
 
 #### POST /admin/registration-links
-**Deskripsi:** Tambah link pendaftaran baru
+**Deskripsi:** Tambah link registrasi baru
 **Request Body:**
 ```json
 {
-  "judul": "string",
-  "deskripsi": "string",
+  "nama": "string",
   "link": "string",
-  "tahunAjaran": "string",
-  "jalur": "string",
-  "mulaiPendaftaran": "date",
-  "batasPendaftaran": "date",
-  "biayaPendaftaran": number,
-  "kuota": number,
-  "syarat": ["string"],
-  "dokumen": ["string"],
-  "status": "string"
+  "deskripsi": "string"
 }
 ```
 
 #### PUT /admin/registration-links/:id
-**Deskripsi:** Update link pendaftaran
-**Request Body:** Same as POST
+**Deskripsi:** Update link registrasi
+**Request Body:**
+```json
+{
+  "nama": "string",
+  "link": "string",
+  "status": "Aktif|Nonaktif",
+  "deskripsi": "string"
+}
+```
 
 #### DELETE /admin/registration-links/:id
-**Deskripsi:** Hapus link pendaftaran
+**Deskripsi:** Hapus link registrasi
 
 ---
 
-## 🔒 Authentication & Authorization
+## 📝 Additional Notes
 
-### Headers yang Diperlukan
-```
-Authorization: Bearer {jwt_token}
-Content-Type: application/json
-```
+### Authentication and Authorization
+- Semua endpoint (kecuali `/auth/login`) memerlukan header `Authorization: Bearer {token}`
+- Role-based access control:
+  - **Siswa**: hanya akses endpoint `/siswa/:id/*` dengan ID sesuai
+  - **Guru**: akses endpoint `/guru/:id/*` dan data terkait mata pelajaran yang diajar
+  - **Walikelas**: akses endpoint `/walikelas/:id/*` dan data siswa di kelasnya
+  - **Admin**: akses semua endpoint `/admin/*`
 
-### Role-based Access Control
-- **Siswa**: Hanya bisa mengakses data diri sendiri
-- **Guru**: Bisa mengakses data siswa di kelas yang diajar + input nilai/kehadiran
-- **Walikelas**: Bisa mengakses data siswa di kelas yang diampu + verifikasi nilai + manajemen siswa
-- **Admin**: Full access ke semua endpoint + manajemen sistem
-
----
-
-## 📄 Response Format
-
-### Success Response
+### Response Format
+**Success Response:**
 ```json
 {
   "success": true,
-  "data": {}, // atau []
-  "message": "string", // opsional
-  "meta": { // untuk pagination
-    "total": number,
-    "page": number,
-    "limit": number
-  }
+  "data": {} // actual data
 }
 ```
 
-### Error Response  
+**Error Response:**
 ```json
 {
   "success": false,
-  "message": "string",
-  "errors": [], // detail error jika ada
-  "code": "ERROR_CODE" // opsional
+  "message": "Error description"
 }
 ```
-
----
-
-## 🚀 Additional Notes
 
 ### Configuration
-- **Development Mode**: `USE_API = false` (gunakan localStorage)
-- **Production Mode**: `USE_API = true` (gunakan REST API endpoints)
-- **Base URL**: Configurable melalui `API_BASE_URL`
-
-### Pagination
-Untuk endpoint yang mengembalikan list data, gunakan query parameters:
-- `page`: Halaman (default: 1)
-- `limit`: Jumlah data per halaman (default: 20)
-- `search`: Pencarian (opsional)
-- `sort`: Pengurutan (opsional)
-- `filter`: Filter data (opsional)
-
-### Date Format
-Gunakan format ISO 8601: `YYYY-MM-DDTHH:mm:ss.sssZ`
-
-### Validation Rules
-- **NISN**: 10 digit angka, unik
-- **NIP**: 18 digit angka, unik
-- **Nilai**: 0-100
-- **Username**: Minimal 4 karakter, unik
-- **Password**: Minimal 6 karakter
-- **Email**: Format email valid
-- **Tahun Ajaran**: Format YYYY/YYYY (contoh: 2024/2025)
-- **Semester**: 1 atau 2
-
-### Error Codes
-- `400`: Bad Request (data tidak valid)
-- `401`: Unauthorized (belum login)
-- `403`: Forbidden (tidak punya akses)
-- `404`: Data tidak ditemukan
-- `409`: Conflict (data sudah ada)
-- `422`: Validation error
-- `500`: Server error
+- **Development Mode**: `USE_API = false` (menggunakan localStorage)
+- **Production Mode**: `USE_API = true` (menggunakan REST API)
+- **Base URL**: `http://localhost:3000/api`
 
 ### LocalStorage Keys (Development Mode)
-```javascript
-const STORAGE_KEYS = {
-  USERS: "akademik_users",
-  STUDENTS: "akademik_students", 
-  TEACHERS: "akademik_teachers",
-  CLASSES: "akademik_classes",
-  SUBJECTS: "akademik_subjects",
-  GRADES: "akademik_grades",
-  ATTENDANCE: "akademik_attendance",
-  CURRENT_USER: "akademik_current_user",
-  ACADEMIC_YEARS: "akademik_years",
-  SCHOOL_PROFILE: "akademik_school_profile",
-  ACHIEVEMENTS: "akademik_achievements",
-  PROGRAMS: "akademik_programs",
-  REGISTRATION_LINKS: "akademik_registration_links"
-}
-```
+- `akademik_users` - User accounts
+- `akademik_students` - Student data
+- `akademik_teachers` - Teacher data  
+- `akademik_classes` - Class data
+- `akademik_subjects` - Subject data
+- `akademik_grades` - Grade data
+- `akademik_attendance` - Attendance data
+- `akademik_current_user` - Current logged in user
+- `akademik_school_profile` - School profile
+- `akademik_achievements` - School achievements
+- `akademik_programs` - Study programs
+- `akademik_registration_links` - Registration links
 
-### Sample Data Initialization
-Sistem otomatis akan menginisialisasi data sample untuk development jika localStorage kosong. Data sample meliputi:
-- Users (admin, siswa, guru, walikelas)
-- Students dan teachers dengan data lengkap
-- Classes dan subjects
-- Grades dan attendance records
-- Academic years
-- School profile lengkap
-- Achievements dan programs
-- Registration links
+### Date Format
+- Semua date menggunakan format ISO 8601: `YYYY-MM-DDTHH:mm:ss.sssZ`
+- Query parameter date menggunakan format: `YYYY-MM-DD`
+
+### Validation Rules
+- **Username**: 3-50 karakter, alphanumeric
+- **Password**: minimum 6 karakter
+- **Email**: format email valid
+- **NISN**: 10 digit
+- **NIP**: format NIP valid
+- **Nilai**: 0-100
+- **Status kehadiran**: `hadir|sakit|alfa|izin`
 
 ### Status Values
-- **Achievement Status**: Aktif
-- **Registration Status**: "Aktif", "Nonaktif", "Segera Dibuka"
-- **Attendance Status**: "hadir", "sakit", "alfa", "izin"
-- **User Role**: "siswa", "guru", "walikelas", "admin"
-- **Program Type**: "IPA", "IPS", "BAHASA"
+- **User role**: `siswa|guru|walikelas|admin`
+- **Gender**: `L|P` (Laki-laki/Perempuan)
+- **Subject group**: `A|B|C`
+- **Grade verification**: `true|false`
+- **Registration link status**: `Aktif|Nonaktif`
+
+### Sample Data Initialization
+Sistem secara otomatis menginisialisasi data sample jika localStorage kosong, termasuk:
+- Sample users untuk setiap role
+- Sample students, teachers, classes, subjects
+- Sample grades dan attendance data
+- Sample school profile, achievements, programs, dan registration links
