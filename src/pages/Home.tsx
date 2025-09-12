@@ -13,6 +13,8 @@ import {
   Trophy,
   Target,
   Heart,
+  Link,
+  ExternalLink,
 } from "lucide-react";
 import Navbar from "@/components/Navbar";
 import apiService from "@/services/apiService";
@@ -21,6 +23,7 @@ const Home = ({ currentUser, onLogin, onLogout }) => {
   const [schoolProfile, setSchoolProfile] = useState(null);
   const [achievements, setAchievements] = useState([]);
   const [programs, setPrograms] = useState([]);
+  const [registrationLinks, setRegistrationLinks] = useState([]);
   const [stats, setStats] = useState({
     totalSiswa: 0,
     totalGuru: 0,
@@ -47,6 +50,10 @@ const Home = ({ currentUser, onLogin, onLogout }) => {
       // Load programs
       const programsData = await apiService.getPrograms();
       setPrograms(programsData);
+
+      // Load registration links
+      const registrationLinksData = await apiService.getRegistrationLinks();
+      setRegistrationLinks(registrationLinksData);
 
       // Calculate stats
       const users = await apiService.getUsers();
@@ -240,16 +247,34 @@ const Home = ({ currentUser, onLogin, onLogout }) => {
                   achievements.map((achievement, index) => (
                     <div
                       key={achievement.id || index}
-                      className="flex items-start space-x-3 p-3 bg-muted/50 rounded-lg"
+                      className="p-4 bg-gradient-to-r from-muted/20 to-warning/5 rounded-lg border border-border"
                     >
-                      <Trophy className="h-4 w-4 text-warning mt-1 flex-shrink-0" />
-                      <div className="flex-1">
-                        <p className="text-sm text-foreground font-medium">
-                          {achievement.judul}
-                        </p>
-                        <p className="text-xs text-muted-foreground">
-                          {achievement.tingkat} • {achievement.tahun}
-                        </p>
+                      <div className="flex items-start space-x-3">
+                        <Trophy className="h-5 w-5 text-warning mt-1 flex-shrink-0" />
+                        <div className="flex-1">
+                          <h4 className="text-sm font-semibold text-foreground mb-1">
+                            {achievement.judul}
+                          </h4>
+                          <p className="text-xs text-muted-foreground mb-2">
+                            {achievement.deskripsi}
+                          </p>
+                          <div className="flex flex-wrap gap-2 mb-2">
+                            <Badge variant="outline" className="text-xs px-2 py-1">
+                              {achievement.tingkat}
+                            </Badge>
+                            <Badge variant="secondary" className="text-xs px-2 py-1">
+                              {achievement.tahun}
+                            </Badge>
+                            <Badge variant="outline" className="text-xs px-2 py-1">
+                              {achievement.kategori}
+                            </Badge>
+                          </div>
+                          {achievement.penyelenggara && (
+                            <p className="text-xs text-muted-foreground italic">
+                              Penyelenggara: {achievement.penyelenggara}
+                            </p>
+                          )}
+                        </div>
                       </div>
                     </div>
                   ))
@@ -313,6 +338,73 @@ const Home = ({ currentUser, onLogin, onLogout }) => {
                   <div className="col-span-2 text-center py-8">
                     <p className="text-sm text-muted-foreground">
                       Belum ada program studi yang ditambahkan
+                    </p>
+                  </div>
+                )}
+              </div>
+            </CardContent>
+          </Card>
+        </section>
+
+        {/* Link Pendaftaran */}
+        <section className="mb-12">
+          <Card className="shadow-soft">
+            <CardHeader>
+              <CardTitle className="flex items-center space-x-2">
+                <Link className="h-5 w-5 text-primary" />
+                <span>Link Pendaftaran</span>
+              </CardTitle>
+            </CardHeader>
+            <CardContent>
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                {registrationLinks.length > 0 ? (
+                  registrationLinks.map((link, index) => (
+                    <div
+                      key={link.id || index}
+                      className="p-4 border border-border rounded-lg hover:shadow-md transition-smooth"
+                    >
+                      <div className="flex items-start justify-between mb-3">
+                        <div className="flex-1">
+                          <h3 className="font-semibold text-foreground mb-2">
+                            {link.judul}
+                          </h3>
+                          <p className="text-sm text-muted-foreground mb-3">
+                            {link.deskripsi}
+                          </p>
+                        </div>
+                        <Badge 
+                          variant={link.status === 'aktif' ? 'default' : 'secondary'}
+                          className="ml-2"
+                        >
+                          {link.status}
+                        </Badge>
+                      </div>
+                      
+                      {link.tanggalMulai && link.tanggalSelesai && (
+                        <div className="flex items-center space-x-2 mb-3 text-xs text-muted-foreground">
+                          <Calendar className="h-4 w-4" />
+                          <span>
+                            {new Date(link.tanggalMulai).toLocaleDateString('id-ID')} - {' '}
+                            {new Date(link.tanggalSelesai).toLocaleDateString('id-ID')}
+                          </span>
+                        </div>
+                      )}
+
+                      <a
+                        href={link.url}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="inline-flex items-center space-x-2 text-sm font-medium text-primary hover:text-primary/80 transition-colors"
+                      >
+                        <span>Akses Link Pendaftaran</span>
+                        <ExternalLink className="h-4 w-4" />
+                      </a>
+                    </div>
+                  ))
+                ) : (
+                  <div className="col-span-2 text-center py-8">
+                    <p className="text-sm text-muted-foreground">
+                      Belum ada link pendaftaran yang tersedia
                     </p>
                   </div>
                 )}
