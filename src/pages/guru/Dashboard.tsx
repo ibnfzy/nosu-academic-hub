@@ -161,7 +161,9 @@ const TeacherDashboard = ({ currentUser, onLogout }) => {
 
       const teacherGrades = allGrades.filter((grade) => {
         const subjectId =
-          grade && typeof grade.subjectId === "object" && grade.subjectId !== null
+          grade &&
+          typeof grade.subjectId === "object" &&
+          grade.subjectId !== null
             ? grade.subjectId.id
             : grade.subjectId;
         return (
@@ -393,6 +395,8 @@ const TeacherDashboard = ({ currentUser, onLogout }) => {
         description: "Gagal menyimpan kehadiran",
         variant: "destructive",
       });
+
+      console.log(error);
     }
   };
 

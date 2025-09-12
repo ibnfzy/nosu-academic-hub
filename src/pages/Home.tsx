@@ -34,7 +34,7 @@ const Home = ({ currentUser, onLogin, onLogout }) => {
   }, []);
 
   const loadHomeData = async () => {
-    apiService.forceInitializeData();
+    // apiService.forceInitializeData();
     try {
       // Load school profile
       const profileData = await apiService.getSchoolProfile();

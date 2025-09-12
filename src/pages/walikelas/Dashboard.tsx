@@ -68,13 +68,23 @@ const WalikelasaDashboard = ({ currentUser, onLogout }) => {
   });
 
   const [studentForm, setStudentForm] = useState({
-    nama: "",
+    // Data dari tabel students
+    id: "", // untuk edit (opsional)
+    userId: "", // relasi ke tabel users
     nisn: "",
+    nama: "", // otomatis dari wali kelas (bisa diisi backend, tidak tampil di form)
+    jenisKelamin: "",
+    tanggalLahir: "",
+    alamat: "",
+    nomorHP: "",
+    namaOrangTua: "",
+    pekerjaanOrangTua: "",
+    tahunMasuk: new Date().getFullYear().toString(), // default tahun sekarang
+
+    // Data dari tabel users
     username: "",
     password: "",
     email: "",
-    alamat: "",
-    tanggalLahir: "",
   });
 
   const { toast } = useToast();
@@ -122,10 +132,11 @@ const WalikelasaDashboard = ({ currentUser, onLogout }) => {
         (cls) => cls.walikelas === currentUser.id
       );
       setClassInfo(currentClass);
-
       setStudents(studentsData);
       setGrades(gradesData);
       setAttendance(attendanceData);
+
+      console.log(grades);
     } catch (error) {
       toast({
         title: "Error",
@@ -270,13 +281,23 @@ const WalikelasaDashboard = ({ currentUser, onLogout }) => {
 
   const resetStudentForm = () => {
     setStudentForm({
-      nama: "",
+      // Data dari tabel students
+      id: "",
+      userId: "",
       nisn: "",
+      nama: "",
+      jenisKelamin: "",
+      tanggalLahir: "",
+      alamat: "",
+      nomorHP: "",
+      namaOrangTua: "",
+      pekerjaanOrangTua: "",
+      tahunMasuk: new Date().getFullYear().toString(),
+
+      // Data dari tabel users
       username: "",
       password: "",
       email: "",
-      alamat: "",
-      tanggalLahir: "",
     });
     setEditingStudent(null);
     setShowStudentDialog(false);
@@ -310,27 +331,33 @@ const WalikelasaDashboard = ({ currentUser, onLogout }) => {
     return studentGrades.length > 0;
   });
 
-  const handlePrintReport = (student) => {
-    const studentGrades = grades.filter(
-      (grade) => grade.studentId === student.id && grade.verified
-    );
-    const studentAttendance = attendance.filter(
-      (att) => att.studentId === student.id
-    );
+  const handlePrintReport = async (student) => {
+    try {
+      const reportData = await apiService.getClassStudentReport(
+        currentUser.id, // walikelasId
+        student.id,
+        selectedPeriod.tahun,
+        selectedPeriod.semester
+      );
 
-    const reportData = {
-      student,
-      grades: studentGrades,
-      attendance: studentAttendance,
-      tahunAjaran: selectedPeriod.tahun,
-      semester: selectedPeriod.semester,
-      walikelas: {
-        nama: currentUser?.nama || "-",
-        nip: currentUser?.nip || "-",
-      },
-    };
+      if (!reportData) {
+        toast({
+          title: "Error",
+          description: "Data raport tidak ditemukan",
+          variant: "destructive",
+        });
+        return;
+      }
 
-    printReport(reportData);
+      printReport(reportData); // langsung kirim ke printer/pdf
+    } catch (error) {
+      console.error("Error print report:", error);
+      toast({
+        title: "Error",
+        description: "Gagal mencetak raport",
+        variant: "destructive",
+      });
+    }
   };
 
   return (
@@ -522,6 +549,7 @@ const WalikelasaDashboard = ({ currentUser, onLogout }) => {
                         onSubmit={handleStudentSubmit}
                         className="space-y-4"
                       >
+                        {/* Baris 1: Nama & NISN */}
                         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                           <div className="space-y-2">
                             <Label>Nama Lengkap</Label>
@@ -548,12 +576,14 @@ const WalikelasaDashboard = ({ currentUser, onLogout }) => {
                                   nisn: e.target.value,
                                 }))
                               }
-                              placeholder="Nomor NISN"
+                              placeholder="10 digit NISN"
+                              maxLength={10}
                               required
                             />
                           </div>
                         </div>
 
+                        {/* Baris 2: Username & Password */}
                         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                           <div className="space-y-2">
                             <Label>Username</Label>
@@ -583,41 +613,129 @@ const WalikelasaDashboard = ({ currentUser, onLogout }) => {
                                   }))
                                 }
                                 placeholder="Password"
-                                required={!editingStudent}
+                                required
                               />
                             </div>
                           )}
                         </div>
 
+                        {/* Baris 3: Email & No HP */}
+                        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                          <div className="space-y-2">
+                            <Label>Email</Label>
+                            <Input
+                              type="email"
+                              value={studentForm.email}
+                              onChange={(e) =>
+                                setStudentForm((prev) => ({
+                                  ...prev,
+                                  email: e.target.value,
+                                }))
+                              }
+                              placeholder="email@example.com"
+                            />
+                          </div>
+
+                          <div className="space-y-2">
+                            <Label>No. HP</Label>
+                            <Input
+                              type="tel"
+                              value={studentForm.nomorHP}
+                              onChange={(e) =>
+                                setStudentForm((prev) => ({
+                                  ...prev,
+                                  nomorHP: e.target.value,
+                                }))
+                              }
+                              placeholder="08xxxxxxxx"
+                            />
+                          </div>
+                        </div>
+
+                        {/* Baris 4: Jenis Kelamin & Tanggal Lahir */}
+                        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                          <div className="space-y-2">
+                            <Label>Jenis Kelamin</Label>
+                            <select
+                              className="border rounded-md p-2 w-full"
+                              value={studentForm.jenisKelamin}
+                              onChange={(e) =>
+                                setStudentForm((prev) => ({
+                                  ...prev,
+                                  jenisKelamin: e.target.value,
+                                }))
+                              }
+                              required
+                            >
+                              <option value="">Pilih</option>
+                              <option value="L">Laki-laki</option>
+                              <option value="P">Perempuan</option>
+                            </select>
+                          </div>
+
+                          <div className="space-y-2">
+                            <Label>Tanggal Lahir</Label>
+                            <Input
+                              type="date"
+                              value={studentForm.tanggalLahir}
+                              onChange={(e) =>
+                                setStudentForm((prev) => ({
+                                  ...prev,
+                                  tanggalLahir: e.target.value,
+                                }))
+                              }
+                            />
+                          </div>
+                        </div>
+
+                        {/* Baris 5: Tahun Masuk */}
                         <div className="space-y-2">
-                          <Label>Email</Label>
+                          <Label>Tahun Masuk</Label>
                           <Input
-                            type="email"
-                            value={studentForm.email}
+                            type="number"
+                            value={studentForm.tahunMasuk}
                             onChange={(e) =>
                               setStudentForm((prev) => ({
                                 ...prev,
-                                email: e.target.value,
+                                tahunMasuk: e.target.value,
                               }))
                             }
-                            placeholder="email@example.com"
+                            placeholder="2024"
                           />
                         </div>
 
-                        <div className="space-y-2">
-                          <Label>Tanggal Lahir</Label>
-                          <Input
-                            type="date"
-                            value={studentForm.tanggalLahir}
-                            onChange={(e) =>
-                              setStudentForm((prev) => ({
-                                ...prev,
-                                tanggalLahir: e.target.value,
-                              }))
-                            }
-                          />
+                        {/* Baris 6: Orang Tua */}
+                        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                          <div className="space-y-2">
+                            <Label>Nama Orang Tua</Label>
+                            <Input
+                              value={studentForm.namaOrangTua}
+                              onChange={(e) =>
+                                setStudentForm((prev) => ({
+                                  ...prev,
+                                  namaOrangTua: e.target.value,
+                                }))
+                              }
+                              placeholder="Nama Ayah/Ibu"
+                            />
+                          </div>
+
+                          <div className="space-y-2">
+                            <Label>Pekerjaan Orang Tua</Label>
+                            <Input
+                              value={studentForm.pekerjaanOrangTua}
+                              onChange={(e) =>
+                                setStudentForm((prev) => ({
+                                  ...prev,
+                                  pekerjaanOrangTua: e.target.value,
+                                }))
+                              }
+                              placeholder="Petani, Guru, dsb."
+                            />
+                          </div>
                         </div>
 
+                        {/* Baris 7: Alamat */}
                         <div className="space-y-2">
                           <Label>Alamat</Label>
                           <Input
@@ -632,6 +750,7 @@ const WalikelasaDashboard = ({ currentUser, onLogout }) => {
                           />
                         </div>
 
+                        {/* Tombol */}
                         <div className="flex flex-col md:flex-row gap-2">
                           <Button type="submit" className="flex-1">
                             {editingStudent ? "Update" : "Simpan"}
@@ -673,6 +792,8 @@ const WalikelasaDashboard = ({ currentUser, onLogout }) => {
                         <TableHead>NISN</TableHead>
                         {!isMobile && <TableHead>Username</TableHead>}
                         {!isMobile && <TableHead>Email</TableHead>}
+                        {!isMobile && <TableHead>No. HP</TableHead>}
+                        {!isMobile && <TableHead>Orang Tua</TableHead>}
                         <TableHead>Aksi</TableHead>
                       </TableRow>
                     </TableHeader>
@@ -691,6 +812,16 @@ const WalikelasaDashboard = ({ currentUser, onLogout }) => {
                           {!isMobile && (
                             <TableCell className="text-muted-foreground">
                               {student.email || "-"}
+                            </TableCell>
+                          )}
+                          {!isMobile && (
+                            <TableCell className="text-muted-foreground">
+                              {student.nomorHP || "-"}
+                            </TableCell>
+                          )}
+                          {!isMobile && (
+                            <TableCell className="text-muted-foreground">
+                              {student.namaOrangTua || "-"}
                             </TableCell>
                           )}
                           <TableCell>

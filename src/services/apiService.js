@@ -405,6 +405,40 @@ const apiService = {
     }
   },
 
+  // EDIT ATTENDANCE
+  async editAttendance(teacherId, attendanceData) {
+    if (USE_API) {
+      const response = await this.authFetch(
+        `${API_BASE_URL}/guru/${teacherId}/kehadiran/${attendanceData.id}`,
+        {
+          method: "PUT",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify(attendanceData),
+        }
+      );
+      return await response.json();
+    } else {
+      const attendance = JSON.parse(
+        localStorage.getItem(STORAGE_KEYS.ATTENDANCE) || "[]"
+      );
+      const idx = attendance.findIndex((a) => a.id === attendanceData.id);
+
+      if (idx !== -1) {
+        attendance[idx] = {
+          ...attendance[idx],
+          ...attendanceData,
+          updatedAt: new Date().toISOString(),
+        };
+        localStorage.setItem(
+          STORAGE_KEYS.ATTENDANCE,
+          JSON.stringify(attendance)
+        );
+        return { success: true, data: attendance[idx] };
+      }
+      return { success: false, message: "Attendance not found" };
+    }
+  },
+
   async deleteAttendance(teacherId, attendanceId) {
     if (USE_API) {
       const response = await this.authFetch(
@@ -1033,7 +1067,27 @@ const apiService = {
       const students = JSON.parse(
         localStorage.getItem(STORAGE_KEYS.STUDENTS) || "[]"
       );
-      return students.filter((s) => s.kelasId === "1"); // Assuming walikelas manages kelas 1
+      const users = JSON.parse(
+        localStorage.getItem(STORAGE_KEYS.USERS) || "[]"
+      );
+
+      // ambil semua siswa di kelas yang dikelola walikelas
+      // misalnya walikelasId = 1 → ambil kelasId "1"
+      const kelasId = "1"; // bisa kamu sesuaikan dinamis kalau sudah ada mapping walikelas → kelas
+      const classStudents = students.filter((s) => s.kelasId === kelasId);
+
+      // gabungkan data student + user (pakai userId)
+      const merged = classStudents.map((student) => {
+        const user = users.find((u) => u.id === student.userId);
+        return {
+          ...student,
+          username: user?.username || "",
+          email: user?.email || "",
+          role: user?.role || "siswa",
+        };
+      });
+
+      return merged;
     }
   },
 
@@ -1084,22 +1138,50 @@ const apiService = {
       const students = JSON.parse(
         localStorage.getItem(STORAGE_KEYS.STUDENTS) || "[]"
       );
-      const newStudent = {
-        ...studentData,
+      const users = JSON.parse(
+        localStorage.getItem(STORAGE_KEYS.USERS) || "[]"
+      );
+
+      // buat user baru
+      const newUser = {
         id: Date.now().toString(),
+        username: studentData.username,
+        password: studentData.password,
+        role: "siswa",
+        email: studentData.email,
+        createdAt: new Date().toISOString(),
+      };
+      users.push(newUser);
+      localStorage.setItem(STORAGE_KEYS.USERS, JSON.stringify(users));
+
+      // buat student baru yang refer ke user
+      const newStudent = {
+        id: (Date.now() + 1).toString(),
+        userId: newUser.id,
+        nisn: studentData.nisn,
+        nama: studentData.nama,
+        kelasId: studentData.kelasId || "1",
+        jenisKelamin: studentData.jenisKelamin || "",
+        tanggalLahir: studentData.tanggalLahir || "",
+        alamat: studentData.alamat || "",
+        nomorHP: studentData.nomorHP || "",
+        namaOrangTua: studentData.namaOrangTua || "",
+        pekerjaanOrangTua: studentData.pekerjaanOrangTua || "",
+        tahunMasuk:
+          studentData.tahunMasuk || new Date().getFullYear().toString(),
         createdAt: new Date().toISOString(),
       };
       students.push(newStudent);
       localStorage.setItem(STORAGE_KEYS.STUDENTS, JSON.stringify(students));
 
-      // Also add to users
-      const users = JSON.parse(
-        localStorage.getItem(STORAGE_KEYS.USERS) || "[]"
-      );
-      users.push(newStudent);
-      localStorage.setItem(STORAGE_KEYS.USERS, JSON.stringify(users));
-
-      return { success: true, data: { ...newStudent, password: undefined } };
+      return {
+        success: true,
+        data: {
+          ...newStudent,
+          username: newUser.username,
+          email: newUser.email,
+        },
+      };
     }
   },
 
@@ -1118,35 +1200,52 @@ const apiService = {
       const students = JSON.parse(
         localStorage.getItem(STORAGE_KEYS.STUDENTS) || "[]"
       );
+      const users = JSON.parse(
+        localStorage.getItem(STORAGE_KEYS.USERS) || "[]"
+      );
+
       const studentIndex = students.findIndex((s) => s.id === studentId);
-      if (studentIndex !== -1) {
-        students[studentIndex] = {
-          ...students[studentIndex],
-          ...studentData,
+      if (studentIndex === -1)
+        return { success: false, message: "Student not found" };
+
+      const student = students[studentIndex];
+      const userIndex = users.findIndex((u) => u.id === student.userId);
+
+      // update student
+      students[studentIndex] = {
+        ...student,
+        nisn: studentData.nisn,
+        nama: studentData.nama,
+        alamat: studentData.alamat,
+        tanggalLahir: studentData.tanggalLahir,
+        nomorHP: studentData.nomorHP,
+        namaOrangTua: studentData.namaOrangTua,
+        pekerjaanOrangTua: studentData.pekerjaanOrangTua,
+        tahunMasuk: studentData.tahunMasuk,
+        updatedAt: new Date().toISOString(),
+      };
+      localStorage.setItem(STORAGE_KEYS.STUDENTS, JSON.stringify(students));
+
+      // update user (username, email, password optional)
+      if (userIndex !== -1) {
+        users[userIndex] = {
+          ...users[userIndex],
+          username: studentData.username || users[userIndex].username,
+          email: studentData.email || users[userIndex].email,
+          ...(studentData.password ? { password: studentData.password } : {}),
           updatedAt: new Date().toISOString(),
         };
-        localStorage.setItem(STORAGE_KEYS.STUDENTS, JSON.stringify(students));
-
-        // Update in users too
-        const users = JSON.parse(
-          localStorage.getItem(STORAGE_KEYS.USERS) || "[]"
-        );
-        const userIndex = users.findIndex((u) => u.id === studentId);
-        if (userIndex !== -1) {
-          users[userIndex] = {
-            ...users[userIndex],
-            ...studentData,
-            updatedAt: new Date().toISOString(),
-          };
-          localStorage.setItem(STORAGE_KEYS.USERS, JSON.stringify(users));
-        }
-
-        return {
-          success: true,
-          data: { ...students[studentIndex], password: undefined },
-        };
+        localStorage.setItem(STORAGE_KEYS.USERS, JSON.stringify(users));
       }
-      return { success: false, message: "Student not found" };
+
+      return {
+        success: true,
+        data: {
+          ...students[studentIndex],
+          username: users[userIndex]?.username,
+          email: users[userIndex]?.email,
+        },
+      };
     }
   },
 
@@ -1163,17 +1262,25 @@ const apiService = {
       const students = JSON.parse(
         localStorage.getItem(STORAGE_KEYS.STUDENTS) || "[]"
       );
+      const users = JSON.parse(
+        localStorage.getItem(STORAGE_KEYS.USERS) || "[]"
+      );
+
+      // cari student dulu
+      const student = students.find((s) => s.id === studentId);
+      if (!student) {
+        return { success: false, message: "Student not found" };
+      }
+
+      // hapus student dari tabel students
       const filteredStudents = students.filter((s) => s.id !== studentId);
       localStorage.setItem(
         STORAGE_KEYS.STUDENTS,
         JSON.stringify(filteredStudents)
       );
 
-      // Delete from users too
-      const users = JSON.parse(
-        localStorage.getItem(STORAGE_KEYS.USERS) || "[]"
-      );
-      const filteredUsers = users.filter((u) => u.id !== studentId);
+      // hapus user yang terkait (berdasarkan student.userId)
+      const filteredUsers = users.filter((u) => u.id !== student.userId);
       localStorage.setItem(STORAGE_KEYS.USERS, JSON.stringify(filteredUsers));
 
       return { success: true };
@@ -1202,6 +1309,61 @@ const apiService = {
         return { success: true, data: grades[gradeIndex] };
       }
       return { success: false, message: "Grade not found" };
+    }
+  },
+
+  async getClassStudentReport(walikelasId, studentId, tahun, semester) {
+    if (USE_API) {
+      const response = await this.authFetch(
+        `${API_BASE_URL}/walikelas/${walikelasId}/siswa/${studentId}/raport?tahun=${tahun}&semester=${semester}`
+      );
+      return await response.json();
+    } else {
+      const students = JSON.parse(
+        localStorage.getItem(STORAGE_KEYS.STUDENTS) || "[]"
+      );
+      const teachers = JSON.parse(
+        localStorage.getItem(STORAGE_KEYS.TEACHERS) || "[]"
+      );
+      const classes = JSON.parse(
+        localStorage.getItem(STORAGE_KEYS.CLASSES) || "[]"
+      );
+      const profileSchool = JSON.parse(
+        localStorage.getItem(STORAGE_KEYS.SCHOOL_PROFILE) || "{}"
+      );
+
+      const student = students.find((s) => s.id === studentId);
+      const grades = await this.getStudentGrades(studentId, tahun, semester);
+      const attendance = await this.getStudentAttendance(
+        studentId,
+        tahun,
+        semester
+      );
+
+      let walikelas = null;
+      if (student) {
+        const kelas = classes.find((c) => c.id === student.kelasId);
+        if (kelas) {
+          walikelas =
+            teachers.find((t) => t.id === kelas.walikelasId) ||
+            teachers.find(
+              (t) => t.role === "walikelas" && t.kelasId === kelas.id
+            ) ||
+            null;
+        }
+      }
+
+      return {
+        student,
+        grades,
+        attendance,
+        tahunAjaran: tahun,
+        semester,
+        walikelas: walikelas
+          ? { nama: walikelas.nama, nip: walikelas.nip }
+          : null,
+        profileSchool,
+      };
     }
   },
 
