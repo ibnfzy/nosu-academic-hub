@@ -15,16 +15,14 @@ import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Badge } from "@/components/ui/badge";
-import { 
-  Building2, 
-  Edit, 
-  Trophy, 
-  BookOpen, 
-  Link as LinkIcon, 
-  Plus, 
+import {
+  Building2,
+  Edit,
+  Trophy,
+  BookOpen,
+  Plus,
   Trash2,
   Calendar,
-  ExternalLink 
 } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import apiService from "@/services/apiService";
@@ -62,7 +60,7 @@ export default function SchoolProfileManagement({
   const [achievementForm, setAchievementForm] = useState({
     nama: "",
     deskripsi: "",
-    tanggal: "",
+    tahun: "",
     tingkat: "",
     kategori: "",
   });
@@ -77,20 +75,7 @@ export default function SchoolProfileManagement({
     tanggalMulai: "",
     tanggalSelesai: "",
     status: "Aktif",
-    penanggungJawab: "",
-  });
-
-  // Registration Links State
-  const [registrationLinks, setRegistrationLinks] = useState<any[]>([]);
-  const [showRegistrationLinkDialog, setShowRegistrationLinkDialog] = useState(false);
-  const [editingRegistrationLink, setEditingRegistrationLink] = useState<any>(null);
-  const [registrationLinkForm, setRegistrationLinkForm] = useState({
-    nama: "",
-    deskripsi: "",
-    url: "",
-    status: "Aktif",
-    tanggalMulai: "",
-    tanggalSelesai: "",
+    kepalaProgram: "",
   });
 
   const { toast } = useToast();
@@ -101,9 +86,6 @@ export default function SchoolProfileManagement({
       // Load school profile
       const profileData = await apiService.getSchoolProfile();
       setSchoolProfile(profileData);
-      if (profileData) {
-        setSchoolProfileForm(profileData);
-      }
 
       // Load achievements
       const achievementsData = await apiService.getAchievements();
@@ -112,11 +94,6 @@ export default function SchoolProfileManagement({
       // Load programs
       const programsData = await apiService.getPrograms();
       setPrograms(Array.isArray(programsData) ? programsData : []);
-
-      // Load registration links
-      const registrationLinksData = await apiService.getRegistrationLinks();
-      setRegistrationLinks(Array.isArray(registrationLinksData) ? registrationLinksData : []);
-
     } catch (error) {
       console.error("Error loading data:", error);
       toast({
@@ -153,6 +130,7 @@ export default function SchoolProfileManagement({
         });
 
         loadData(); // Reload data
+        resetSchoolProfileForm();
         onDataChange();
         setShowSchoolProfileDialog(false);
       }
@@ -174,7 +152,7 @@ export default function SchoolProfileManagement({
   // Achievement handlers
   const handleAchievementSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    
+
     if (!achievementForm.nama) {
       toast({
         title: "Error",
@@ -187,7 +165,10 @@ export default function SchoolProfileManagement({
     try {
       let result;
       if (editingAchievement) {
-        result = await apiService.updateAchievement(editingAchievement.id, achievementForm);
+        result = await apiService.updateAchievement(
+          editingAchievement.id,
+          achievementForm
+        );
       } else {
         result = await apiService.addAchievement(achievementForm);
       }
@@ -195,13 +176,15 @@ export default function SchoolProfileManagement({
       if (result.success || result.data) {
         toast({
           title: "Berhasil",
-          description: editingAchievement ? "Prestasi berhasil diperbarui" : "Prestasi berhasil ditambahkan",
+          description: editingAchievement
+            ? "Prestasi berhasil diperbarui"
+            : "Prestasi berhasil ditambahkan",
         });
-        
+
         loadData();
         onDataChange();
-        setShowAchievementDialog(false);
         resetAchievementForm();
+        setShowAchievementDialog(false);
       }
     } catch (error) {
       toast({
@@ -238,7 +221,7 @@ export default function SchoolProfileManagement({
     setAchievementForm({
       nama: "",
       deskripsi: "",
-      tanggal: "",
+      tahun: "",
       tingkat: "",
       kategori: "",
     });
@@ -248,7 +231,7 @@ export default function SchoolProfileManagement({
   // Program handlers
   const handleProgramSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    
+
     if (!programForm.nama) {
       toast({
         title: "Error",
@@ -269,13 +252,15 @@ export default function SchoolProfileManagement({
       if (result.success || result.data) {
         toast({
           title: "Berhasil",
-          description: editingProgram ? "Program berhasil diperbarui" : "Program berhasil ditambahkan",
+          description: editingProgram
+            ? "Program berhasil diperbarui"
+            : "Program berhasil ditambahkan",
         });
-        
+
         loadData();
         onDataChange();
-        setShowProgramDialog(false);
         resetProgramForm();
+        setShowProgramDialog(false);
       }
     } catch (error) {
       toast({
@@ -315,84 +300,9 @@ export default function SchoolProfileManagement({
       tanggalMulai: "",
       tanggalSelesai: "",
       status: "Aktif",
-      penanggungJawab: "",
+      kepalaProgram: "",
     });
     setEditingProgram(null);
-  };
-
-  // Registration Link handlers
-  const handleRegistrationLinkSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
-    
-    if (!registrationLinkForm.nama || !registrationLinkForm.url) {
-      toast({
-        title: "Error",
-        description: "Nama dan URL wajib diisi",
-        variant: "destructive",
-      });
-      return;
-    }
-
-    try {
-      let result;
-      if (editingRegistrationLink) {
-        result = await apiService.updateRegistrationLink(editingRegistrationLink.id, registrationLinkForm);
-      } else {
-        result = await apiService.addRegistrationLink(registrationLinkForm);
-      }
-
-      if (result.success || result.data) {
-        toast({
-          title: "Berhasil",
-          description: editingRegistrationLink ? "Link pendaftaran berhasil diperbarui" : "Link pendaftaran berhasil ditambahkan",
-        });
-        
-        loadData();
-        onDataChange();
-        setShowRegistrationLinkDialog(false);
-        resetRegistrationLinkForm();
-      }
-    } catch (error) {
-      toast({
-        title: "Error",
-        description: "Gagal menyimpan link pendaftaran",
-        variant: "destructive",
-      });
-    }
-  };
-
-  const handleDeleteRegistrationLink = async (id: string) => {
-    if (!confirm("Apakah Anda yakin ingin menghapus link pendaftaran ini?")) return;
-
-    try {
-      const result = await apiService.deleteRegistrationLink(id);
-      if (result.success) {
-        toast({
-          title: "Berhasil",
-          description: "Link pendaftaran berhasil dihapus",
-        });
-        loadData();
-        onDataChange();
-      }
-    } catch (error) {
-      toast({
-        title: "Error",
-        description: "Gagal menghapus link pendaftaran",
-        variant: "destructive",
-      });
-    }
-  };
-
-  const resetRegistrationLinkForm = () => {
-    setRegistrationLinkForm({
-      nama: "",
-      deskripsi: "",
-      url: "",
-      status: "Aktif",
-      tanggalMulai: "",
-      tanggalSelesai: "",
-    });
-    setEditingRegistrationLink(null);
   };
 
   return (
@@ -406,20 +316,22 @@ export default function SchoolProfileManagement({
         </CardHeader>
         <CardContent>
           <Tabs defaultValue="profile" className="w-full">
-            <TabsList className="grid w-full grid-cols-4">
+            <TabsList className="grid w-full grid-cols-3">
               <TabsTrigger value="profile">Profil Sekolah</TabsTrigger>
               <TabsTrigger value="achievements">Prestasi</TabsTrigger>
               <TabsTrigger value="programs">Program</TabsTrigger>
-              <TabsTrigger value="registration">Link Pendaftaran</TabsTrigger>
             </TabsList>
 
             {/* School Profile Tab */}
             <TabsContent value="profile" className="mt-6">
               <div className="flex justify-between items-center mb-4">
-                <h3 className="text-lg font-semibold">Informasi Profil Sekolah</h3>
+                <h3 className="text-lg font-semibold">
+                  Informasi Profil Sekolah
+                </h3>
                 <Dialog
                   open={showSchoolProfileDialog}
                   onOpenChange={(open) => {
+                    resetSchoolProfileForm();
                     setShowSchoolProfileDialog(open);
                     if (!open) resetSchoolProfileForm();
                   }}
@@ -437,209 +349,212 @@ export default function SchoolProfileManagement({
                         Perbarui informasi profil sekolah
                       </DialogDescription>
                     </DialogHeader>
-              <form onSubmit={handleSchoolProfileSubmit} className="space-y-4">
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                  <div className="space-y-2">
-                    <Label>Nama Sekolah *</Label>
-                    <Input
-                      value={schoolProfileForm.namaSekolah}
-                      onChange={(e) =>
-                        setSchoolProfileForm((prev) => ({
-                          ...prev,
-                          namaSekolah: e.target.value,
-                        }))
-                      }
-                      required
-                    />
-                  </div>
+                    <form
+                      onSubmit={handleSchoolProfileSubmit}
+                      className="space-y-4"
+                    >
+                      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                        <div className="space-y-2">
+                          <Label>Nama Sekolah *</Label>
+                          <Input
+                            value={schoolProfileForm.namaSekolah}
+                            onChange={(e) =>
+                              setSchoolProfileForm((prev) => ({
+                                ...prev,
+                                namaSekolah: e.target.value,
+                              }))
+                            }
+                            required
+                          />
+                        </div>
 
-                  <div className="space-y-2">
-                    <Label>NPSN</Label>
-                    <Input
-                      value={schoolProfileForm.npsn}
-                      onChange={(e) =>
-                        setSchoolProfileForm((prev) => ({
-                          ...prev,
-                          npsn: e.target.value,
-                        }))
-                      }
-                    />
-                  </div>
-                </div>
+                        <div className="space-y-2">
+                          <Label>NPSN</Label>
+                          <Input
+                            value={schoolProfileForm.npsn}
+                            onChange={(e) =>
+                              setSchoolProfileForm((prev) => ({
+                                ...prev,
+                                npsn: e.target.value,
+                              }))
+                            }
+                          />
+                        </div>
+                      </div>
 
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                  <div className="space-y-2">
-                    <Label>Kepala Sekolah</Label>
-                    <Input
-                      value={schoolProfileForm.kepalaSekolah}
-                      onChange={(e) =>
-                        setSchoolProfileForm((prev) => ({
-                          ...prev,
-                          kepalaSekolah: e.target.value,
-                        }))
-                      }
-                    />
-                  </div>
+                      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                        <div className="space-y-2">
+                          <Label>Kepala Sekolah</Label>
+                          <Input
+                            value={schoolProfileForm.kepalaSekolah}
+                            onChange={(e) =>
+                              setSchoolProfileForm((prev) => ({
+                                ...prev,
+                                kepalaSekolah: e.target.value,
+                              }))
+                            }
+                          />
+                        </div>
 
-                  <div className="space-y-2">
-                    <Label>NIP Kepala Sekolah</Label>
-                    <Input
-                      value={schoolProfileForm.nipKepalaSekolah}
-                      onChange={(e) =>
-                        setSchoolProfileForm((prev) => ({
-                          ...prev,
-                          nipKepalaSekolah: e.target.value,
-                        }))
-                      }
-                    />
-                  </div>
-                </div>
+                        <div className="space-y-2">
+                          <Label>NIP Kepala Sekolah</Label>
+                          <Input
+                            value={schoolProfileForm.nipKepalaSekolah}
+                            onChange={(e) =>
+                              setSchoolProfileForm((prev) => ({
+                                ...prev,
+                                nipKepalaSekolah: e.target.value,
+                              }))
+                            }
+                          />
+                        </div>
+                      </div>
 
-                <div className="space-y-2">
-                  <Label>Alamat</Label>
-                  <Textarea
-                    value={schoolProfileForm.alamat}
-                    onChange={(e) =>
-                      setSchoolProfileForm((prev) => ({
-                        ...prev,
-                        alamat: e.target.value,
-                      }))
-                    }
-                    rows={2}
-                  />
-                </div>
+                      <div className="space-y-2">
+                        <Label>Alamat</Label>
+                        <Textarea
+                          value={schoolProfileForm.alamat}
+                          onChange={(e) =>
+                            setSchoolProfileForm((prev) => ({
+                              ...prev,
+                              alamat: e.target.value,
+                            }))
+                          }
+                          rows={2}
+                        />
+                      </div>
 
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                  <div className="space-y-2">
-                    <Label>Telepon</Label>
-                    <Input
-                      value={schoolProfileForm.telepon}
-                      onChange={(e) =>
-                        setSchoolProfileForm((prev) => ({
-                          ...prev,
-                          telepon: e.target.value,
-                        }))
-                      }
-                    />
-                  </div>
+                      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                        <div className="space-y-2">
+                          <Label>Telepon</Label>
+                          <Input
+                            value={schoolProfileForm.telepon}
+                            onChange={(e) =>
+                              setSchoolProfileForm((prev) => ({
+                                ...prev,
+                                telepon: e.target.value,
+                              }))
+                            }
+                          />
+                        </div>
 
-                  <div className="space-y-2">
-                    <Label>Email</Label>
-                    <Input
-                      type="email"
-                      value={schoolProfileForm.email}
-                      onChange={(e) =>
-                        setSchoolProfileForm((prev) => ({
-                          ...prev,
-                          email: e.target.value,
-                        }))
-                      }
-                    />
-                  </div>
-                </div>
+                        <div className="space-y-2">
+                          <Label>Email</Label>
+                          <Input
+                            type="email"
+                            value={schoolProfileForm.email}
+                            onChange={(e) =>
+                              setSchoolProfileForm((prev) => ({
+                                ...prev,
+                                email: e.target.value,
+                              }))
+                            }
+                          />
+                        </div>
+                      </div>
 
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                  <div className="space-y-2">
-                    <Label>Website</Label>
-                    <Input
-                      value={schoolProfileForm.website}
-                      onChange={(e) =>
-                        setSchoolProfileForm((prev) => ({
-                          ...prev,
-                          website: e.target.value,
-                        }))
-                      }
-                    />
-                  </div>
+                      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                        <div className="space-y-2">
+                          <Label>Website</Label>
+                          <Input
+                            value={schoolProfileForm.website}
+                            onChange={(e) =>
+                              setSchoolProfileForm((prev) => ({
+                                ...prev,
+                                website: e.target.value,
+                              }))
+                            }
+                          />
+                        </div>
 
-                  <div className="space-y-2">
-                    <Label>Kode Pos</Label>
-                    <Input
-                      value={schoolProfileForm.kodePos}
-                      onChange={(e) =>
-                        setSchoolProfileForm((prev) => ({
-                          ...prev,
-                          kodePos: e.target.value,
-                        }))
-                      }
-                    />
-                  </div>
-                </div>
+                        <div className="space-y-2">
+                          <Label>Kode Pos</Label>
+                          <Input
+                            value={schoolProfileForm.kodePos}
+                            onChange={(e) =>
+                              setSchoolProfileForm((prev) => ({
+                                ...prev,
+                                kodePos: e.target.value,
+                              }))
+                            }
+                          />
+                        </div>
+                      </div>
 
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                  <div className="space-y-2">
-                    <Label>Akreditasi</Label>
-                    <Input
-                      value={schoolProfileForm.akreditasi}
-                      onChange={(e) =>
-                        setSchoolProfileForm((prev) => ({
-                          ...prev,
-                          akreditasi: e.target.value,
-                        }))
-                      }
-                      placeholder="contoh: A"
-                    />
-                  </div>
+                      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                        <div className="space-y-2">
+                          <Label>Akreditasi</Label>
+                          <Input
+                            value={schoolProfileForm.akreditasi}
+                            onChange={(e) =>
+                              setSchoolProfileForm((prev) => ({
+                                ...prev,
+                                akreditasi: e.target.value,
+                              }))
+                            }
+                            placeholder="contoh: A"
+                          />
+                        </div>
 
-                  <div className="space-y-2">
-                    <Label>Tahun Akreditasi</Label>
-                    <Input
-                      type="number"
-                      value={schoolProfileForm.tahunAkreditasi}
-                      onChange={(e) =>
-                        setSchoolProfileForm((prev) => ({
-                          ...prev,
-                          tahunAkreditasi: e.target.value,
-                        }))
-                      }
-                    />
-                  </div>
-                </div>
+                        <div className="space-y-2">
+                          <Label>Tahun Akreditasi</Label>
+                          <Input
+                            type="number"
+                            value={schoolProfileForm.tahunAkreditasi}
+                            onChange={(e) =>
+                              setSchoolProfileForm((prev) => ({
+                                ...prev,
+                                tahunAkreditasi: e.target.value,
+                              }))
+                            }
+                          />
+                        </div>
+                      </div>
 
-                <div className="space-y-2">
-                  <Label>Visi</Label>
-                  <Textarea
-                    value={schoolProfileForm.visi}
-                    onChange={(e) =>
-                      setSchoolProfileForm((prev) => ({
-                        ...prev,
-                        visi: e.target.value,
-                      }))
-                    }
-                    rows={3}
-                  />
-                </div>
+                      <div className="space-y-2">
+                        <Label>Visi</Label>
+                        <Textarea
+                          value={schoolProfileForm.visi}
+                          onChange={(e) =>
+                            setSchoolProfileForm((prev) => ({
+                              ...prev,
+                              visi: e.target.value,
+                            }))
+                          }
+                          rows={3}
+                        />
+                      </div>
 
-                <div className="space-y-2">
-                  <Label>Misi</Label>
-                  <Textarea
-                    value={schoolProfileForm.misi}
-                    onChange={(e) =>
-                      setSchoolProfileForm((prev) => ({
-                        ...prev,
-                        misi: e.target.value,
-                      }))
-                    }
-                    rows={4}
-                  />
-                </div>
+                      <div className="space-y-2">
+                        <Label>Misi</Label>
+                        <Textarea
+                          value={schoolProfileForm.misi}
+                          onChange={(e) =>
+                            setSchoolProfileForm((prev) => ({
+                              ...prev,
+                              misi: e.target.value,
+                            }))
+                          }
+                          rows={4}
+                        />
+                      </div>
 
-                <div className="flex gap-2 pt-4">
-                  <Button type="submit" className="flex-1">
-                    Simpan Perubahan
-                  </Button>
-                  <Button
-                    type="button"
-                    variant="outline"
-                    onClick={() => setShowSchoolProfileDialog(false)}
-                    className="flex-1"
-                  >
-                    Batal
-                  </Button>
-                </div>
-                  </form>
-                </DialogContent>
-              </Dialog>
+                      <div className="flex gap-2 pt-4">
+                        <Button type="submit" className="flex-1">
+                          Simpan Perubahan
+                        </Button>
+                        <Button
+                          type="button"
+                          variant="outline"
+                          onClick={() => setShowSchoolProfileDialog(false)}
+                          className="flex-1"
+                        >
+                          Batal
+                        </Button>
+                      </div>
+                    </form>
+                  </DialogContent>
+                </Dialog>
               </div>
               {schoolProfile ? (
                 <div className="space-y-4">
@@ -662,7 +577,9 @@ export default function SchoolProfileManagement({
                           {schoolProfile.kepalaSekolah || "-"}
                         </div>
                         <div>
-                          <span className="font-medium">NIP Kepala Sekolah:</span>{" "}
+                          <span className="font-medium">
+                            NIP Kepala Sekolah:
+                          </span>{" "}
                           {schoolProfile.nipKepalaSekolah || "-"}
                         </div>
                         <div>
@@ -677,7 +594,9 @@ export default function SchoolProfileManagement({
                     </div>
 
                     <div>
-                      <h4 className="font-semibold text-foreground mb-2">Kontak</h4>
+                      <h4 className="font-semibold text-foreground mb-2">
+                        Kontak
+                      </h4>
                       <div className="space-y-2 text-sm">
                         <div>
                           <span className="font-medium">Telepon:</span>{" "}
@@ -700,7 +619,9 @@ export default function SchoolProfileManagement({
                   </div>
 
                   <div>
-                    <h4 className="font-semibold text-foreground mb-2">Alamat</h4>
+                    <h4 className="font-semibold text-foreground mb-2">
+                      Alamat
+                    </h4>
                     <p className="text-sm text-muted-foreground">
                       {schoolProfile.alamat || "Alamat belum diisi"}
                     </p>
@@ -748,13 +669,19 @@ export default function SchoolProfileManagement({
                   <DialogContent className="max-w-lg">
                     <DialogHeader>
                       <DialogTitle>
-                        {editingAchievement ? "Edit Prestasi" : "Tambah Prestasi"}
+                        {editingAchievement
+                          ? "Edit Prestasi"
+                          : "Tambah Prestasi"}
                       </DialogTitle>
                       <DialogDescription>
-                        {editingAchievement ? "Perbarui" : "Tambahkan"} informasi prestasi sekolah
+                        {editingAchievement ? "Perbarui" : "Tambahkan"}{" "}
+                        informasi prestasi sekolah
                       </DialogDescription>
                     </DialogHeader>
-                    <form onSubmit={handleAchievementSubmit} className="space-y-4">
+                    <form
+                      onSubmit={handleAchievementSubmit}
+                      className="space-y-4"
+                    >
                       <div className="space-y-2">
                         <Label>Nama Prestasi *</Label>
                         <Input
@@ -785,14 +712,14 @@ export default function SchoolProfileManagement({
 
                       <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                         <div className="space-y-2">
-                          <Label>Tanggal</Label>
+                          <Label>Tahun</Label>
                           <Input
-                            type="date"
-                            value={achievementForm.tanggal}
+                            type="number"
+                            value={achievementForm.tahun}
                             onChange={(e) =>
                               setAchievementForm((prev) => ({
                                 ...prev,
-                                tanggal: e.target.value,
+                                tahun: e.target.value,
                               }))
                             }
                           />
@@ -866,7 +793,9 @@ export default function SchoolProfileManagement({
                           <Button
                             size="sm"
                             variant="ghost"
-                            onClick={() => handleDeleteAchievement(achievement.id)}
+                            onClick={() =>
+                              handleDeleteAchievement(achievement.id)
+                            }
                           >
                             <Trash2 className="h-3 w-3" />
                           </Button>
@@ -878,16 +807,22 @@ export default function SchoolProfileManagement({
                       </p>
                       <div className="flex gap-2 text-xs">
                         {achievement.tingkat && (
-                          <Badge variant="secondary">{achievement.tingkat}</Badge>
+                          <Badge variant="secondary">
+                            {achievement.tingkat}
+                          </Badge>
                         )}
                         {achievement.kategori && (
-                          <Badge variant="outline">{achievement.kategori}</Badge>
+                          <Badge variant="outline">
+                            {achievement.kategori}
+                          </Badge>
                         )}
                       </div>
                       {achievement.tanggal && (
                         <div className="flex items-center gap-1 mt-2 text-xs text-muted-foreground">
                           <Calendar className="h-3 w-3" />
-                          {new Date(achievement.tanggal).toLocaleDateString('id-ID')}
+                          {new Date(achievement.tanggal).toLocaleDateString(
+                            "id-ID"
+                          )}
                         </div>
                       )}
                     </Card>
@@ -908,6 +843,7 @@ export default function SchoolProfileManagement({
                 <Dialog
                   open={showProgramDialog}
                   onOpenChange={(open) => {
+                    resetProgramForm();
                     setShowProgramDialog(open);
                     if (!open) resetProgramForm();
                   }}
@@ -924,7 +860,8 @@ export default function SchoolProfileManagement({
                         {editingProgram ? "Edit Program" : "Tambah Program"}
                       </DialogTitle>
                       <DialogDescription>
-                        {editingProgram ? "Perbarui" : "Tambahkan"} informasi program sekolah
+                        {editingProgram ? "Perbarui" : "Tambahkan"} informasi
+                        program sekolah
                       </DialogDescription>
                     </DialogHeader>
                     <form onSubmit={handleProgramSubmit} className="space-y-4">
@@ -956,44 +893,14 @@ export default function SchoolProfileManagement({
                         />
                       </div>
 
-                      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                        <div className="space-y-2">
-                          <Label>Tanggal Mulai</Label>
-                          <Input
-                            type="date"
-                            value={programForm.tanggalMulai}
-                            onChange={(e) =>
-                              setProgramForm((prev) => ({
-                                ...prev,
-                                tanggalMulai: e.target.value,
-                              }))
-                            }
-                          />
-                        </div>
-
-                        <div className="space-y-2">
-                          <Label>Tanggal Selesai</Label>
-                          <Input
-                            type="date"
-                            value={programForm.tanggalSelesai}
-                            onChange={(e) =>
-                              setProgramForm((prev) => ({
-                                ...prev,
-                                tanggalSelesai: e.target.value,
-                              }))
-                            }
-                          />
-                        </div>
-                      </div>
-
                       <div className="space-y-2">
                         <Label>Penanggung Jawab</Label>
                         <Input
-                          value={programForm.penanggungJawab}
+                          value={programForm.kepalaProgram}
                           onChange={(e) =>
                             setProgramForm((prev) => ({
                               ...prev,
-                              penanggungJawab: e.target.value,
+                              kepalaProgram: e.target.value,
                             }))
                           }
                         />
@@ -1049,7 +956,11 @@ export default function SchoolProfileManagement({
                         {program.deskripsi}
                       </p>
                       <div className="flex gap-2 text-xs mb-2">
-                        <Badge variant={program.status === "Aktif" ? "default" : "secondary"}>
+                        <Badge
+                          variant={
+                            program.status === "Aktif" ? "default" : "secondary"
+                          }
+                        >
                           {program.status}
                         </Badge>
                       </div>
@@ -1061,10 +972,20 @@ export default function SchoolProfileManagement({
                       {(program.tanggalMulai || program.tanggalSelesai) && (
                         <div className="text-xs text-muted-foreground">
                           {program.tanggalMulai && (
-                            <div>Mulai: {new Date(program.tanggalMulai).toLocaleDateString('id-ID')}</div>
+                            <div>
+                              Mulai:{" "}
+                              {new Date(
+                                program.tanggalMulai
+                              ).toLocaleDateString("id-ID")}
+                            </div>
                           )}
                           {program.tanggalSelesai && (
-                            <div>Selesai: {new Date(program.tanggalSelesai).toLocaleDateString('id-ID')}</div>
+                            <div>
+                              Selesai:{" "}
+                              {new Date(
+                                program.tanggalSelesai
+                              ).toLocaleDateString("id-ID")}
+                            </div>
                           )}
                         </div>
                       )}
@@ -1074,195 +995,6 @@ export default function SchoolProfileManagement({
                   <div className="col-span-full text-center py-8 text-muted-foreground">
                     <BookOpen className="h-12 w-12 mx-auto mb-4 opacity-50" />
                     <p>Belum ada program yang ditambahkan</p>
-                  </div>
-                )}
-              </div>
-            </TabsContent>
-
-            {/* Registration Links Tab */}
-            <TabsContent value="registration" className="mt-6">
-              <div className="flex justify-between items-center mb-4">
-                <h3 className="text-lg font-semibold">Link Pendaftaran</h3>
-                <Dialog
-                  open={showRegistrationLinkDialog}
-                  onOpenChange={(open) => {
-                    setShowRegistrationLinkDialog(open);
-                    if (!open) resetRegistrationLinkForm();
-                  }}
-                >
-                  <DialogTrigger asChild>
-                    <Button>
-                      <Plus className="h-4 w-4 mr-2" />
-                      Tambah Link
-                    </Button>
-                  </DialogTrigger>
-                  <DialogContent className="max-w-lg">
-                    <DialogHeader>
-                      <DialogTitle>
-                        {editingRegistrationLink ? "Edit Link Pendaftaran" : "Tambah Link Pendaftaran"}
-                      </DialogTitle>
-                      <DialogDescription>
-                        {editingRegistrationLink ? "Perbarui" : "Tambahkan"} link pendaftaran
-                      </DialogDescription>
-                    </DialogHeader>
-                    <form onSubmit={handleRegistrationLinkSubmit} className="space-y-4">
-                      <div className="space-y-2">
-                        <Label>Nama Link *</Label>
-                        <Input
-                          value={registrationLinkForm.nama}
-                          onChange={(e) =>
-                            setRegistrationLinkForm((prev) => ({
-                              ...prev,
-                              nama: e.target.value,
-                            }))
-                          }
-                          required
-                        />
-                      </div>
-
-                      <div className="space-y-2">
-                        <Label>URL *</Label>
-                        <Input
-                          type="url"
-                          value={registrationLinkForm.url}
-                          onChange={(e) =>
-                            setRegistrationLinkForm((prev) => ({
-                              ...prev,
-                              url: e.target.value,
-                            }))
-                          }
-                          placeholder="https://..."
-                          required
-                        />
-                      </div>
-
-                      <div className="space-y-2">
-                        <Label>Deskripsi</Label>
-                        <Textarea
-                          value={registrationLinkForm.deskripsi}
-                          onChange={(e) =>
-                            setRegistrationLinkForm((prev) => ({
-                              ...prev,
-                              deskripsi: e.target.value,
-                            }))
-                          }
-                          rows={2}
-                        />
-                      </div>
-
-                      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                        <div className="space-y-2">
-                          <Label>Tanggal Mulai</Label>
-                          <Input
-                            type="date"
-                            value={registrationLinkForm.tanggalMulai}
-                            onChange={(e) =>
-                              setRegistrationLinkForm((prev) => ({
-                                ...prev,
-                                tanggalMulai: e.target.value,
-                              }))
-                            }
-                          />
-                        </div>
-
-                        <div className="space-y-2">
-                          <Label>Tanggal Selesai</Label>
-                          <Input
-                            type="date"
-                            value={registrationLinkForm.tanggalSelesai}
-                            onChange={(e) =>
-                              setRegistrationLinkForm((prev) => ({
-                                ...prev,
-                                tanggalSelesai: e.target.value,
-                              }))
-                            }
-                          />
-                        </div>
-                      </div>
-
-                      <div className="flex gap-2 pt-4">
-                        <Button type="submit" className="flex-1">
-                          {editingRegistrationLink ? "Perbarui" : "Simpan"}
-                        </Button>
-                        <Button
-                          type="button"
-                          variant="outline"
-                          onClick={() => setShowRegistrationLinkDialog(false)}
-                          className="flex-1"
-                        >
-                          Batal
-                        </Button>
-                      </div>
-                    </form>
-                  </DialogContent>
-                </Dialog>
-              </div>
-
-              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-                {registrationLinks.length > 0 ? (
-                  registrationLinks.map((link) => (
-                    <Card key={link.id} className="p-4">
-                      <div className="flex justify-between items-start mb-2">
-                        <LinkIcon className="h-5 w-5 text-primary" />
-                        <div className="flex gap-1">
-                          <Button
-                            size="sm"
-                            variant="ghost"
-                            onClick={() => {
-                              setEditingRegistrationLink(link);
-                              setRegistrationLinkForm(link);
-                              setShowRegistrationLinkDialog(true);
-                            }}
-                          >
-                            <Edit className="h-3 w-3" />
-                          </Button>
-                          <Button
-                            size="sm"
-                            variant="ghost"
-                            onClick={() => handleDeleteRegistrationLink(link.id)}
-                          >
-                            <Trash2 className="h-3 w-3" />
-                          </Button>
-                        </div>
-                      </div>
-                      <h4 className="font-semibold mb-1">{link.nama}</h4>
-                      <p className="text-sm text-muted-foreground mb-2">
-                        {link.deskripsi}
-                      </p>
-                      <div className="flex gap-2 text-xs mb-2">
-                        <Badge variant={link.status === "Aktif" ? "default" : "secondary"}>
-                          {link.status}
-                        </Badge>
-                      </div>
-                      <div className="flex items-center gap-2 mt-2">
-                        <Button
-                          size="sm"
-                          variant="outline"
-                          asChild
-                          className="flex-1"
-                        >
-                          <a href={link.url} target="_blank" rel="noopener noreferrer">
-                            <ExternalLink className="h-3 w-3 mr-1" />
-                            Buka Link
-                          </a>
-                        </Button>
-                      </div>
-                      {(link.tanggalMulai || link.tanggalSelesai) && (
-                        <div className="text-xs text-muted-foreground mt-2">
-                          {link.tanggalMulai && (
-                            <div>Mulai: {new Date(link.tanggalMulai).toLocaleDateString('id-ID')}</div>
-                          )}
-                          {link.tanggalSelesai && (
-                            <div>Selesai: {new Date(link.tanggalSelesai).toLocaleDateString('id-ID')}</div>
-                          )}
-                        </div>
-                      )}
-                    </Card>
-                  ))
-                ) : (
-                  <div className="col-span-full text-center py-8 text-muted-foreground">
-                    <LinkIcon className="h-12 w-12 mx-auto mb-4 opacity-50" />
-                    <p>Belum ada link pendaftaran yang ditambahkan</p>
                   </div>
                 )}
               </div>

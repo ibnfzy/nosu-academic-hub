@@ -8,10 +8,11 @@
  */
 
 import sampleData from "./localData.js";
+import { normalizeData } from "../utils/helpers.js";
 
-const USE_API = false; // Set to true untuk menggunakan REST API
+const USE_API = true; // Set to true untuk menggunakan REST API
 
-const API_BASE_URL = "http://localhost:3000/api"; // Ganti dengan URL backend
+const API_BASE_URL = "https://wirnaapi.jultapp.site"; // Ganti dengan URL backend
 
 // LocalStorage Keys
 const STORAGE_KEYS = {
@@ -47,24 +48,35 @@ const apiService = {
     if (token) headers["Authorization"] = `Bearer ${token}`;
 
     const response = await fetch(url, { ...options, headers });
-    if (response.status === 401) {
-      // Token invalid/expired → logout otomatis
-      this.logout();
-      throw new Error("Unauthorized. Please login again.");
+
+    let result;
+    if (typeof response.json === "function") {
+      result = await response.json(); // fetch asli
+    } else {
+      result = response; // sudah JSON (axios / wrapper)
     }
-    return response.json();
+
+    if (response.status === 401 || result.success === false) {
+      this.logout();
+      throw new Error(result.message || "Unauthorized. Please login again.");
+    }
+
+    return result;
   },
 
   async login(username, password, role) {
     if (USE_API) {
-      const response = await this.authFetch(`${API_BASE_URL}/auth/login`, {
+      const response = await fetch(`${API_BASE_URL}/auth/login`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ username, password, role }),
       });
-      const data = await response.json();
 
-      if (data.success && data.token) {
+      const result = await response.json();
+
+      let data = result.data;
+
+      if (data?.token) {
         // Simpan user info + token
         localStorage.setItem(
           STORAGE_KEYS.CURRENT_USER,
@@ -72,7 +84,7 @@ const apiService = {
         );
       }
 
-      return data;
+      return result;
     } else {
       // LocalStorage implementation
       const users = JSON.parse(
@@ -150,7 +162,7 @@ const apiService = {
       const response = await this.authFetch(
         `${API_BASE_URL}/siswa/${studentId}/nilai?tahun=${tahun}&semester=${semester}`
       );
-      return await response.json();
+      return normalizeData(response.data);
     } else {
       const grades = JSON.parse(
         localStorage.getItem(STORAGE_KEYS.GRADES) || "[]"
@@ -169,7 +181,7 @@ const apiService = {
       const response = await this.authFetch(
         `${API_BASE_URL}/siswa/${studentId}/kehadiran?tahun=${tahun}&semester=${semester}`
       );
-      return await response.json();
+      return normalizeData(response.data);
     } else {
       const attendance = JSON.parse(
         localStorage.getItem(STORAGE_KEYS.ATTENDANCE) || "[]"
@@ -188,7 +200,7 @@ const apiService = {
       const response = await this.authFetch(
         `${API_BASE_URL}/siswa/${studentId}/raport?tahun=${tahun}&semester=${semester}`
       );
-      return await response.json();
+      return normalizeData(response.data);
     } else {
       const grades = await this.getStudentGrades(studentId, tahun, semester);
       const attendance = await this.getStudentAttendance(
@@ -248,7 +260,7 @@ const apiService = {
       const response = await this.authFetch(
         `${API_BASE_URL}/guru/${teacherId}/matapelajaran`
       );
-      return await response.json();
+      return normalizeData(response.data);
     } else {
       const subjects = JSON.parse(
         localStorage.getItem(STORAGE_KEYS.SUBJECTS) || "[]"
@@ -261,7 +273,7 @@ const apiService = {
   async getGrades() {
     if (USE_API) {
       const response = await this.authFetch(`${API_BASE_URL}/guru/grades`);
-      return await response.json();
+      return normalizeData(response.data);
     } else {
       return JSON.parse(localStorage.getItem(STORAGE_KEYS.GRADES) || "[]");
     }
@@ -270,7 +282,7 @@ const apiService = {
   async getAttendance() {
     if (USE_API) {
       const response = await this.authFetch(`${API_BASE_URL}/guru/attendance`);
-      return await response.json();
+      return normalizeData(response.data);
     } else {
       return JSON.parse(localStorage.getItem(STORAGE_KEYS.ATTENDANCE) || "[]");
     }
@@ -286,7 +298,7 @@ const apiService = {
           body: JSON.stringify(gradeData),
         }
       );
-      return await response.json();
+      return response.data;
     } else {
       const grades = JSON.parse(
         localStorage.getItem(STORAGE_KEYS.GRADES) || "[]"
@@ -312,7 +324,7 @@ const apiService = {
           body: JSON.stringify(attendanceData),
         }
       );
-      return await response.json();
+      return response.data;
     } else {
       const attendance = JSON.parse(
         localStorage.getItem(STORAGE_KEYS.ATTENDANCE) || "[]"
@@ -338,37 +350,7 @@ const apiService = {
           body: JSON.stringify(gradeData),
         }
       );
-      return await response.json();
-    } else {
-      const grades = JSON.parse(
-        localStorage.getItem(STORAGE_KEYS.GRADES) || "[]"
-      );
-      const idx = grades.findIndex((g) => g.id === gradeData.id);
-
-      if (idx !== -1) {
-        grades[idx] = {
-          ...grades[idx],
-          ...gradeData,
-          updatedAt: new Date().toISOString(),
-        };
-        localStorage.setItem(STORAGE_KEYS.GRADES, JSON.stringify(grades));
-        return { success: true, data: grades[idx] };
-      }
-      return { success: false, message: "Grade not found" };
-    }
-  },
-
-  async editGrade(teacherId, gradeData) {
-    if (USE_API) {
-      const response = await this.authFetch(
-        `${API_BASE_URL}/guru/${teacherId}/nilai/${gradeData.id}`,
-        {
-          method: "PUT",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify(gradeData),
-        }
-      );
-      return await response.json();
+      return response.data;
     } else {
       const grades = JSON.parse(
         localStorage.getItem(STORAGE_KEYS.GRADES) || "[]"
@@ -394,7 +376,7 @@ const apiService = {
         `${API_BASE_URL}/guru/${teacherId}/nilai/${gradeId}`,
         { method: "DELETE" }
       );
-      return await response.json();
+      return response.data;
     } else {
       const grades = JSON.parse(
         localStorage.getItem(STORAGE_KEYS.GRADES) || "[]"
@@ -416,7 +398,7 @@ const apiService = {
           body: JSON.stringify(attendanceData),
         }
       );
-      return await response.json();
+      return response.data;
     } else {
       const attendance = JSON.parse(
         localStorage.getItem(STORAGE_KEYS.ATTENDANCE) || "[]"
@@ -445,7 +427,7 @@ const apiService = {
         `${API_BASE_URL}/guru/${teacherId}/kehadiran/${attendanceId}`,
         { method: "DELETE" }
       );
-      return await response.json();
+      return response.data;
     } else {
       const attendance = JSON.parse(
         localStorage.getItem(STORAGE_KEYS.ATTENDANCE) || "[]"
@@ -460,7 +442,7 @@ const apiService = {
   async getUsers() {
     if (USE_API) {
       const response = await this.authFetch(`${API_BASE_URL}/admin/users`);
-      return await response.json();
+      return normalizeData(response.data);
     } else {
       const users = JSON.parse(
         localStorage.getItem(STORAGE_KEYS.USERS) || "[]"
@@ -511,7 +493,7 @@ const apiService = {
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify(userData),
       });
-      return await response.json();
+      return response.data;
     } else {
       const users = JSON.parse(
         localStorage.getItem(STORAGE_KEYS.USERS) || "[]"
@@ -537,7 +519,7 @@ const apiService = {
           body: JSON.stringify(userData),
         }
       );
-      return await response.json();
+      return response.data;
     } else {
       const users = JSON.parse(
         localStorage.getItem(STORAGE_KEYS.USERS) || "[]"
@@ -568,7 +550,7 @@ const apiService = {
           method: "DELETE",
         }
       );
-      return await response.json();
+      return response.data;
     } else {
       const users = JSON.parse(
         localStorage.getItem(STORAGE_KEYS.USERS) || "[]"
@@ -587,7 +569,7 @@ const apiService = {
   async getStudents() {
     if (USE_API) {
       const response = await this.authFetch(`${API_BASE_URL}/admin/students`);
-      return await response.json();
+      return normalizeData(response.data);
     } else {
       const students = JSON.parse(
         localStorage.getItem(STORAGE_KEYS.STUDENTS) || "[]"
@@ -603,7 +585,7 @@ const apiService = {
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify(studentData),
       });
-      return await response.json();
+      return response.data;
     } else {
       const students = JSON.parse(
         localStorage.getItem(STORAGE_KEYS.STUDENTS) || "[]"
@@ -649,7 +631,7 @@ const apiService = {
           body: JSON.stringify(studentData),
         }
       );
-      return await response.json();
+      return response.data;
     } else {
       const students = JSON.parse(
         localStorage.getItem(STORAGE_KEYS.STUDENTS) || "[]"
@@ -704,7 +686,7 @@ const apiService = {
           method: "DELETE",
         }
       );
-      return await response.json();
+      return response.data;
     } else {
       const students = JSON.parse(
         localStorage.getItem(STORAGE_KEYS.STUDENTS) || "[]"
@@ -733,7 +715,7 @@ const apiService = {
   async getTeachers() {
     if (USE_API) {
       const response = await this.authFetch(`${API_BASE_URL}/admin/teachers`);
-      return await response.json();
+      return normalizeData(response.data);
     } else {
       const teachers = JSON.parse(
         localStorage.getItem(STORAGE_KEYS.TEACHERS) || "[]"
@@ -749,7 +731,7 @@ const apiService = {
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify(teacherData),
       });
-      return await response.json();
+      return response.data;
     } else {
       const teachers = JSON.parse(
         localStorage.getItem(STORAGE_KEYS.TEACHERS) || "[]"
@@ -795,7 +777,7 @@ const apiService = {
           body: JSON.stringify(teacherData),
         }
       );
-      return await response.json();
+      return response.data;
     } else {
       const teachers = JSON.parse(
         localStorage.getItem(STORAGE_KEYS.TEACHERS) || "[]"
@@ -850,7 +832,7 @@ const apiService = {
           method: "DELETE",
         }
       );
-      return await response.json();
+      return response.data;
     } else {
       const teachers = JSON.parse(
         localStorage.getItem(STORAGE_KEYS.TEACHERS) || "[]"
@@ -879,10 +861,8 @@ const apiService = {
 
   async getSubjects() {
     if (USE_API) {
-      const response = await this.authFetch(
-        `${API_BASE_URL}/admin/matapelajaran`
-      );
-      return await response.json();
+      const response = await this.authFetch(`${API_BASE_URL}/admin/subjects`);
+      return normalizeData(response.data);
     } else {
       const subjects = JSON.parse(
         localStorage.getItem(STORAGE_KEYS.SUBJECTS) || "[]"
@@ -893,15 +873,12 @@ const apiService = {
 
   async addSubject(subjectData) {
     if (USE_API) {
-      const response = await this.authFetch(
-        `${API_BASE_URL}/admin/matapelajaran`,
-        {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify(subjectData),
-        }
-      );
-      return await response.json();
+      const response = await this.authFetch(`${API_BASE_URL}/admin/subjects`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(subjectData),
+      });
+      return response.data;
     } else {
       const subjects = JSON.parse(
         localStorage.getItem(STORAGE_KEYS.SUBJECTS) || "[]"
@@ -920,14 +897,14 @@ const apiService = {
   async updateSubject(subjectId, subjectData) {
     if (USE_API) {
       const response = await this.authFetch(
-        `${API_BASE_URL}/admin/matapelajaran/${subjectId}`,
+        `${API_BASE_URL}/admin/subjects/${subjectId}`,
         {
           method: "PUT",
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify(subjectData),
         }
       );
-      return await response.json();
+      return response.data;
     } else {
       const subjects = JSON.parse(
         localStorage.getItem(STORAGE_KEYS.SUBJECTS) || "[]"
@@ -950,12 +927,12 @@ const apiService = {
   async deleteSubject(subjectId) {
     if (USE_API) {
       const response = await this.authFetch(
-        `${API_BASE_URL}/admin/matapelajaran/${subjectId}`,
+        `${API_BASE_URL}/admin/subjects/${subjectId}`,
         {
           method: "DELETE",
         }
       );
-      return await response.json();
+      return response.data;
     } else {
       const subjects = JSON.parse(
         localStorage.getItem(STORAGE_KEYS.SUBJECTS) || "[]"
@@ -971,8 +948,8 @@ const apiService = {
 
   async getClasses() {
     if (USE_API) {
-      const response = await this.authFetch(`${API_BASE_URL}/admin/kelas`);
-      return await response.json();
+      const response = await this.authFetch(`${API_BASE_URL}/admin/classes`);
+      return normalizeData(response.data);
     } else {
       const classes = JSON.parse(
         localStorage.getItem(STORAGE_KEYS.CLASSES) || "[]"
@@ -983,12 +960,12 @@ const apiService = {
 
   async addClass(classData) {
     if (USE_API) {
-      const response = await this.authFetch(`${API_BASE_URL}/admin/kelas`, {
+      const response = await this.authFetch(`${API_BASE_URL}/admin/classes`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify(classData),
       });
-      return await response.json();
+      return response.data;
     } else {
       const classes = JSON.parse(
         localStorage.getItem(STORAGE_KEYS.CLASSES) || "[]"
@@ -1007,14 +984,14 @@ const apiService = {
   async updateClass(classId, classData) {
     if (USE_API) {
       const response = await this.authFetch(
-        `${API_BASE_URL}/admin/kelas/${classId}`,
+        `${API_BASE_URL}/admin/classes/${classId}`,
         {
           method: "PUT",
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify(classData),
         }
       );
-      return await response.json();
+      return response.data;
     } else {
       const classes = JSON.parse(
         localStorage.getItem(STORAGE_KEYS.CLASSES) || "[]"
@@ -1037,12 +1014,12 @@ const apiService = {
   async deleteClass(classId) {
     if (USE_API) {
       const response = await this.authFetch(
-        `${API_BASE_URL}/admin/kelas/${classId}`,
+        `${API_BASE_URL}/admin/classes/${classId}`,
         {
           method: "DELETE",
         }
       );
-      return await response.json();
+      return response.data;
     } else {
       const classes = JSON.parse(
         localStorage.getItem(STORAGE_KEYS.CLASSES) || "[]"
@@ -1057,12 +1034,12 @@ const apiService = {
   },
 
   // ============= WALIKELAS METHODS =============
-  async getClassStudents(walikelasId) {
+  async getClassStudents(classId) {
     if (USE_API) {
       const response = await this.authFetch(
-        `${API_BASE_URL}/walikelas/${walikelasId}/kelas/siswa`
+        `${API_BASE_URL}/walikelas/${classId}/kelas/siswa`
       );
-      return await response.json();
+      return normalizeData(response.data);
     } else {
       const students = JSON.parse(
         localStorage.getItem(STORAGE_KEYS.STUDENTS) || "[]"
@@ -1096,7 +1073,7 @@ const apiService = {
       const response = await this.authFetch(
         `${API_BASE_URL}/walikelas/${walikelasId}/kelas/nilai?tahun=${tahun}&semester=${semester}`
       );
-      return await response.json();
+      return normalizeData(response.data);
     } else {
       const grades = JSON.parse(
         localStorage.getItem(STORAGE_KEYS.GRADES) || "[]"
@@ -1112,7 +1089,7 @@ const apiService = {
       const response = await this.authFetch(
         `${API_BASE_URL}/walikelas/${walikelasId}/kelas/kehadiran?tahun=${tahun}&semester=${semester}`
       );
-      return await response.json();
+      return normalizeData(response.data);
     } else {
       const attendance = JSON.parse(
         localStorage.getItem(STORAGE_KEYS.ATTENDANCE) || "[]"
@@ -1133,7 +1110,7 @@ const apiService = {
           body: JSON.stringify(studentData),
         }
       );
-      return await response.json();
+      return response.data;
     } else {
       const students = JSON.parse(
         localStorage.getItem(STORAGE_KEYS.STUDENTS) || "[]"
@@ -1195,7 +1172,7 @@ const apiService = {
           body: JSON.stringify(studentData),
         }
       );
-      return await response.json();
+      return response.data;
     } else {
       const students = JSON.parse(
         localStorage.getItem(STORAGE_KEYS.STUDENTS) || "[]"
@@ -1257,7 +1234,7 @@ const apiService = {
           method: "DELETE",
         }
       );
-      return await response.json();
+      return response.data;
     } else {
       const students = JSON.parse(
         localStorage.getItem(STORAGE_KEYS.STUDENTS) || "[]"
@@ -1295,7 +1272,7 @@ const apiService = {
           method: "PUT",
         }
       );
-      return await response.json();
+      return normalizeData(response.data);
     } else {
       const grades = JSON.parse(
         localStorage.getItem(STORAGE_KEYS.GRADES) || "[]"
@@ -1317,7 +1294,7 @@ const apiService = {
       const response = await this.authFetch(
         `${API_BASE_URL}/walikelas/${walikelasId}/siswa/${studentId}/raport?tahun=${tahun}&semester=${semester}`
       );
-      return await response.json();
+      return response.data;
     } else {
       const students = JSON.parse(
         localStorage.getItem(STORAGE_KEYS.STUDENTS) || "[]"
@@ -1370,10 +1347,8 @@ const apiService = {
   // ============= SCHOOL PROFILE METHODS =============
   async getSchoolProfile() {
     if (USE_API) {
-      const response = await this.authFetch(
-        `${API_BASE_URL}/admin/school-profile`
-      );
-      return await response.json();
+      const response = await this.authFetch(`${API_BASE_URL}/school-profile`);
+      return response.data;
     } else {
       const profile = JSON.parse(
         localStorage.getItem(STORAGE_KEYS.SCHOOL_PROFILE) || "null"
@@ -1392,7 +1367,7 @@ const apiService = {
           body: JSON.stringify(profileData),
         }
       );
-      return await response.json();
+      return response.data;
     } else {
       const profile = {
         ...profileData,
@@ -1408,10 +1383,8 @@ const apiService = {
 
   async getAchievements() {
     if (USE_API) {
-      const response = await this.authFetch(
-        `${API_BASE_URL}/admin/achievements`
-      );
-      return await response.json();
+      const response = await this.authFetch(`${API_BASE_URL}/achievements`);
+      return normalizeData(response.data);
     } else {
       const achievements = JSON.parse(
         localStorage.getItem(STORAGE_KEYS.ACHIEVEMENTS) || "[]"
@@ -1430,7 +1403,7 @@ const apiService = {
           body: JSON.stringify(achievementData),
         }
       );
-      return await response.json();
+      return response.data;
     } else {
       const achievements = JSON.parse(
         localStorage.getItem(STORAGE_KEYS.ACHIEVEMENTS) || "[]"
@@ -1459,7 +1432,7 @@ const apiService = {
           body: JSON.stringify(achievementData),
         }
       );
-      return await response.json();
+      return response.data;
     } else {
       const achievements = JSON.parse(
         localStorage.getItem(STORAGE_KEYS.ACHIEVEMENTS) || "[]"
@@ -1492,7 +1465,7 @@ const apiService = {
           method: "DELETE",
         }
       );
-      return await response.json();
+      return response.data;
     } else {
       const achievements = JSON.parse(
         localStorage.getItem(STORAGE_KEYS.ACHIEVEMENTS) || "[]"
@@ -1505,8 +1478,8 @@ const apiService = {
 
   async getPrograms() {
     if (USE_API) {
-      const response = await this.authFetch(`${API_BASE_URL}/admin/programs`);
-      return await response.json();
+      const response = await this.authFetch(`${API_BASE_URL}/programs`);
+      return normalizeData(response.data);
     } else {
       const programs = JSON.parse(
         localStorage.getItem(STORAGE_KEYS.PROGRAMS) || "[]"
@@ -1522,7 +1495,7 @@ const apiService = {
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify(programData),
       });
-      return await response.json();
+      return response.data;
     } else {
       const programs = JSON.parse(
         localStorage.getItem(STORAGE_KEYS.PROGRAMS) || "[]"
@@ -1548,7 +1521,7 @@ const apiService = {
           body: JSON.stringify(programData),
         }
       );
-      return await response.json();
+      return response.data;
     } else {
       const programs = JSON.parse(
         localStorage.getItem(STORAGE_KEYS.PROGRAMS) || "[]"
@@ -1576,7 +1549,7 @@ const apiService = {
           method: "DELETE",
         }
       );
-      return await response.json();
+      return response.data;
     } else {
       const programs = JSON.parse(
         localStorage.getItem(STORAGE_KEYS.PROGRAMS) || "[]"
@@ -1592,7 +1565,7 @@ const apiService = {
       const response = await this.authFetch(
         `${API_BASE_URL}/admin/registration-links`
       );
-      return await response.json();
+      return normalizeData(response.data);
     } else {
       const registrationLinks = JSON.parse(
         localStorage.getItem(STORAGE_KEYS.REGISTRATION_LINKS) || "[]"
@@ -1611,7 +1584,7 @@ const apiService = {
           body: JSON.stringify(linkData),
         }
       );
-      return await response.json();
+      return response.data;
     } else {
       const registrationLinks = JSON.parse(
         localStorage.getItem(STORAGE_KEYS.REGISTRATION_LINKS) || "[]"
@@ -1641,7 +1614,7 @@ const apiService = {
           body: JSON.stringify(linkData),
         }
       );
-      return await response.json();
+      return response.data;
     } else {
       const registrationLinks = JSON.parse(
         localStorage.getItem(STORAGE_KEYS.REGISTRATION_LINKS) || "[]"
@@ -1674,7 +1647,7 @@ const apiService = {
           method: "DELETE",
         }
       );
-      return await response.json();
+      return response.data;
     } else {
       const registrationLinks = JSON.parse(
         localStorage.getItem(STORAGE_KEYS.REGISTRATION_LINKS) || "[]"
@@ -1685,6 +1658,53 @@ const apiService = {
         JSON.stringify(filtered)
       );
       return { success: true };
+    }
+  },
+
+  async getUsersHomepage() {
+    if (USE_API) {
+      const response = await this.authFetch(`${API_BASE_URL}/users`);
+      return normalizeData(response.data);
+    } else {
+      const users = JSON.parse(
+        localStorage.getItem(STORAGE_KEYS.USERS) || "[]"
+      );
+      const students = JSON.parse(
+        localStorage.getItem(STORAGE_KEYS.STUDENTS) || "[]"
+      );
+      const teachers = JSON.parse(
+        localStorage.getItem(STORAGE_KEYS.TEACHERS) || "[]"
+      );
+
+      return users.map((u) => {
+        let extraData = {};
+
+        if (u.role === "siswa") {
+          const student = students.find((s) => s.userId === u.id);
+          extraData = {
+            nama: student?.nama || u.username,
+            nisn: student?.nisn || null,
+            kelasId: student?.kelasId || null,
+          };
+        } else if (u.role === "guru" || u.role === "walikelas") {
+          const teacher = teachers.find((t) => t.userId === u.id);
+          extraData = {
+            nama: teacher?.nama || u.username,
+            nip: teacher?.nip || null,
+            kelasId: teacher?.kelasId || null,
+          };
+        } else if (u.role === "admin") {
+          extraData = {
+            nama: "-", // admin tidak punya nama guru/siswa
+          };
+        }
+
+        return {
+          ...u,
+          ...extraData,
+          password: undefined, // jangan expose password
+        };
+      });
     }
   },
 

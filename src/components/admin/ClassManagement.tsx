@@ -45,6 +45,7 @@ export default function ClassManagement({
     nama: "",
     tingkat: "",
     walikelasId: "",
+    jurusan: "",
   });
 
   const { toast } = useToast();
@@ -87,7 +88,7 @@ export default function ClassManagement({
     try {
       const classData = {
         ...classForm,
-        id: editingItem ? editingItem.id : Date.now().toString(),
+        ...(editingItem?.id && { id: editingItem.id }),
       };
 
       let result;
@@ -146,6 +147,7 @@ export default function ClassManagement({
       nama: "",
       tingkat: "",
       walikelasId: "unassigned",
+      jurusan: "unassigned",
     });
     setEditingItem(null);
   };
@@ -162,6 +164,11 @@ export default function ClassManagement({
     }
     const walikelas = users.find((u) => u.id === userId);
     return walikelas ? walikelas.nama : "Belum ditentukan";
+  };
+
+  const getSeleectWalikelasName = (userId) => {
+    const wk = users.find((u) => String(u.id) === String(userId));
+    return wk ? wk.nama : "Pilih Walikelas";
   };
 
   const availableWalikelas = users.filter(
@@ -213,6 +220,24 @@ export default function ClassManagement({
                 </div>
 
                 <div className="space-y-2">
+                  <Label>Jurusan *</Label>
+                  <Select
+                    value={classForm.jurusan}
+                    onValueChange={(value) =>
+                      setClassForm((prev) => ({ ...prev, jurusan: value }))
+                    }
+                  >
+                    <SelectTrigger>
+                      <SelectValue placeholder="Pilih Jurusan" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="IPA">IPA</SelectItem>
+                      <SelectItem value="IPS">IPS</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+
+                <div className="space-y-2">
                   <Label>Tingkat *</Label>
                   <Select
                     value={classForm.tingkat}
@@ -240,7 +265,9 @@ export default function ClassManagement({
                     }
                   >
                     <SelectTrigger>
-                      <SelectValue placeholder="Pilih wali kelas" />
+                      <SelectValue placeholder="Pilih wali kelas">
+                        {getSeleectWalikelasName(classForm.walikelasId)}
+                      </SelectValue>
                     </SelectTrigger>
                     <SelectContent>
                       <SelectItem value="unassigned">
@@ -280,6 +307,7 @@ export default function ClassManagement({
             <TableHeader>
               <TableRow>
                 <TableHead>Nama Kelas</TableHead>
+                <TableHead>Jurusan</TableHead>
                 <TableHead>Tingkat</TableHead>
                 <TableHead>Wali Kelas</TableHead>
                 <TableHead className="text-right">Aksi</TableHead>
@@ -290,6 +318,7 @@ export default function ClassManagement({
                 classes.map((kelas) => (
                   <TableRow key={kelas.id}>
                     <TableCell className="font-medium">{kelas.nama}</TableCell>
+                    <TableCell>{kelas.jurusan}</TableCell>
                     <TableCell>Kelas {kelas.tingkat}</TableCell>
                     <TableCell>{getWalikelasName(kelas.walikelasId)}</TableCell>
                     <TableCell className="text-right">

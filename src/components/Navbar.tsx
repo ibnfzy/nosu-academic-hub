@@ -84,33 +84,34 @@ const Navbar = ({ currentUser, onLogin, onLogout }) => {
         loginData.role
       );
 
-      if (result.success) {
-        onLogin(result.user);
-        setShowLogin(false);
-        setLoginData({ username: "", password: "", role: "" });
-
-        toast({
-          title: "Login Berhasil",
-          description: `Selamat datang, ${result.user.nama}!`,
-        });
-
-        // Redirect ke dashboard sesuai role
-        navigate(`/dashboard/${result.user.role}`);
-      } else {
+      if (!result?.success) {
         toast({
           title: "Login Gagal",
-          description: result.message || "Username atau password salah",
+          description: result?.message || "Username atau password salah",
           variant: "destructive",
         });
+        return;
       }
+
+      const user = result.data.user;
+
+      onLogin(user); // ✅ gunakan user dari result.data.user
+      setShowLogin(false);
+      setLoginData({ username: "", password: "", role: "" });
+
+      // ✅ navigate setelah login berhasil
+      navigate(`/dashboard/${user.role}`);
+
+      toast({
+        title: "Login Berhasil",
+        description: `Selamat datang, ${user.nama}!`,
+      });
     } catch (error) {
       toast({
         title: "Error",
-        description: "Terjadi kesalahan sistem",
+        description: `Terjadi kesalahan sistem, error message : ${error}`,
         variant: "destructive",
       });
-
-      console.log(error);
     } finally {
       setIsLoading(false);
     }

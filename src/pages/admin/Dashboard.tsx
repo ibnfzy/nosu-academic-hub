@@ -81,7 +81,6 @@ const AdminDashboard = ({ currentUser, onLogout }) => {
         description: "Gagal memuat data admin",
         variant: "destructive",
       });
-      console.log(error);
     } finally {
       setLoading(false);
     }

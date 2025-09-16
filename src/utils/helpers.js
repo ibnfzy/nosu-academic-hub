@@ -246,7 +246,7 @@ export const groupGradesBySubject = (grades) => {
     if (!grouped[subjectId]) {
       grouped[subjectId] = {
         subjectId,
-        subjectName: getSubjectName(subjectId),
+        subjectName: grade.subjectName,
         kuis: [],
         tugas: [],
         uts: null,
@@ -285,6 +285,35 @@ export const groupGradesBySubject = (grades) => {
   return grouped;
 };
 
+export const getFinalGrade = (finalGradeArr) => {
+  if (!Array.isArray(finalGradeArr) || finalGradeArr.length === 0) {
+    return 0; // default kalau kosong
+  }
+
+  const total = finalGradeArr.reduce((sum, val) => sum + val, 0);
+  const average = total / finalGradeArr.length;
+
+  return parseFloat(average.toFixed(2)); // hasil rata-rata 2 digit desimal
+};
+
+export const normalizeData = (data) => {
+  // kalau sudah array, kembalikan apa adanya
+  if (Array.isArray(data)) return data;
+
+  // kalau object, ambil values → jadikan array
+  if (typeof data === "object" && data !== null) {
+    return Object.values(data).filter(
+      (item) =>
+        typeof item === "object" ||
+        typeof item === "string" ||
+        typeof item === "number"
+    );
+  }
+
+  // fallback → bungkus jadi array
+  return [data];
+};
+
 /**
  * Generate raport HTML untuk print
  * @param {Object} reportData - Data raport
@@ -303,9 +332,21 @@ export const generateReportHTML = (reportData) => {
 
   if (!student) return "";
 
-  const groupedGrades = groupGradesBySubject(grades);
-  const averageGrade = calculateAverage(grades);
+  // Pastikan grades jadi array dan nilai float
+  const gradesArray = Array.isArray(grades)
+    ? grades
+    : Object.values(grades).filter((item) => typeof item === "object");
+
+  // Convert nilai ke float
+  const normalizedGrades = gradesArray.map((g) => ({
+    ...g,
+    nilai: g.nilai !== undefined ? parseFloat(g.nilai) : null,
+  }));
+
+  const groupedGrades = groupGradesBySubject(gradesArray);
+  const averageGrade = calculateAverage(normalizedGrades);
   const attendanceStats = calculateAttendanceStats(attendance);
+  const finalGradeArr = [];
 
   return `
     <!DOCTYPE html>
@@ -432,12 +473,20 @@ export const generateReportHTML = (reportData) => {
         <tbody>
           ${Object.values(groupedGrades)
             .map((subject, index) => {
-              const finalGrade =
-                subject.uas?.nilai ||
-                subject.uts?.nilai ||
-                subject.nilaiHarian ||
-                subject.rataUlangan ||
-                0;
+              const finalGrade = (() => {
+                const nilaiHarian = parseFloat(subject.nilaiHarian) || 0;
+                const uts = parseFloat(subject.uts?.nilai) || 0;
+                const uas = parseFloat(subject.uas?.nilai) || 0;
+
+                const total = nilaiHarian + uts + uas;
+                const average = total / 3;
+
+                const final = parseFloat(average.toFixed(2));
+
+                finalGradeArr.push(final);
+
+                return final; // dua digit desimal
+              })();
               return `
             <tr>
               <td>${index + 1}</td>
@@ -461,9 +510,9 @@ export const generateReportHTML = (reportData) => {
       </table>
       
       <div style="margin-bottom: 20px;">
-        <p><strong>Nilai Rata-rata:</strong> ${averageGrade} (${getGradePredicate(
-    averageGrade
-  )})</p>
+        <p><strong>Nilai Rata-rata:</strong> ${getFinalGrade(
+          finalGradeArr
+        )} (${getGradePredicate(getFinalGrade(finalGradeArr))})</p>
         <p><strong>Kehadiran:</strong> Hadir: ${
           attendanceStats.hadir
         }, Sakit: ${attendanceStats.sakit}, Alfa: ${

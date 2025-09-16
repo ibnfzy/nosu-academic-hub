@@ -114,14 +114,14 @@ const WalikelasaDashboard = ({ currentUser, onLogout }) => {
       const [classesData, studentsData, gradesData, attendanceData] =
         await Promise.all([
           apiService.getClasses(),
-          apiService.getClassStudents(currentUser.id),
+          apiService.getClassStudents(currentUser.kelasId),
           apiService.getClassGrades(
-            currentUser.id,
+            currentUser.kelasId,
             selectedPeriod.tahun,
             selectedPeriod.semester
           ),
           apiService.getClassAttendance(
-            currentUser.id,
+            currentUser.kelasId,
             selectedPeriod.tahun,
             selectedPeriod.semester
           ),
@@ -135,8 +135,6 @@ const WalikelasaDashboard = ({ currentUser, onLogout }) => {
       setStudents(studentsData);
       setGrades(gradesData);
       setAttendance(attendanceData);
-
-      console.log(grades);
     } catch (error) {
       toast({
         title: "Error",
@@ -160,19 +158,62 @@ const WalikelasaDashboard = ({ currentUser, onLogout }) => {
       return;
     }
 
+    // 🔹 Validasi duplikasi NISN & Username
+    const nisnExists = students.some(
+      (s) => s.nisn === studentForm.nisn && s.id !== editingStudent?.id
+    );
+    const usernameExists = students.some(
+      (s) => s.username === studentForm.username && s.id !== editingStudent?.id
+    );
+
+    if (nisnExists) {
+      toast({
+        title: "Error",
+        description: "NISN sudah digunakan oleh siswa lain",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    if (usernameExists) {
+      toast({
+        title: "Error",
+        description: "Username sudah digunakan oleh siswa lain",
+        variant: "destructive",
+      });
+      return;
+    }
+
     try {
       const studentData = {
-        ...studentForm,
-        id: editingStudent ? editingStudent.id : Date.now().toString(),
-        role: "siswa",
-        kelasId: currentUser.kelasId, // Assuming walikelas has kelasId
+        users: {
+          // data akun untuk tabel users
+          username: studentForm.nisn, // misalnya pakai NISN sebagai username
+          password: studentForm.password || "default123", // bisa pakai default
+          role: "siswa",
+          email: studentForm.email,
+        },
+        students: {
+          // data detail siswa untuk tabel students
+          ...(editingStudent?.id && { id: editingStudent.id }),
+          nama: studentForm.nama,
+          nisn: studentForm.nisn,
+          kelasId: currentUser.kelasId, // dari walikelas
+          alamat: studentForm.alamat,
+          tanggalLahir: studentForm.tanggalLahir,
+          jenisKelamin: studentForm.jenisKelamin,
+          namaOrangTua: studentForm.namaOrangTua,
+          pekerjaanOrangTua: studentForm.pekerjaanOrangTua,
+          nomorHP: studentForm.nomorHP,
+          tahunMasuk: studentForm.tahunMasuk,
+        },
       };
 
       let result;
       if (editingStudent) {
         result = await apiService.updateClassStudent(
           currentUser.id,
-          studentData.id,
+          studentData.students.id,
           studentData
         );
       } else {
@@ -351,7 +392,6 @@ const WalikelasaDashboard = ({ currentUser, onLogout }) => {
 
       printReport(reportData); // langsung kirim ke printer/pdf
     } catch (error) {
-      console.error("Error print report:", error);
       toast({
         title: "Error",
         description: "Gagal mencetak raport",

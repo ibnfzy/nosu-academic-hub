@@ -1,14 +1,14 @@
-import { useState, useEffect } from 'react';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { Badge } from '@/components/ui/badge';
-import { Button } from '@/components/ui/button';
-import { 
-  Select, 
-  SelectContent, 
-  SelectItem, 
-  SelectTrigger, 
-  SelectValue 
-} from '@/components/ui/select';
+import { useState, useEffect } from "react";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 import {
   User,
   BookOpen,
@@ -16,36 +16,56 @@ import {
   Calendar,
   BarChart3,
   TrendingUp,
-  Clock
-} from 'lucide-react';
-import { useToast } from '@/hooks/use-toast';
-import apiService from '@/services/apiService';
-import { 
-  calculateAverage, 
-  calculateAttendanceStats, 
-  getGradeColor, 
+  Clock,
+} from "lucide-react";
+import { useToast } from "@/hooks/use-toast";
+import apiService from "@/services/apiService";
+import {
+  calculateAverage,
+  calculateAttendanceStats,
+  getGradeColor,
   getAttendanceStatus,
   formatDate,
   printReport,
-  getSubjectName
-} from '@/utils/helpers';
-import SiswaNavbar from '@/components/SiswaNavbar';
+  getSubjectName,
+} from "@/utils/helpers";
+import SiswaNavbar from "@/components/SiswaNavbar";
+
+interface Grade {
+  id: number;
+  studentId: number;
+  kelasId: number;
+  subjectId: number;
+  teacherId: number;
+  tahunAjaran: string;
+  semester: number;
+  tanggal: string;
+  status: string;
+  keterangan: string;
+  createdAt: string;
+  subjectName: string;
+  nilai?: string | number;
+}
 
 const StudentDashboard = ({ currentUser, onLogout }) => {
   const [grades, setGrades] = useState([]);
   const [attendance, setAttendance] = useState([]);
-  const [activeSection, setActiveSection] = useState('nilai');
+  const [activeSection, setActiveSection] = useState("nilai");
   const [selectedPeriod, setSelectedPeriod] = useState({
-    tahun: '2024/2025',
-    semester: 1
+    tahun: "2024/2025",
+    semester: 1,
   });
   const [loading, setLoading] = useState(false);
   const { toast } = useToast();
 
   const academicPeriods = [
-    { tahun: '2023/2024', semester: 1, label: '2023/2024 - Semester Ganjil' },
-    { tahun: '2023/2024', semester: 2, label: '2023/2024 - Semester Genap' },
-    { tahun: '2024/2025', semester: 1, label: '2024/2025 - Semester Ganjil (Aktif)' }
+    { tahun: "2023/2024", semester: 1, label: "2023/2024 - Semester Ganjil" },
+    { tahun: "2023/2024", semester: 2, label: "2023/2024 - Semester Genap" },
+    {
+      tahun: "2024/2025",
+      semester: 1,
+      label: "2024/2025 - Semester Ganjil (Aktif)",
+    },
   ];
 
   useEffect(() => {
@@ -57,18 +77,35 @@ const StudentDashboard = ({ currentUser, onLogout }) => {
   const loadStudentData = async () => {
     setLoading(true);
     try {
-      const [gradesData, attendanceData] = await Promise.all([
+      const [gradesResponse, attendanceResponse] = await Promise.all([
         apiService.getStudentGrades(
-          currentUser.id, 
-          selectedPeriod.tahun, 
+          currentUser.id,
+          selectedPeriod.tahun,
           selectedPeriod.semester
         ),
         apiService.getStudentAttendance(
-          currentUser.id, 
-          selectedPeriod.tahun, 
+          currentUser.id,
+          selectedPeriod.tahun,
           selectedPeriod.semester
-        )
+        ),
       ]);
+
+      const gradesData: Grade[] = Array.isArray(gradesResponse)
+        ? (gradesResponse as Grade[])
+        : (
+            Object.values(gradesResponse).filter(
+              (item): item is Grade => typeof item === "object"
+            ) as Grade[]
+          ).map((item) => ({
+            ...item,
+            nilai: item.nilai ? parseFloat(item.nilai as string) : 0,
+          }));
+
+      const attendanceData = Array.isArray(attendanceResponse)
+        ? attendanceResponse
+        : Object.values(attendanceResponse).filter(
+            (item) => typeof item === "object"
+          );
 
       setGrades(gradesData);
       setAttendance(attendanceData);
@@ -76,7 +113,7 @@ const StudentDashboard = ({ currentUser, onLogout }) => {
       toast({
         title: "Error",
         description: "Gagal memuat data siswa",
-        variant: "destructive"
+        variant: "destructive",
       });
     } finally {
       setLoading(false);
@@ -90,13 +127,13 @@ const StudentDashboard = ({ currentUser, onLogout }) => {
         selectedPeriod.tahun,
         selectedPeriod.semester
       );
-      
+
       printReport(reportData);
     } catch (error) {
       toast({
         title: "Error",
         description: "Gagal mencetak raport",
-        variant: "destructive"
+        variant: "destructive",
       });
     }
   };
@@ -105,14 +142,14 @@ const StudentDashboard = ({ currentUser, onLogout }) => {
   const attendanceStats = calculateAttendanceStats(attendance);
 
   const subjectGrades = grades.reduce((acc, grade) => {
-    const subject = acc.find(s => s.subjectId === grade.subjectId);
+    const subject = acc.find((s) => s.subjectId === grade.subjectId);
     if (subject) {
       subject.grades.push(grade);
     } else {
       acc.push({
         subjectId: grade.subjectId,
-        subjectName: getSubjectName(grade.subjectId),
-        grades: [grade]
+        subjectName: grade.subjectName,
+        grades: [grade],
       });
     }
     return acc;
@@ -129,14 +166,16 @@ const StudentDashboard = ({ currentUser, onLogout }) => {
             </div>
             <div>
               <h1 className="text-xl md:text-2xl font-bold">Dashboard Siswa</h1>
-              <p className="opacity-90 text-sm md:text-base">Selamat datang, {currentUser?.nama}</p>
+              <p className="opacity-90 text-sm md:text-base">
+                Selamat datang, {currentUser?.nama}
+              </p>
             </div>
           </div>
         </div>
       </div>
 
       {/* Navigation */}
-      <SiswaNavbar 
+      <SiswaNavbar
         activeSection={activeSection}
         setActiveSection={setActiveSection}
         onLogout={onLogout}
@@ -149,15 +188,17 @@ const StudentDashboard = ({ currentUser, onLogout }) => {
           <CardContent className="p-4">
             <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center space-y-4 sm:space-y-0">
               <div>
-                <h3 className="font-semibold text-foreground">Filter Periode Akademik</h3>
+                <h3 className="font-semibold text-foreground">
+                  Filter Periode Akademik
+                </h3>
                 <p className="text-sm text-muted-foreground">
                   Pilih tahun ajaran dan semester yang ingin dilihat
                 </p>
               </div>
-              <Select 
+              <Select
                 value={`${selectedPeriod.tahun}-${selectedPeriod.semester}`}
                 onValueChange={(value) => {
-                  const [tahun, semester] = value.split('-');
+                  const [tahun, semester] = value.split("-");
                   setSelectedPeriod({ tahun, semester: parseInt(semester) });
                 }}
               >
@@ -166,7 +207,7 @@ const StudentDashboard = ({ currentUser, onLogout }) => {
                 </SelectTrigger>
                 <SelectContent>
                   {academicPeriods.map((period) => (
-                    <SelectItem 
+                    <SelectItem
                       key={`${period.tahun}-${period.semester}`}
                       value={`${period.tahun}-${period.semester}`}
                     >
@@ -188,8 +229,12 @@ const StudentDashboard = ({ currentUser, onLogout }) => {
                   <BarChart3 className="h-8 w-8 text-primary" />
                 </div>
                 <div>
-                  <p className="text-2xl font-bold text-foreground">{averageGrade}</p>
-                  <p className="text-sm text-muted-foreground">Nilai Rata-rata</p>
+                  <p className="text-2xl font-bold text-foreground">
+                    {averageGrade}
+                  </p>
+                  <p className="text-sm text-muted-foreground">
+                    Nilai Rata-rata
+                  </p>
                 </div>
               </div>
             </CardContent>
@@ -202,7 +247,9 @@ const StudentDashboard = ({ currentUser, onLogout }) => {
                   <TrendingUp className="h-8 w-8 text-success" />
                 </div>
                 <div>
-                  <p className="text-2xl font-bold text-foreground">{attendanceStats.persentase}%</p>
+                  <p className="text-2xl font-bold text-foreground">
+                    {attendanceStats.persentase}%
+                  </p>
                   <p className="text-sm text-muted-foreground">Kehadiran</p>
                 </div>
               </div>
@@ -216,8 +263,12 @@ const StudentDashboard = ({ currentUser, onLogout }) => {
                   <BookOpen className="h-8 w-8 text-accent" />
                 </div>
                 <div>
-                  <p className="text-2xl font-bold text-foreground">{subjectGrades.length}</p>
-                  <p className="text-sm text-muted-foreground">Mata Pelajaran</p>
+                  <p className="text-2xl font-bold text-foreground">
+                    {subjectGrades.length}
+                  </p>
+                  <p className="text-sm text-muted-foreground">
+                    Mata Pelajaran
+                  </p>
                 </div>
               </div>
             </CardContent>
@@ -227,7 +278,7 @@ const StudentDashboard = ({ currentUser, onLogout }) => {
         {/* Main Content */}
         <div className="space-y-6">
           {/* Nilai Section */}
-          {activeSection === 'nilai' && (
+          {activeSection === "nilai" && (
             <Card className="shadow-soft">
               <CardHeader>
                 <CardTitle>Daftar Nilai</CardTitle>
@@ -236,18 +287,20 @@ const StudentDashboard = ({ currentUser, onLogout }) => {
                 {loading ? (
                   <div className="text-center py-8">
                     <Clock className="h-8 w-8 animate-spin mx-auto mb-4 text-muted-foreground" />
-                    <p className="text-muted-foreground">Memuat data nilai...</p>
+                    <p className="text-muted-foreground">
+                      Memuat data nilai...
+                    </p>
                   </div>
                 ) : grades.length > 0 ? (
                   <div className="space-y-4">
                     {grades.map((grade) => (
-                      <div 
+                      <div
                         key={grade.id}
                         className="flex justify-between items-center p-4 border border-border rounded-lg"
                       >
                         <div>
                           <h4 className="font-medium text-foreground">
-                            {getSubjectName(grade.subjectId)}
+                            {grade.subjectName}
                           </h4>
                           <div className="flex items-center space-x-4 mt-1">
                             <Badge variant="outline" className="text-xs">
@@ -256,15 +309,23 @@ const StudentDashboard = ({ currentUser, onLogout }) => {
                             <span className="text-xs text-muted-foreground">
                               {formatDate(grade.tanggal)}
                             </span>
-                            {grade.verified && (
+                            {grade.verified === 1 ? (
                               <Badge className="text-xs bg-success text-success-foreground">
                                 Terverifikasi
+                              </Badge>
+                            ) : (
+                              <Badge className="text-xs bg-destructive text-destructive-foreground">
+                                Belum Diverifikasi
                               </Badge>
                             )}
                           </div>
                         </div>
                         <div className="text-right">
-                          <p className={`text-xl font-bold ${getGradeColor(grade.nilai)}`}>
+                          <p
+                            className={`text-xl font-bold ${getGradeColor(
+                              grade.nilai
+                            )}`}
+                          >
                             {grade.nilai}
                           </p>
                         </div>
@@ -274,7 +335,9 @@ const StudentDashboard = ({ currentUser, onLogout }) => {
                 ) : (
                   <div className="text-center py-8">
                     <FileText className="h-12 w-12 mx-auto mb-4 text-muted-foreground" />
-                    <p className="text-muted-foreground">Belum ada data nilai</p>
+                    <p className="text-muted-foreground">
+                      Belum ada data nilai
+                    </p>
                   </div>
                 )}
               </CardContent>
@@ -282,7 +345,7 @@ const StudentDashboard = ({ currentUser, onLogout }) => {
           )}
 
           {/* Kehadiran Section */}
-          {activeSection === 'kehadiran' && (
+          {activeSection === "kehadiran" && (
             <Card className="shadow-soft">
               <CardHeader>
                 <CardTitle>Rekap Kehadiran</CardTitle>
@@ -291,19 +354,27 @@ const StudentDashboard = ({ currentUser, onLogout }) => {
                 {/* Attendance Stats */}
                 <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-6">
                   <div className="p-4 bg-success/10 rounded-lg text-center">
-                    <p className="text-2xl font-bold text-success">{attendanceStats.hadir}</p>
+                    <p className="text-2xl font-bold text-success">
+                      {attendanceStats.hadir}
+                    </p>
                     <p className="text-sm text-muted-foreground">Hadir</p>
                   </div>
                   <div className="p-4 bg-warning/10 rounded-lg text-center">
-                    <p className="text-2xl font-bold text-warning">{attendanceStats.sakit}</p>
+                    <p className="text-2xl font-bold text-warning">
+                      {attendanceStats.sakit}
+                    </p>
                     <p className="text-sm text-muted-foreground">Sakit</p>
                   </div>
                   <div className="p-4 bg-destructive/10 rounded-lg text-center">
-                    <p className="text-2xl font-bold text-destructive">{attendanceStats.alfa}</p>
+                    <p className="text-2xl font-bold text-destructive">
+                      {attendanceStats.alfa}
+                    </p>
                     <p className="text-sm text-muted-foreground">Alfa</p>
                   </div>
                   <div className="p-4 bg-primary/10 rounded-lg text-center">
-                    <p className="text-2xl font-bold text-primary">{attendanceStats.izin}</p>
+                    <p className="text-2xl font-bold text-primary">
+                      {attendanceStats.izin}
+                    </p>
                     <p className="text-sm text-muted-foreground">Izin</p>
                   </div>
                 </div>
@@ -312,20 +383,22 @@ const StudentDashboard = ({ currentUser, onLogout }) => {
                 {loading ? (
                   <div className="text-center py-8">
                     <Clock className="h-8 w-8 animate-spin mx-auto mb-4 text-muted-foreground" />
-                    <p className="text-muted-foreground">Memuat data kehadiran...</p>
+                    <p className="text-muted-foreground">
+                      Memuat data kehadiran...
+                    </p>
                   </div>
                 ) : attendance.length > 0 ? (
                   <div className="space-y-4">
                     {attendance.map((record) => {
                       const status = getAttendanceStatus(record.status);
                       return (
-                        <div 
+                        <div
                           key={record.id}
                           className="flex justify-between items-center p-4 border border-border rounded-lg"
                         >
                           <div>
                             <h4 className="font-medium text-foreground">
-                              {getSubjectName(record.subjectId)}
+                              {record.subjectName}
                             </h4>
                             <p className="text-sm text-muted-foreground">
                               {formatDate(record.tanggal)}
@@ -336,7 +409,9 @@ const StudentDashboard = ({ currentUser, onLogout }) => {
                               </p>
                             )}
                           </div>
-                          <Badge className={`${status.bgColor} ${status.color}`}>
+                          <Badge
+                            className={`${status.bgColor} ${status.color}`}
+                          >
                             {status.label}
                           </Badge>
                         </div>
@@ -346,7 +421,9 @@ const StudentDashboard = ({ currentUser, onLogout }) => {
                 ) : (
                   <div className="text-center py-8">
                     <Calendar className="h-12 w-12 mx-auto mb-4 text-muted-foreground" />
-                    <p className="text-muted-foreground">Belum ada data kehadiran</p>
+                    <p className="text-muted-foreground">
+                      Belum ada data kehadiran
+                    </p>
                   </div>
                 )}
               </CardContent>
@@ -354,7 +431,7 @@ const StudentDashboard = ({ currentUser, onLogout }) => {
           )}
 
           {/* Mata Pelajaran Section */}
-          {activeSection === 'matapelajaran' && (
+          {activeSection === "matapelajaran" && (
             <Card className="shadow-soft">
               <CardHeader>
                 <CardTitle>Mata Pelajaran & Nilai</CardTitle>
@@ -365,7 +442,10 @@ const StudentDashboard = ({ currentUser, onLogout }) => {
                     {subjectGrades.map((subject) => {
                       const avgGrade = calculateAverage(subject.grades);
                       return (
-                        <div key={subject.subjectId} className="p-6 border border-border rounded-lg">
+                        <div
+                          key={subject.subjectId}
+                          className="p-6 border border-border rounded-lg"
+                        >
                           <div className="flex justify-between items-start mb-4">
                             <div>
                               <h3 className="text-lg font-semibold text-foreground">
@@ -376,22 +456,34 @@ const StudentDashboard = ({ currentUser, onLogout }) => {
                               </p>
                             </div>
                             <div className="text-right">
-                              <p className={`text-xl font-bold ${getGradeColor(avgGrade)}`}>
+                              <p
+                                className={`text-xl font-bold ${getGradeColor(
+                                  avgGrade
+                                )}`}
+                              >
                                 {avgGrade}
                               </p>
-                              <p className="text-xs text-muted-foreground">Rata-rata</p>
+                              <p className="text-xs text-muted-foreground">
+                                Rata-rata
+                              </p>
                             </div>
                           </div>
-                          
+
                           <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
                             {subject.grades.map((grade) => (
-                              <div 
+                              <div
                                 key={grade.id}
                                 className="p-3 bg-muted/50 rounded-lg"
                               >
                                 <div className="flex justify-between items-center">
-                                  <span className="text-sm font-medium">{grade.jenis}</span>
-                                  <span className={`font-bold ${getGradeColor(grade.nilai)}`}>
+                                  <span className="text-sm font-medium">
+                                    {grade.jenis}
+                                  </span>
+                                  <span
+                                    className={`font-bold ${getGradeColor(
+                                      grade.nilai
+                                    )}`}
+                                  >
                                     {grade.nilai}
                                   </span>
                                 </div>
@@ -408,7 +500,9 @@ const StudentDashboard = ({ currentUser, onLogout }) => {
                 ) : (
                   <div className="text-center py-8">
                     <BookOpen className="h-12 w-12 mx-auto mb-4 text-muted-foreground" />
-                    <p className="text-muted-foreground">Belum ada data mata pelajaran</p>
+                    <p className="text-muted-foreground">
+                      Belum ada data mata pelajaran
+                    </p>
                   </div>
                 )}
               </CardContent>

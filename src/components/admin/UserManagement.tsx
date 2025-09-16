@@ -129,6 +129,63 @@ export default function UserManagement({
       return;
     }
 
+    // ambil id user kalau sedang edit
+    const editingId = editingItem?.id;
+
+    // 🔹 Validasi unik berdasarkan role
+    const isDuplicateUsername = users.some(
+      (u) => u.username === userForm.username && u.id !== editingId
+    );
+    const isDuplicateEmail = users.some(
+      (u) => u.email === userForm.email && u.id !== editingId
+    );
+
+    if (isDuplicateUsername) {
+      toast({
+        title: "Error",
+        description: "Username sudah terpakai, silakan gunakan yang lain.",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    if (isDuplicateEmail) {
+      toast({
+        title: "Error",
+        description: "Email sudah terpakai, silakan gunakan yang lain.",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    if (currentRole === "siswa") {
+      const isDuplicateNisn = users.some(
+        (u) => u.nisn === userForm.nisn && u.id !== editingId
+      );
+      if (isDuplicateNisn) {
+        toast({
+          title: "Error",
+          description: "NISN sudah terpakai.",
+          variant: "destructive",
+        });
+        return;
+      }
+    }
+
+    if (currentRole === "guru" || currentRole === "walikelas") {
+      const isDuplicateNip = users.some(
+        (u) => u.nip === userForm.nip && u.id !== editingId
+      );
+      if (isDuplicateNip) {
+        toast({
+          title: "Error",
+          description: "NIP sudah terpakai.",
+          variant: "destructive",
+        });
+        return;
+      }
+    }
+
     // Nama wajib untuk semua role kecuali admin
     if (currentRole !== "admin" && !userForm.nama) {
       toast({
@@ -194,7 +251,6 @@ export default function UserManagement({
         password: userForm.password,
         email: userForm.email,
         role: currentRole,
-        ...(currentRole !== "admin" && { nama: userForm.nama }), // Hanya tambahkan nama jika bukan admin
       };
 
       let payload;
@@ -224,7 +280,6 @@ export default function UserManagement({
             nip: userForm.nip,
             nama: userForm.nama,
             role: "guru",
-            kelasId: userForm.kelasId || null,
             jenisKelamin: userForm.jenisKelamin,
             alamat: userForm.alamat,
             nomorHP: userForm.nomorHP,
@@ -238,7 +293,6 @@ export default function UserManagement({
             nip: userForm.nip,
             nama: userForm.nama,
             role: "walikelas",
-            kelasId: userForm.kelasId,
             jenisKelamin: userForm.jenisKelamin,
             alamat: userForm.alamat,
             nomorHP: userForm.nomorHP,
@@ -279,6 +333,8 @@ export default function UserManagement({
             result = await apiService.createUser(payload);
         }
       }
+
+      console.log(result);
 
       if (result.success) {
         toast({
@@ -781,7 +837,9 @@ export default function UserManagement({
                 {filteredUsers.some((u) => u.role !== "admin") && (
                   <>
                     <TableHead>Nama</TableHead>
-                    <TableHead>Identitas</TableHead>
+                    <TableHead>
+                      {filteredUsers.some((u) => u.nisn) ? "NISN" : "NIP"}
+                    </TableHead>
                   </>
                 )}
                 <TableHead>Username</TableHead>
@@ -804,9 +862,9 @@ export default function UserManagement({
                     {user.role !== "admin" && (
                       <TableCell>
                         {user.role === "siswa" && user.nisn ? (
-                          <div className="text-sm">NISN: {user.nisn}</div>
+                          <div className="text-sm">{user.nisn}</div>
                         ) : user.nip ? (
-                          <div className="text-sm">NIP: {user.nip}</div>
+                          <div className="text-sm">{user.nip}</div>
                         ) : (
                           <span className="text-muted-foreground">-</span>
                         )}

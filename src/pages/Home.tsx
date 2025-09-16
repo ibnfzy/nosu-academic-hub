@@ -13,9 +13,16 @@ import {
   Trophy,
   Target,
   Heart,
+  Globe,
+  Star,
 } from "lucide-react";
 import Navbar from "@/components/Navbar";
 import apiService from "@/services/apiService";
+
+interface Users {
+  id: number;
+  role: string;
+}
 
 const Home = ({ currentUser, onLogin, onLogout }) => {
   const [schoolProfile, setSchoolProfile] = useState(null);
@@ -49,7 +56,14 @@ const Home = ({ currentUser, onLogin, onLogout }) => {
       setPrograms(programsData);
 
       // Calculate stats
-      const users = await apiService.getUsers();
+      const usersData = await apiService.getUsersHomepage();
+
+      const users: Users[] = Array.isArray(usersData)
+        ? (usersData as Users[])
+        : (Object.values(usersData).filter(
+            (item): item is Users => typeof item === "object"
+          ) as Users[]);
+
       const siswa = users.filter((u) => u.role === "siswa");
       const guru = users.filter(
         (u) => u.role === "guru" || u.role === "walikelas"
@@ -171,27 +185,30 @@ const Home = ({ currentUser, onLogin, onLogout }) => {
               </CardTitle>
             </CardHeader>
             <CardContent className="space-y-4">
+              {/* Alamat */}
               <div className="flex items-start space-x-3">
                 <MapPin className="h-5 w-5 text-accent mt-1" />
                 <div>
                   <p className="font-medium">Alamat</p>
                   <p className="text-sm text-muted-foreground">
                     {schoolProfile?.alamat ||
-                      "Jl. Pendidikan No. 1, Nosu, Kabupaten Mamuju Utara, Sulawesi Barat 91571"}
+                      "Jl. Pendidikan No. 1, Nosu, Sulawesi Barat"}
                   </p>
                 </div>
               </div>
 
+              {/* Kontak */}
               <div className="flex items-start space-x-3">
                 <Phone className="h-5 w-5 text-accent mt-1" />
                 <div>
                   <p className="font-medium">Kontak</p>
                   <p className="text-sm text-muted-foreground">
-                    {schoolProfile?.telepon || "(0426) 123456"}
+                    {schoolProfile?.telepon || "(0421) 123456"}
                   </p>
                 </div>
               </div>
 
+              {/* Email */}
               <div className="flex items-start space-x-3">
                 <Mail className="h-5 w-5 text-accent mt-1" />
                 <div>
@@ -202,6 +219,26 @@ const Home = ({ currentUser, onLogin, onLogout }) => {
                 </div>
               </div>
 
+              {/* Website */}
+              {schoolProfile?.website && (
+                <div className="flex items-start space-x-3">
+                  <Globe className="h-5 w-5 text-accent mt-1" />
+                  <div>
+                    <p className="font-medium">Website</p>
+                    <p className="text-sm text-muted-foreground">
+                      <a
+                        href={`https://${schoolProfile.website}`}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                      >
+                        {schoolProfile.website}
+                      </a>
+                    </p>
+                  </div>
+                </div>
+              )}
+
+              {/* Tahun Berdiri */}
               <div className="flex items-start space-x-3">
                 <Calendar className="h-5 w-5 text-accent mt-1" />
                 <div>
@@ -212,6 +249,7 @@ const Home = ({ currentUser, onLogin, onLogout }) => {
                 </div>
               </div>
 
+              {/* Kepala Sekolah */}
               {schoolProfile?.kepalaSekolah && (
                 <div className="flex items-start space-x-3">
                   <GraduationCap className="h-5 w-5 text-accent mt-1" />
@@ -221,6 +259,40 @@ const Home = ({ currentUser, onLogin, onLogout }) => {
                       {schoolProfile.kepalaSekolah}
                     </p>
                   </div>
+                </div>
+              )}
+
+              {/* Akreditasi */}
+              {schoolProfile?.akreditasi && (
+                <div className="flex items-start space-x-3">
+                  <Star className="h-5 w-5 text-accent mt-1" />
+                  <div>
+                    <p className="font-medium">Akreditasi</p>
+                    <p className="text-sm text-muted-foreground">
+                      {schoolProfile.akreditasi} (
+                      {schoolProfile.tahunAkreditasi})
+                    </p>
+                  </div>
+                </div>
+              )}
+
+              {/* Visi */}
+              {schoolProfile?.visi && (
+                <div>
+                  <p className="font-medium">Visi</p>
+                  <p className="text-sm text-muted-foreground whitespace-pre-line">
+                    {schoolProfile.visi}
+                  </p>
+                </div>
+              )}
+
+              {/* Misi */}
+              {schoolProfile?.misi && (
+                <div>
+                  <p className="font-medium">Misi</p>
+                  <p className="text-sm text-muted-foreground whitespace-pre-line">
+                    {schoolProfile.misi}
+                  </p>
                 </div>
               )}
             </CardContent>
@@ -244,12 +316,23 @@ const Home = ({ currentUser, onLogin, onLogout }) => {
                     >
                       <Trophy className="h-4 w-4 text-warning mt-1 flex-shrink-0" />
                       <div className="flex-1">
+                        {/* Nama Prestasi */}
                         <p className="text-sm text-foreground font-medium">
-                          {achievement.judul}
+                          {achievement.nama}
                         </p>
+
+                        {/* Kategori, Tingkat & Tahun */}
                         <p className="text-xs text-muted-foreground">
-                          {achievement.tingkat} • {achievement.tahun}
+                          {achievement.kategori} • {achievement.tingkat} •{" "}
+                          {achievement.tahun}
                         </p>
+
+                        {/* Deskripsi */}
+                        {achievement.deskripsi && (
+                          <p className="text-xs text-muted-foreground mt-1">
+                            {achievement.deskripsi}
+                          </p>
+                        )}
                       </div>
                     </div>
                   ))
@@ -262,88 +345,6 @@ const Home = ({ currentUser, onLogin, onLogout }) => {
             </CardContent>
           </Card>
         </div>
-
-        {/* Program Studi */}
-        <section className="mb-12">
-          <Card className="shadow-soft">
-            <CardHeader>
-              <CardTitle className="flex items-center space-x-2">
-                <BookOpen className="h-5 w-5 text-success" />
-                <span>Program Studi</span>
-              </CardTitle>
-            </CardHeader>
-            <CardContent>
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                {programs.length > 0 ? (
-                  programs.map((program, index) => (
-                    <div
-                      key={program.id || index}
-                      className="p-4 border border-border rounded-lg"
-                    >
-                      <h3 className="font-semibold text-foreground mb-2">
-                        {program.nama}
-                      </h3>
-                      <p className="text-sm text-muted-foreground mb-3">
-                        {program.deskripsi}
-                      </p>
-                      <div className="flex flex-wrap gap-2 mb-3">
-                        {program.mataPelajaran?.map((subject, idx) => (
-                          <Badge
-                            key={idx}
-                            variant="outline"
-                            className="text-xs"
-                          >
-                            {subject}
-                          </Badge>
-                        ))}
-                      </div>
-                      {program.prospek && (
-                        <div>
-                          <p className="text-xs text-muted-foreground font-medium">
-                            Prospek Karir:
-                          </p>
-                          <p className="text-xs text-muted-foreground">
-                            {program.prospek}
-                          </p>
-                        </div>
-                      )}
-                    </div>
-                  ))
-                ) : (
-                  <div className="col-span-2 text-center py-8">
-                    <p className="text-sm text-muted-foreground">
-                      Belum ada program studi yang ditambahkan
-                    </p>
-                  </div>
-                )}
-              </div>
-            </CardContent>
-          </Card>
-        </section>
-
-        {/* Call to Action */}
-        <section className="text-center">
-          <Card className="gradient-card shadow-medium">
-            <CardContent className="p-8">
-              <h2 className="text-2xl font-bold text-foreground mb-4">
-                Bergabunglah dengan Keluarga Besar{" "}
-                {schoolProfile?.nama || "SMA Negeri 1 Nosu"}
-              </h2>
-              <p className="text-muted-foreground mb-6 max-w-2xl mx-auto">
-                {schoolProfile?.misi ||
-                  "Wujudkan masa depan gemilang bersama pendidikan berkualitas, fasilitas modern, dan tenaga pengajar profesional."}
-              </p>
-              <div className="flex flex-wrap justify-center gap-4">
-                <Badge className="px-4 py-2 bg-primary text-primary-foreground">
-                  Pendaftaran Tahun Ajaran 2025/2026
-                </Badge>
-                <Badge variant="outline" className="px-4 py-2">
-                  Informasi: {schoolProfile?.telepon || "(0426) 123456"}
-                </Badge>
-              </div>
-            </CardContent>
-          </Card>
-        </section>
       </main>
 
       {/* Footer */}

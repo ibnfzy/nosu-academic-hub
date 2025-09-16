@@ -1,3 +1,4 @@
+/* eslint-disable react-hooks/exhaustive-deps */
 /* eslint-disable @typescript-eslint/no-explicit-any */
 import { useState, useEffect, useCallback } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -29,6 +30,7 @@ import {
 import { Plus, Edit, Trash2, BookOpen } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import apiService from "@/services/apiService";
+import { MultiSelectKelas } from "@/components/ui/multi-select-class";
 
 interface SubjectManagementProps {
   onDataChange: () => void;
@@ -40,12 +42,13 @@ export default function SubjectManagement({
   const [showSubjectDialog, setShowSubjectDialog] = useState(false);
   const [editingItem, setEditingItem] = useState(null);
   const [subjects, setSubjects] = useState<any[]>([]);
+  const [groupedSubjects, setGroupedSubjects] = useState<any[]>([]);
   const [classes, setClasses] = useState<any[]>([]);
   const [teachers, setTeachers] = useState<any[]>([]);
   const [subjectForm, setSubjectForm] = useState({
     nama: "",
     kode: "",
-    kelasId: "",
+    kelasIds: [],
     teacherId: "",
   });
 
@@ -72,9 +75,62 @@ export default function SubjectManagement({
     }
   }, [toast]);
 
+  // helper untuk grouping
+  const groupSubjects = (subjects: any[], classes: any[]) => {
+    const grouped: Record<string, any> = {};
+
+    subjects.forEach((s) => {
+      if (!grouped[s.id]) {
+        grouped[s.id] = {
+          ...s,
+          kelasIds: [],
+          teacherIds: [],
+        };
+      }
+      if (s.kelasId && !grouped[s.id].kelasIds.includes(s.kelasId)) {
+        grouped[s.id].kelasIds.push(s.kelasId);
+      }
+      if (s.teacherId && !grouped[s.id].teacherIds.includes(s.teacherId)) {
+        grouped[s.id].teacherIds.push(s.teacherId);
+      }
+    });
+
+    let returnData = Object.values(grouped).map((subj) => ({
+      ...subj,
+      kelasNames:
+        subj.kelasIds.length === classes.length
+          ? ["Semua Kelas"]
+          : subj.kelasIds.map((id: string) => getClassName(id)),
+      teacherNames: subj.teacherIds.map((id: string) => getTeacherName(id)),
+    }));
+
+    returnData = Object.values(grouped).map((subj) => ({
+      ...subj,
+      kelasNames:
+        subj.kelasIds.length === 0
+          ? ["Belum ada kelas"]
+          : subj.kelasIds.length === classes.length
+          ? ["Semua Kelas"]
+          : subj.kelasIds.map((id: string) => getClassName(id)),
+      teacherNames:
+        subj.teacherIds.length === 0
+          ? ["Belum ada guru"]
+          : subj.teacherIds.map((id: string) => getTeacherName(id)),
+    }));
+
+    return returnData;
+  };
+
   useEffect(() => {
     loadData();
   }, [loadData]);
+
+  useEffect(() => {
+    if (subjects.length > 0 && classes.length > 0) {
+      const grouped = groupSubjects(subjects, classes);
+      setGroupedSubjects(grouped);
+    }
+  }, [subjects, classes]);
 
   const handleSubjectSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -91,7 +147,7 @@ export default function SubjectManagement({
     try {
       const subjectData = {
         ...subjectForm,
-        id: editingItem ? editingItem.id : Date.now().toString(),
+        ...(editingItem?.id && { id: editingItem.id }),
       };
 
       let result;
@@ -151,7 +207,7 @@ export default function SubjectManagement({
     setSubjectForm({
       nama: "",
       kode: "",
-      kelasId: "all",
+      kelasIds: [],
       teacherId: "",
     });
     setEditingItem(null);
@@ -178,6 +234,11 @@ export default function SubjectManagement({
 
     const teacher = teachers.find((t) => t.id === teacherId);
     return teacher ? teacher.nama : "Belum ada guru";
+  };
+
+  const getSelectTeacherName = (teacherId) => {
+    const teacher = teachers.find((t) => String(t.id) === String(teacherId));
+    return teacher ? teacher.nama : "Pilih Guru";
   };
 
   return (
@@ -235,27 +296,11 @@ export default function SubjectManagement({
                   />
                 </div>
 
-                <div className="space-y-2">
-                  <Label>Kelas</Label>
-                  <Select
-                    value={subjectForm.kelasId}
-                    onValueChange={(value) =>
-                      setSubjectForm((prev) => ({ ...prev, kelasId: value }))
-                    }
-                  >
-                    <SelectTrigger>
-                      <SelectValue placeholder="Pilih kelas (opsional)" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="all">Semua Kelas</SelectItem>
-                      {classes.map((kelas) => (
-                        <SelectItem key={kelas.id} value={kelas.id}>
-                          {kelas.nama}
-                        </SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
-                </div>
+                <MultiSelectKelas
+                  classes={classes}
+                  subjectForm={subjectForm}
+                  setSubjectForm={setSubjectForm}
+                />
 
                 <div className="space-y-2">
                   <Label>Guru</Label>
@@ -266,7 +311,9 @@ export default function SubjectManagement({
                     }
                   >
                     <SelectTrigger>
-                      <SelectValue placeholder="Pilih guru mata pelajaran" />
+                      <SelectValue placeholder="Pilih guru mata pelajaran">
+                        {getSelectTeacherName(subjectForm.teacherId)}
+                      </SelectValue>
                     </SelectTrigger>
                     <SelectContent>
                       {teachers.map((t) => (
@@ -310,15 +357,15 @@ export default function SubjectManagement({
               </TableRow>
             </TableHeader>
             <TableBody>
-              {subjects.length > 0 ? (
-                subjects.map((subject) => (
+              {groupedSubjects.length > 0 ? (
+                groupedSubjects.map((subject) => (
                   <TableRow key={subject.id}>
                     <TableCell className="font-mono">{subject.kode}</TableCell>
                     <TableCell className="font-medium">
                       {subject.nama}
                     </TableCell>
-                    <TableCell>{getClassName(subject.kelasId)}</TableCell>
-                    <TableCell>{getTeacherName(subject.teacherId)}</TableCell>
+                    <TableCell>{subject.kelasNames.join(", ")}</TableCell>
+                    <TableCell>{subject.teacherNames.join(", ")}</TableCell>
                     <TableCell className="text-right">
                       <div className="flex justify-end space-x-2">
                         <Button
@@ -342,7 +389,7 @@ export default function SubjectManagement({
               ) : (
                 <TableRow>
                   <TableCell
-                    colSpan={4}
+                    colSpan={5}
                     className="text-center py-8 text-muted-foreground"
                   >
                     <BookOpen className="h-12 w-12 mx-auto mb-4 opacity-50" />

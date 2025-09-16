@@ -134,11 +134,6 @@ const TeacherDashboard = ({ currentUser, onLogout }) => {
       const allUsers = await apiService.getUsers();
       const studentsData = allUsers.filter((user) => user.role === "siswa");
       setStudents(studentsData);
-
-      await loadGradesData();
-      await loadAttendanceData();
-
-      console.log("Students :");
     } catch (error) {
       console.error(error);
       toast({
@@ -179,8 +174,6 @@ const TeacherDashboard = ({ currentUser, onLogout }) => {
           studentName: student?.nama || "Unknown Student",
         };
       });
-
-      console.log("grades : ", allGrades);
 
       setGrades(gradesWithNames);
     } catch (error) {
@@ -272,11 +265,11 @@ const TeacherDashboard = ({ currentUser, onLogout }) => {
       const studentData = students.find((s) => s.id === gradeForm.studentId);
 
       const gradeData = {
-        id: editingGrade ? editingGrade.id : Date.now().toString(),
+        ...(editingGrade?.id && { id: editingGrade.id }), // hanya ada saat edit
         ...gradeForm,
         teacherId: currentUser.teacherId,
         kelasId: studentData?.kelasId || "1",
-        tahunAjaran: "2024/2025",
+        tahunAjaran: "2024/2025", // bisa ambil dari selectedPeriod kalau ada
         semester: 1,
         nilai: nilaiNumber,
         verified: false,
@@ -319,6 +312,8 @@ const TeacherDashboard = ({ currentUser, onLogout }) => {
         description: "Gagal menyimpan nilai",
         variant: "destructive",
       });
+
+      console.log(error);
     }
   };
 
@@ -344,7 +339,7 @@ const TeacherDashboard = ({ currentUser, onLogout }) => {
       );
 
       const attendanceData = {
-        id: editingAttendance ? editingAttendance.id : Date.now().toString(),
+        ...(editingAttendance?.id && { id: editingAttendance.id }),
         ...attendanceForm,
         teacherId: currentUser.teacherId,
         kelasId: studentData?.kelasId || "1",
@@ -364,6 +359,8 @@ const TeacherDashboard = ({ currentUser, onLogout }) => {
           attendanceData
         );
       }
+
+      console.log(result);
 
       if (result.success) {
         toast({
@@ -409,7 +406,9 @@ const TeacherDashboard = ({ currentUser, onLogout }) => {
           : grade.subjectId,
       jenis: grade.jenis,
       nilai: grade.nilai.toString(),
-      tanggal: grade.tanggal,
+      tanggal: grade.tanggal
+        ? new Date(grade.tanggal).toISOString().split("T")[0]
+        : "",
     });
     setEditingGrade(grade);
     setShowGradeDialog(true);
@@ -457,7 +456,9 @@ const TeacherDashboard = ({ currentUser, onLogout }) => {
           : attendance.subjectId,
       status: attendance.status,
       keterangan: attendance.keterangan,
-      tanggal: attendance.tanggal,
+      tanggal: attendance.tanggal
+        ? new Date(attendance.tanggal).toISOString().split("T")[0]
+        : "",
     });
     setEditingAttendance(attendance);
     setShowAttendanceDialog(true);
@@ -511,15 +512,14 @@ const TeacherDashboard = ({ currentUser, onLogout }) => {
     setShowAttendanceTableDialog(true);
   };
 
-  const getSubjectName = (subjectId, subjects) => {
-    // kalau subject sudah object langsung return nama
-    if (subjectId && typeof subjectId === "object") {
-      return subjectId.nama || `Mata Pelajaran ${subjectId.id}`;
-    }
+  const getSubjectName = (subjectId) => {
+    const subject = subjects.find((s) => String(s.id) === String(subjectId));
+    return subject ? `${subject.nama}` : "Pilih Mata Pelajaran";
+  };
 
-    // kalau subject masih id, cari di allSubjects
-    const subjectDetails = subjects.find((s) => s.id === subjectId);
-    return subjectDetails?.nama || `Mata Pelajaran ${subjectId}`;
+  const getStudentName = (id: string | number) => {
+    const student = students.find((s) => String(s.id) === String(id));
+    return student ? `${student.nama} (${student.nisn})` : "Pilih siswa";
   };
 
   return (
@@ -596,11 +596,13 @@ const TeacherDashboard = ({ currentUser, onLogout }) => {
                     }
                   >
                     <SelectTrigger>
-                      <SelectValue placeholder="Pilih siswa" />
+                      <SelectValue placeholder="Pilih siswa">
+                        {getStudentName(gradeForm.studentId)}
+                      </SelectValue>
                     </SelectTrigger>
                     <SelectContent>
                       {students.map((student) => (
-                        <SelectItem key={student.id} value={student.id}>
+                        <SelectItem key={student.id} value={String(student.id)}>
                           {student.nama} ({student.nisn})
                         </SelectItem>
                       ))}
@@ -733,7 +735,9 @@ const TeacherDashboard = ({ currentUser, onLogout }) => {
                     }
                   >
                     <SelectTrigger>
-                      <SelectValue placeholder="Pilih siswa" />
+                      <SelectValue placeholder="Pilih siswa">
+                        {getStudentName(attendanceForm.studentId)}
+                      </SelectValue>
                     </SelectTrigger>
                     <SelectContent>
                       {students.map((student) => (
@@ -757,7 +761,9 @@ const TeacherDashboard = ({ currentUser, onLogout }) => {
                     }
                   >
                     <SelectTrigger>
-                      <SelectValue placeholder="Pilih mata pelajaran" />
+                      <SelectValue placeholder="Pilih mata pelajaran">
+                        {getSubjectName(attendanceForm.subjectId)}
+                      </SelectValue>
                     </SelectTrigger>
                     <SelectContent>
                       {subjects.map((subject) => (
@@ -840,8 +846,7 @@ const TeacherDashboard = ({ currentUser, onLogout }) => {
           <DialogContent className="max-w-6xl max-h-[80vh] overflow-hidden">
             <DialogHeader>
               <DialogTitle>
-                Daftar Semua Nilai -{" "}
-                {getSubjectName(selectedSubjectForGrades, subjects)}
+                Daftar Semua Nilai - {getSubjectName(selectedSubjectForGrades)}
               </DialogTitle>
             </DialogHeader>
             <div className="overflow-auto max-h-[60vh]">
@@ -944,7 +949,7 @@ const TeacherDashboard = ({ currentUser, onLogout }) => {
             <DialogHeader>
               <DialogTitle>
                 Daftar Semua Kehadiran -{" "}
-                {getSubjectName(selectedSubjectForAttendance, subjects)}
+                {getSubjectName(selectedSubjectForAttendance)}
               </DialogTitle>
             </DialogHeader>
             <div className="overflow-auto max-h-[60vh]">
@@ -1050,7 +1055,7 @@ const TeacherDashboard = ({ currentUser, onLogout }) => {
           <DialogContent className="max-w-2xl">
             <DialogHeader>
               <DialogTitle>
-                Daftar Siswa - {getSubjectName(selectedSubject, subjects)}
+                Daftar Siswa - {getSubjectName(selectedSubject)}
               </DialogTitle>
             </DialogHeader>
             <div className="space-y-4 max-h-96 overflow-y-auto">
@@ -1203,7 +1208,6 @@ const TeacherDashboard = ({ currentUser, onLogout }) => {
                   const subjectAttendance = attendance.filter(
                     (att) => att.subjectId === subject.id
                   );
-                  console.log("Subject :", subject);
 
                   return (
                     <Card key={subject.id} className="shadow-soft">
@@ -1212,9 +1216,7 @@ const TeacherDashboard = ({ currentUser, onLogout }) => {
                           <div>
                             <CardTitle className="flex items-center space-x-2">
                               <BookOpen className="h-5 w-5 text-primary" />
-                              <span>
-                                {getSubjectName(subject.id, subjects)}
-                              </span>
+                              <span>{getSubjectName(subject.id)}</span>
                             </CardTitle>
                             <p className="text-muted-foreground">
                               Nilai: {subjectGrades.length} | Kehadiran:{" "}
