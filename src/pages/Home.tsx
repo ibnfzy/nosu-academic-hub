@@ -28,6 +28,7 @@ const Home = ({ currentUser, onLogin, onLogout }) => {
   const [schoolProfile, setSchoolProfile] = useState(null);
   const [achievements, setAchievements] = useState([]);
   const [programs, setPrograms] = useState([]);
+  const [registrationLinks, setRegistrationLinks] = useState([]);
   const [stats, setStats] = useState({
     totalSiswa: 0,
     totalGuru: 0,
@@ -54,6 +55,10 @@ const Home = ({ currentUser, onLogin, onLogout }) => {
       // Load programs
       const programsData = await apiService.getPrograms();
       setPrograms(programsData);
+
+      // Load registration links
+      const registrationLinksData = await apiService.getRegistrationLinks();
+      setRegistrationLinks(registrationLinksData);
 
       // Calculate stats
       const usersData = await apiService.getUsersHomepage();
@@ -312,7 +317,7 @@ const Home = ({ currentUser, onLogin, onLogout }) => {
                   achievements.map((achievement, index) => (
                     <div
                       key={achievement.id || index}
-                      className="flex items-start space-x-3 p-3 bg-muted/50 rounded-lg"
+                      className="p-4 bg-gradient-to-r from-muted/20 to-warning/5 rounded-lg border border-border"
                     >
                       <Trophy className="h-4 w-4 text-warning mt-1 flex-shrink-0" />
                       <div className="flex-1">
