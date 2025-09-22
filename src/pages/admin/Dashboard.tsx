@@ -21,7 +21,6 @@ const AdminDashboard = ({ currentUser, onLogout }) => {
   const [schoolProfile, setSchoolProfile] = useState(null);
   const [achievements, setAchievements] = useState([]);
   const [programs, setPrograms] = useState([]);
-  const [registrationLinks, setRegistrationLinks] = useState([]);
 
   const { toast } = useToast();
   const isMobile = useIsMobile();
@@ -39,7 +38,6 @@ const AdminDashboard = ({ currentUser, onLogout }) => {
         schoolProfileData,
         achievementsData,
         programsData,
-        registrationLinksData,
       ] = await Promise.all([
         apiService.getUsers(),
         apiService.getStudents(),
@@ -49,7 +47,6 @@ const AdminDashboard = ({ currentUser, onLogout }) => {
         apiService.getSchoolProfile(),
         apiService.getAchievements(),
         apiService.getPrograms(),
-        apiService.getRegistrationLinks(),
       ]);
 
       // Gabungkan data users dengan data siswa dan guru untuk menampilkan data lengkap
@@ -74,7 +71,6 @@ const AdminDashboard = ({ currentUser, onLogout }) => {
       setSchoolProfile(schoolProfileData);
       setAchievements(achievementsData);
       setPrograms(programsData);
-      setRegistrationLinks(registrationLinksData);
     } catch (error) {
       toast({
         title: "Error",

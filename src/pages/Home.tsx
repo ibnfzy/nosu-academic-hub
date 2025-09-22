@@ -28,7 +28,6 @@ const Home = ({ currentUser, onLogin, onLogout }) => {
   const [schoolProfile, setSchoolProfile] = useState(null);
   const [achievements, setAchievements] = useState([]);
   const [programs, setPrograms] = useState([]);
-  const [registrationLinks, setRegistrationLinks] = useState([]);
   const [stats, setStats] = useState({
     totalSiswa: 0,
     totalGuru: 0,
@@ -55,10 +54,6 @@ const Home = ({ currentUser, onLogin, onLogout }) => {
       // Load programs
       const programsData = await apiService.getPrograms();
       setPrograms(programsData);
-
-      // Load registration links
-      const registrationLinksData = await apiService.getRegistrationLinks();
-      setRegistrationLinks(registrationLinksData);
 
       // Calculate stats
       const usersData = await apiService.getUsersHomepage();

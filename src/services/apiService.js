@@ -28,7 +28,6 @@ const STORAGE_KEYS = {
   SCHOOL_PROFILE: "akademik_school_profile",
   ACHIEVEMENTS: "akademik_achievements",
   PROGRAMS: "akademik_programs",
-  REGISTRATION_LINKS: "akademik_registration_links",
 };
 
 // Generic API/localStorage abstraction
@@ -1560,107 +1559,6 @@ const apiService = {
     }
   },
 
-  async getRegistrationLinks() {
-    if (USE_API) {
-      const response = await this.authFetch(
-        `${API_BASE_URL}/admin/registration-links`
-      );
-      return normalizeData(response.data);
-    } else {
-      const registrationLinks = JSON.parse(
-        localStorage.getItem(STORAGE_KEYS.REGISTRATION_LINKS) || "[]"
-      );
-      return registrationLinks;
-    }
-  },
-
-  async addRegistrationLink(linkData) {
-    if (USE_API) {
-      const response = await this.authFetch(
-        `${API_BASE_URL}/admin/registration-links`,
-        {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify(linkData),
-        }
-      );
-      return response.data;
-    } else {
-      const registrationLinks = JSON.parse(
-        localStorage.getItem(STORAGE_KEYS.REGISTRATION_LINKS) || "[]"
-      );
-      const newLink = {
-        id: Date.now().toString(),
-        ...linkData,
-        status: "Aktif", // Default status
-        createdAt: new Date().toISOString(),
-      };
-      registrationLinks.push(newLink);
-      localStorage.setItem(
-        STORAGE_KEYS.REGISTRATION_LINKS,
-        JSON.stringify(registrationLinks)
-      );
-      return { success: true, data: newLink };
-    }
-  },
-
-  async updateRegistrationLink(linkId, linkData) {
-    if (USE_API) {
-      const response = await this.authFetch(
-        `${API_BASE_URL}/admin/registration-links/${linkId}`,
-        {
-          method: "PUT",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify(linkData),
-        }
-      );
-      return response.data;
-    } else {
-      const registrationLinks = JSON.parse(
-        localStorage.getItem(STORAGE_KEYS.REGISTRATION_LINKS) || "[]"
-      );
-      const linkIndex = registrationLinks.findIndex(
-        (link) => link.id === linkId
-      );
-
-      if (linkIndex !== -1) {
-        registrationLinks[linkIndex] = {
-          ...registrationLinks[linkIndex],
-          ...linkData,
-          updatedAt: new Date().toISOString(),
-        };
-        localStorage.setItem(
-          STORAGE_KEYS.REGISTRATION_LINKS,
-          JSON.stringify(registrationLinks)
-        );
-        return { success: true, data: registrationLinks[linkIndex] };
-      }
-      return { success: false, message: "Registration link not found" };
-    }
-  },
-
-  async deleteRegistrationLink(linkId) {
-    if (USE_API) {
-      const response = await this.authFetch(
-        `${API_BASE_URL}/admin/registration-links/${linkId}`,
-        {
-          method: "DELETE",
-        }
-      );
-      return response.data;
-    } else {
-      const registrationLinks = JSON.parse(
-        localStorage.getItem(STORAGE_KEYS.REGISTRATION_LINKS) || "[]"
-      );
-      const filtered = registrationLinks.filter((l) => l.id !== linkId);
-      localStorage.setItem(
-        STORAGE_KEYS.REGISTRATION_LINKS,
-        JSON.stringify(filtered)
-      );
-      return { success: true };
-    }
-  },
-
   async getUsersHomepage() {
     if (USE_API) {
       const response = await this.authFetch(`${API_BASE_URL}/users`);
@@ -1765,10 +1663,6 @@ const apiService = {
     localStorage.setItem(
       STORAGE_KEYS.PROGRAMS,
       JSON.stringify(sampleData.programs)
-    );
-    localStorage.setItem(
-      STORAGE_KEYS.REGISTRATION_LINKS,
-      JSON.stringify(sampleData.registrationLinks)
     );
   },
 };
