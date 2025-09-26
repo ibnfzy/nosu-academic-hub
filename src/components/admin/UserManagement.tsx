@@ -441,14 +441,6 @@ export default function UserManagement({
       user.email?.toLowerCase().includes(searchTerm.toLowerCase());
 
     if (activeSection !== "semua") {
-      // For guru section, show both guru and walikelas
-      if (activeSection === "guru") {
-        return (
-          (user.role === "guru" || user.role === "walikelas") &&
-          matchesRole &&
-          matchesSearch
-        );
-      }
       return user.role === activeSection && matchesRole && matchesSearch;
     }
     return matchesRole && matchesSearch;
@@ -464,6 +456,8 @@ export default function UserManagement({
               ? "Siswa"
               : activeSection === "guru"
               ? "Guru & Wali Kelas"
+              : activeSection === "walikelas"
+              ? "Wali Kelas"
               : activeSection === "admin"
               ? "Administrator"
               : "Pengguna"}
@@ -542,9 +536,7 @@ export default function UserManagement({
                       onValueChange={(value) =>
                         setUserForm((prev) => ({ ...prev, role: value }))
                       }
-                      disabled={
-                        activeSection !== "semua" && activeSection !== "guru"
-                      }
+                      disabled={activeSection !== "semua"}
                     >
                       <SelectTrigger>
                         <SelectValue placeholder="Pilih role" />
@@ -556,13 +548,6 @@ export default function UserManagement({
                               {role.label}
                             </SelectItem>
                           ))
-                        ) : activeSection === "guru" ? (
-                          <>
-                            <SelectItem value="guru">Guru</SelectItem>
-                            <SelectItem value="walikelas">
-                              Wali Kelas
-                            </SelectItem>
-                          </>
                         ) : (
                           <SelectItem value={activeSection}>
                             {roles.find((r) => r.value === activeSection)

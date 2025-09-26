@@ -18,10 +18,16 @@ const menuItems = [
     description: "Kelola data akses siswa",
   },
   {
-    title: "Guru",
+    title: "Akses Guru",
     icon: Users,
     id: "guru",
-    description: "Kelola data akses guru dan wali kelas",
+    description: "Kelola data akses guru",
+  },
+  {
+    title: "Akses Walikelas",
+    icon: Users,
+    id: "walikelas",
+    description: "Kelola data akses wali kelas",
   },
   {
     title: "Admin",
