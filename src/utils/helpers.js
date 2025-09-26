@@ -53,7 +53,10 @@ export const formatName = (nama, maxLength = 20) => {
 export const calculateAverage = (grades) => {
   if (!grades || grades.length === 0) return 0;
 
-  const total = grades.reduce((sum, grade) => sum + (grade.nilai || 0), 0);
+  const total = grades.reduce(
+    (sum, grade) => sum + (parseFloat(grade.nilai) || 0),
+    0
+  );
   return Math.round((total / grades.length) * 100) / 100;
 };
 

@@ -42,7 +42,12 @@ const Navbar = ({ currentUser, onLogin, onLogout }) => {
   const { toast } = useToast();
 
   const roleOptions = [
-    { value: "siswa", label: "Siswa", icon: User, color: "text-primary" },
+    {
+      value: "siswa",
+      label: "Orang Tua Siswa",
+      icon: User,
+      color: "text-primary",
+    },
     {
       value: "guru",
       label: "Guru Mata Pelajaran",

@@ -1,32 +1,26 @@
-import { Button } from '@/components/ui/button';
-import { 
-  FileText,
-  Calendar,
-  BookOpen,
-  LogOut,
-  Download
-} from 'lucide-react';
+import { Button } from "@/components/ui/button";
+import { FileText, Calendar, BookOpen, LogOut, Download } from "lucide-react";
 
 // Menu items for siswa dashboard
 const menuItems = [
   {
-    title: 'Nilai',
+    title: "Nilai",
     icon: FileText,
-    id: 'nilai',
-    description: 'Lihat nilai-nilai pelajaran'
+    id: "nilai",
+    description: "Lihat nilai-nilai pelajaran",
   },
   {
-    title: 'Kehadiran',
-    icon: Calendar, 
-    id: 'kehadiran',
-    description: 'Monitor kehadiran Anda'
+    title: "Kehadiran",
+    icon: Calendar,
+    id: "kehadiran",
+    description: "Monitor kehadiran Anda",
   },
   {
-    title: 'Mata Pelajaran',
+    title: "Mata Pelajaran",
     icon: BookOpen,
-    id: 'matapelajaran', 
-    description: 'Lihat semua mata pelajaran'
-  }
+    id: "matapelajaran",
+    description: "Lihat semua mata pelajaran",
+  },
 ];
 
 interface SiswaNavbarProps {
@@ -36,8 +30,13 @@ interface SiswaNavbarProps {
   onPrintReport: () => void;
 }
 
-const SiswaNavbar = ({ activeSection, setActiveSection, onLogout, onPrintReport }: SiswaNavbarProps) => {
-  const activeItem = menuItems.find(item => item.id === activeSection);
+const SiswaNavbar = ({
+  activeSection,
+  setActiveSection,
+  onLogout,
+  onPrintReport,
+}: SiswaNavbarProps) => {
+  const activeItem = menuItems.find((item) => item.id === activeSection);
 
   return (
     <div className="bg-card border-b border-border shadow-sm">
@@ -46,24 +45,26 @@ const SiswaNavbar = ({ activeSection, setActiveSection, onLogout, onPrintReport 
           {/* Navigation Title */}
           <div className="flex justify-between items-center">
             <div>
-              <h2 className="text-lg font-semibold text-foreground">Panel Siswa</h2>
+              <h2 className="text-lg font-semibold text-foreground">
+                Panel Orang Tua Siswa
+              </h2>
               <p className="text-sm text-muted-foreground">
-                {activeItem?.description || 'Dashboard akademik Anda'}
+                {activeItem?.description || "Dashboard akademik Anda"}
               </p>
             </div>
             <div className="flex items-center space-x-2">
-              <Button 
-                variant="outline" 
-                size="sm" 
+              <Button
+                variant="outline"
+                size="sm"
                 onClick={onPrintReport}
                 className="text-primary hover:text-primary-foreground hover:bg-primary"
               >
                 <Download className="h-4 w-4 mr-2" />
                 Cetak Raport
               </Button>
-              <Button 
-                variant="outline" 
-                size="sm" 
+              <Button
+                variant="outline"
+                size="sm"
                 onClick={onLogout}
                 className="text-destructive hover:text-destructive-foreground hover:bg-destructive"
               >
@@ -72,13 +73,13 @@ const SiswaNavbar = ({ activeSection, setActiveSection, onLogout, onPrintReport 
               </Button>
             </div>
           </div>
-          
+
           {/* Navigation Menu */}
           <div className="flex flex-wrap gap-2">
             {menuItems.map((item) => {
               const Icon = item.icon;
               const isActive = activeSection === item.id;
-              
+
               return (
                 <Button
                   key={item.id}
@@ -86,8 +87,8 @@ const SiswaNavbar = ({ activeSection, setActiveSection, onLogout, onPrintReport 
                   size="sm"
                   onClick={() => setActiveSection(item.id)}
                   className={`flex items-center space-x-2 ${
-                    isActive 
-                      ? "bg-primary text-primary-foreground" 
+                    isActive
+                      ? "bg-primary text-primary-foreground"
                       : "text-muted-foreground hover:text-foreground hover:bg-muted"
                   }`}
                 >
