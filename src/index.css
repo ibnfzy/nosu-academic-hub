@@ -204,6 +204,15 @@
     50% { opacity: 0.8; }
   }
 
+  @keyframes hero-pan {
+    0%, 100% {
+      background-position: 0% 50%;
+    }
+    50% {
+      background-position: 100% 50%;
+    }
+  }
+
   @keyframes gradient-shift {
     0% {
       background-position: 0% 50%;
@@ -224,10 +233,21 @@
     animation: pulse-soft 2s ease-in-out infinite;
   }
 
+  .hero-background {
+    position: absolute;
+    inset: 0;
+    background-image: url("/img/banner1.jpg");
+    background-size: 160% auto;
+    background-repeat: no-repeat;
+    background-position: 0% 50%;
+    animation: hero-pan 32s ease-in-out infinite;
+    transform: scale(1.05);
+  }
+
   .gradient-hero {
-    background: linear-gradient(-45deg, 
-      hsl(215 85% 25%), 
-      hsl(215 85% 35%), 
+    background: linear-gradient(-45deg,
+      hsl(215 85% 25%),
+      hsl(215 85% 35%),
       hsl(145 65% 35%), 
       hsl(145 65% 45%)
     );
