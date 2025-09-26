@@ -15,6 +15,10 @@ import {
   Heart,
   Globe,
   Star,
+  Rocket,
+  Lightbulb,
+  ShieldCheck,
+  Palette,
 } from "lucide-react";
 import Navbar from "@/components/Navbar";
 import apiService from "@/services/apiService";
@@ -111,6 +115,37 @@ const Home = ({ currentUser, onLogin, onLogout }) => {
     },
   ];
 
+  const programThemes = [
+    {
+      icon: Rocket,
+      gradient: "from-primary/15 via-primary/5 to-background",
+      iconBg: "bg-primary/15",
+      iconColor: "text-primary",
+      badgeBg: "bg-primary/10 text-primary",
+    },
+    {
+      icon: Lightbulb,
+      gradient: "from-accent/15 via-accent/5 to-background",
+      iconBg: "bg-accent/15",
+      iconColor: "text-accent",
+      badgeBg: "bg-accent/10 text-accent",
+    },
+    {
+      icon: ShieldCheck,
+      gradient: "from-success/15 via-success/5 to-background",
+      iconBg: "bg-success/15",
+      iconColor: "text-success",
+      badgeBg: "bg-success/10 text-success",
+    },
+    {
+      icon: Palette,
+      gradient: "from-warning/15 via-warning/5 to-background",
+      iconBg: "bg-warning/15",
+      iconColor: "text-warning",
+      badgeBg: "bg-warning/10 text-warning",
+    },
+  ];
+
   // Data akan diload dari state yang sudah diatur di useEffect
 
   return (
@@ -183,6 +218,86 @@ className="absolute inset-0 bg-gradient-to-r from-primary/70 via-primary/30 to-p
               </Card>
             ))}
           </div>
+        </section>
+
+        {/* Program Unggulan */}
+        <section className="mb-12">
+          <Card className="shadow-soft">
+            <CardHeader>
+              <CardTitle className="flex items-center space-x-2">
+                <BookOpen className="h-5 w-5 text-primary" />
+                <span>Program Unggulan</span>
+              </CardTitle>
+            </CardHeader>
+            <CardContent>
+              {programs.length > 0 ? (
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-6">
+                  {programs.map((program, index) => {
+                    const theme = programThemes[index % programThemes.length];
+                    const ProgramIcon = theme.icon;
+
+                    return (
+                      <div
+                        key={program.id || index}
+                        className="relative group overflow-hidden rounded-2xl border border-border/60 bg-background/80 shadow-soft hover:shadow-medium transition-smooth"
+                      >
+                        <div
+                          className={`absolute inset-0 bg-gradient-to-br ${theme.gradient} opacity-0 group-hover:opacity-100 transition-opacity duration-500`}
+                          aria-hidden="true"
+                        />
+                        <div className="relative z-10 p-6 space-y-4">
+                          <div className="flex items-center justify-between">
+                            <div
+                              className={`inline-flex h-12 w-12 items-center justify-center rounded-xl ${theme.iconBg}`}
+                            >
+                              <ProgramIcon
+                                className={`h-6 w-6 ${theme.iconColor}`}
+                              />
+                            </div>
+                            {program.status && (
+                              <span
+                                className={`text-xs font-semibold tracking-wide uppercase px-3 py-1 rounded-full ${theme.badgeBg}`}
+                              >
+                                {program.status}
+                              </span>
+                            )}
+                          </div>
+                          <div className="space-y-2">
+                            <h3 className="text-lg font-semibold text-foreground">
+                              {program.nama}
+                            </h3>
+                            {program.deskripsi && (
+                              <p className="text-sm text-muted-foreground leading-relaxed">
+                                {program.deskripsi}
+                              </p>
+                            )}
+                          </div>
+                          <div className="flex flex-wrap gap-2 text-xs text-muted-foreground">
+                            {program.target && (
+                              <span className="inline-flex items-center gap-1 px-3 py-1 rounded-full bg-muted/50">
+                                <Users className="h-3.5 w-3.5" />
+                                {program.target}
+                              </span>
+                            )}
+                            {program.durasi && (
+                              <span className="inline-flex items-center gap-1 px-3 py-1 rounded-full bg-muted/50">
+                                <Calendar className="h-3.5 w-3.5" />
+                                {program.durasi}
+                              </span>
+                            )}
+                          </div>
+                        </div>
+                      </div>
+                    );
+                  })}
+                </div>
+              ) : (
+                <p className="text-sm text-muted-foreground text-center py-6">
+                  Belum ada program yang ditampilkan saat ini
+                </p>
+              )}
+            </CardContent>
+          </Card>
         </section>
 
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 mb-12">
