@@ -126,20 +126,20 @@ const Home = ({ currentUser, onLogin, onLogout }) => {
               aria-hidden="true"
             />
             <div
-              className="absolute inset-0 bg-gradient-to-r from-primary/80 via-primary/60 to-primary/80"
+className="absolute inset-0 bg-gradient-to-r from-primary/70 via-primary/30 to-primary/70"
               aria-hidden="true"
             />
             <div className="relative z-10 p-8 sm:p-12 text-white">
               <div className="flex justify-center mb-6">
-                <School className="h-20 w-20 float-animation" />
+<School className="h-20 w-20 float-animation drop-shadow-[0_10px_18px_rgba(0,0,0,0.4)]" />
               </div>
-              <h1 className="text-4xl md:text-5xl font-bold mb-4">
+              <h1 className="text-4xl md:text-5xl font-bold mb-4 drop-shadow-[0_10px_18px_rgba(0,0,0,0.35)]">
                 {schoolProfile?.nama || "SMA Negeri 1 Nosu"}
               </h1>
-              <p className="text-xl md:text-2xl mb-2 opacity-90">
+              <p className="text-xl md:text-2xl mb-2 opacity-95 drop-shadow-[0_8px_14px_rgba(0,0,0,0.35)]">
                 Sulawesi Barat
               </p>
-              <p className="text-lg opacity-75 max-w-2xl mx-auto">
+              <p className="text-lg opacity-90 max-w-2xl mx-auto drop-shadow-[0_8px_14px_rgba(0,0,0,0.35)]">
                 {schoolProfile?.visi ||
                   "Sistem Informasi Akademik Digital untuk transparansi dan kemudahan akses informasi pendidikan"}
               </p>

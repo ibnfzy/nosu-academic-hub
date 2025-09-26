@@ -237,11 +237,12 @@
     position: absolute;
     inset: 0;
     background-image: url("/img/banner1.jpg");
-    background-size: 160% auto;
+background-size: 140% auto;
     background-repeat: no-repeat;
     background-position: 0% 50%;
     animation: hero-pan 32s ease-in-out infinite;
     transform: scale(1.05);
+filter: brightness(1.05) saturate(1.08);
   }
 
   .gradient-hero {
