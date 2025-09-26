@@ -126,12 +126,12 @@ const Home = ({ currentUser, onLogin, onLogout }) => {
               aria-hidden="true"
             />
             <div
-              className="absolute inset-0 bg-gradient-to-r from-primary/70 via-primary/30 to-primary/70"
+className="absolute inset-0 bg-gradient-to-r from-primary/70 via-primary/30 to-primary/70"
               aria-hidden="true"
             />
             <div className="relative z-10 p-8 sm:p-12 text-white">
               <div className="flex justify-center mb-6">
-                <School className="h-20 w-20 float-animation drop-shadow-[0_10px_18px_rgba(0,0,0,0.4)]" />
+<School className="h-20 w-20 float-animation drop-shadow-[0_10px_18px_rgba(0,0,0,0.4)]" />
               </div>
               <h1 className="text-4xl md:text-5xl font-bold mb-4 drop-shadow-[0_10px_18px_rgba(0,0,0,0.35)]">
                 {schoolProfile?.nama || "SMA Negeri 1 Nosu"}
