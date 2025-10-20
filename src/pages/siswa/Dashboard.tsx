@@ -15,6 +15,7 @@ import {
   StudentGradesTable,
   StudentStatsCards,
 } from "@/components/siswa";
+import { useDashboardSemester } from "@/hooks/use-dashboard-semester";
 import { StudentUser, useStudentDashboard } from "@/hooks/use-student-dashboard";
 import { calculateAverage, formatDate, getGradeColor } from "@/utils/helpers";
 
@@ -30,10 +31,6 @@ const StudentDashboard = ({ currentUser, onLogout }: StudentDashboardProps) => {
     attendance,
     attendanceStats,
     averageGrade,
-    buildSemesterDateRange,
-    buildSemesterTitle,
-    formatStudyDays,
-    getSemesterMetadata,
     grades,
     handlePrintReport,
     handleSemesterChange,
@@ -44,6 +41,13 @@ const StudentDashboard = ({ currentUser, onLogout }: StudentDashboardProps) => {
     semesters,
     subjectGrades,
   } = useStudentDashboard({ currentUser });
+
+  const {
+    normalizeSemesterMetadata,
+    buildSemesterTitle,
+    buildSemesterDateRange,
+    formatStudyDays,
+  } = useDashboardSemester({ semesters });
 
   const semesterTitle = buildSemesterTitle(selectedSemesterMetadata);
   const semesterDateRange = buildSemesterDateRange(selectedSemesterMetadata);
@@ -86,7 +90,7 @@ const StudentDashboard = ({ currentUser, onLogout }: StudentDashboardProps) => {
                 <SelectContent>
                   {semesters.length > 0 ? (
                     semesters.map((semester) => {
-                      const metadata = getSemesterMetadata(semester);
+                      const metadata = normalizeSemesterMetadata(semester);
                       return (
                         <SelectItem
                           key={semester.id}

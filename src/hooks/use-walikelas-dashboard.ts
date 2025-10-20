@@ -1,39 +1,17 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
+import {
+  useDashboardSemester,
+  type DashboardSemesterMetadata,
+  type DashboardSemesterRecord,
+} from "@/hooks/use-dashboard-semester";
 import apiService from "@/services/apiService";
 import { useToast } from "@/hooks/use-toast";
-import {
-  formatAcademicPeriod,
-  formatDate,
-  printReport,
-} from "@/utils/helpers";
+import { printReport } from "@/utils/helpers";
 
 interface CurrentUser {
   id: string;
   nama?: string;
   kelasId?: string;
-}
-
-interface SemesterRecord {
-  id?: string | number;
-  tahunAjaran?: string | null;
-  tahun?: string | null;
-  academicYear?: string | null;
-  year?: string | null;
-  semester?: number | string | null;
-  semesterNumber?: number | string | null;
-  term?: number | string | null;
-  tanggalMulai?: string | null;
-  startDate?: string | null;
-  tanggalSelesai?: string | null;
-  endDate?: string | null;
-  jumlahHariBelajar?: number | null;
-  learningDays?: number | null;
-  totalSchoolDays?: number | null;
-  hariEfektif?: number | null;
-  catatan?: string | null;
-  notes?: string | null;
-  keterangan?: string | null;
-  isActive?: boolean;
 }
 
 interface StudentFormState {
@@ -70,17 +48,6 @@ const createDefaultStudentForm = (): StudentFormState => ({
   email: "",
 });
 
-const formatSemesterNumberLabel = (value: unknown) => {
-  if (value === null || value === undefined || value === "") return null;
-  const numericValue = Number(value);
-  if (!Number.isNaN(numericValue)) {
-    if (numericValue === 1) return "Semester Ganjil";
-    if (numericValue === 2) return "Semester Genap";
-    return `Semester ${numericValue}`;
-  }
-  return typeof value === "string" ? value : null;
-};
-
 const useWalikelasDashboard = (currentUser: CurrentUser | null) => {
   const { toast } = useToast();
 
@@ -93,7 +60,7 @@ const useWalikelasDashboard = (currentUser: CurrentUser | null) => {
   const [editingStudent, setEditingStudent] = useState<any>(null);
   const [searchTerm, setSearchTerm] = useState("");
   const [activeSection, setActiveSection] = useState("students");
-  const [semesters, setSemesters] = useState<SemesterRecord[]>([]);
+  const [semesters, setSemesters] = useState<DashboardSemesterRecord[]>([]);
   const [selectedSemesterId, setSelectedSemesterId] = useState<string>("");
   const [studentForm, setStudentForm] = useState<StudentFormState>(
     createDefaultStudentForm
@@ -140,52 +107,11 @@ const useWalikelasDashboard = (currentUser: CurrentUser | null) => {
     setShowStudentDialog(true);
   }, []);
 
-  const normalizeSemesterMetadata = useCallback((semesterItem: SemesterRecord | null | undefined) => {
-    if (!semesterItem) return null;
-
-    return {
-      id: semesterItem.id ?? null,
-      tahunAjaran:
-        semesterItem.tahunAjaran ||
-        semesterItem.tahun ||
-        semesterItem.academicYear ||
-        semesterItem.year ||
-        null,
-      semesterNumber:
-        semesterItem.semester ??
-        semesterItem.semesterNumber ??
-        semesterItem.term ??
-        null,
-      tanggalMulai: semesterItem.tanggalMulai || semesterItem.startDate || null,
-      tanggalSelesai:
-        semesterItem.tanggalSelesai || semesterItem.endDate || null,
-      jumlahHariBelajar:
-        semesterItem.jumlahHariBelajar ??
-        semesterItem.learningDays ??
-        semesterItem.totalSchoolDays ??
-        semesterItem.hariEfektif ??
-        null,
-      catatan:
-        semesterItem.catatan || semesterItem.notes || semesterItem.keterangan || "",
-      isActive: Boolean(semesterItem.isActive),
-    };
-  }, []);
-
-  const getSemesterRecordById = useCallback(
-    (semesterId: string | number | null | undefined) => {
-      if (!semesterId) return null;
-      return semesters.find((item) => String(item.id) === String(semesterId)) || null;
-    },
-    [semesters]
-  );
-
-  const resolveSemesterMetadata = useCallback(
-    (semesterId: string | number | null | undefined, fallback: SemesterRecord | null | undefined = null) => {
-      const record = getSemesterRecordById(semesterId) || fallback;
-      return normalizeSemesterMetadata(record ?? null);
-    },
-    [getSemesterRecordById, normalizeSemesterMetadata]
-  );
+  const {
+    normalizeSemesterMetadata,
+    resolveSemesterMetadata,
+    buildSemesterTitle,
+  } = useDashboardSemester({ semesters });
 
   const getEffectiveSemesterId = useCallback(
     (customId?: string | number | null) => {
@@ -199,53 +125,6 @@ const useWalikelasDashboard = (currentUser: CurrentUser | null) => {
     [selectedSemesterId, semesters]
   );
 
-  const buildSemesterTitle = useCallback(
-    (metadata: ReturnType<typeof normalizeSemesterMetadata> | null, includeActiveFlag = false) => {
-      if (!metadata) return "-";
-
-      const semesterLabel = formatSemesterNumberLabel(metadata.semesterNumber);
-      const parts: string[] = [];
-
-      if (metadata.tahunAjaran) {
-        parts.push(metadata.tahunAjaran as string);
-      }
-
-      if (semesterLabel) {
-        parts.push(semesterLabel);
-      }
-
-      const baseLabel = parts.join(" - ") || "Semester";
-      const activeSuffix = includeActiveFlag && metadata.isActive ? " (Aktif)" : "";
-
-      return `${baseLabel}${activeSuffix}`;
-    },
-    []
-  );
-
-  const buildSemesterDateRange = useCallback(
-    (metadata: ReturnType<typeof normalizeSemesterMetadata> | null) => {
-      if (!metadata) return null;
-      if (!metadata.tanggalMulai || !metadata.tanggalSelesai) return null;
-      return `${formatDate(metadata.tanggalMulai)} - ${formatDate(
-        metadata.tanggalSelesai
-      )}`;
-    },
-    []
-  );
-
-  const getSemesterOptionLabel = useCallback(
-    (semesterItem: SemesterRecord) => {
-      const metadata = normalizeSemesterMetadata(semesterItem);
-      if (!metadata) return "Semester";
-
-      const baseLabel = buildSemesterTitle(metadata, true);
-      const dateRange = buildSemesterDateRange(metadata);
-
-      return dateRange ? `${baseLabel} (${dateRange})` : baseLabel;
-    },
-    [buildSemesterTitle, buildSemesterDateRange, normalizeSemesterMetadata]
-  );
-
   const selectedSemesterMetadata = useMemo(() => {
     if (selectedSemesterId) {
       return resolveSemesterMetadata(selectedSemesterId);
@@ -256,26 +135,6 @@ const useWalikelasDashboard = (currentUser: CurrentUser | null) => {
     return null;
   }, [normalizeSemesterMetadata, resolveSemesterMetadata, selectedSemesterId, semesters]);
 
-  const selectedSemesterPeriodLabel = useMemo(() => {
-    if (!selectedSemesterMetadata) return "-";
-
-    const numericValue = Number(selectedSemesterMetadata.semesterNumber);
-    const hasNumericSemester = !Number.isNaN(numericValue);
-
-    if (selectedSemesterMetadata.tahunAjaran && hasNumericSemester) {
-      return formatAcademicPeriod(
-        selectedSemesterMetadata.tahunAjaran as string,
-        numericValue
-      );
-    }
-
-    return buildSemesterTitle(selectedSemesterMetadata);
-  }, [buildSemesterTitle, selectedSemesterMetadata]);
-
-  const selectedSemesterDateRange = useMemo(
-    () => buildSemesterDateRange(selectedSemesterMetadata),
-    [buildSemesterDateRange, selectedSemesterMetadata]
-  );
 
   const loadSemesters = useCallback(async () => {
     try {
@@ -734,10 +593,7 @@ const useWalikelasDashboard = (currentUser: CurrentUser | null) => {
     semesters,
     selectedSemesterId,
     handleSemesterChange,
-    getSemesterOptionLabel,
     selectedSemesterMetadata,
-    selectedSemesterPeriodLabel,
-    selectedSemesterDateRange,
     showStudentDialog,
     handleStudentDialogChange,
     startAddStudent,

@@ -17,14 +17,24 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 
-import { UseTeacherDashboardReturn } from "@/hooks/use-teacher-dashboard";
+import {
+  type Semester,
+  UseTeacherDashboardReturn,
+} from "@/hooks/use-teacher-dashboard";
 
 type TeacherAttendanceDialogProps = {
   dashboard: UseTeacherDashboardReturn;
+  buildSemesterLabel: (semester: Semester | null) => string | null;
+  getSemesterLabelById: (
+    id: string | number | null,
+    fallback?: Semester | null
+  ) => string;
 };
 
 export function TeacherAttendanceDialog({
   dashboard,
+  buildSemesterLabel,
+  getSemesterLabelById,
 }: TeacherAttendanceDialogProps) {
   const {
     showAttendanceDialog,
@@ -35,8 +45,6 @@ export function TeacherAttendanceDialog({
     subjects,
     students,
     semesters,
-    buildSemesterLabel,
-    getSemesterLabelById,
     getSubjectName,
     getClassesName,
     getStudentName,

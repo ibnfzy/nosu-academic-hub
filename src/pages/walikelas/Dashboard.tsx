@@ -19,6 +19,7 @@ import StudentsSection from "@/components/walikelas/StudentsSection";
 import GradesSection from "@/components/walikelas/GradesSection";
 import AttendanceSection from "@/components/walikelas/AttendanceSection";
 import ReportsSection from "@/components/walikelas/ReportsSection";
+import { useDashboardSemester } from "@/hooks/use-dashboard-semester";
 import useWalikelasDashboard from "@/hooks/use-walikelas-dashboard";
 
 const WalikelasaDashboard = ({ currentUser, onLogout }) => {
@@ -35,10 +36,7 @@ const WalikelasaDashboard = ({ currentUser, onLogout }) => {
     semesters,
     selectedSemesterId,
     handleSemesterChange,
-    getSemesterOptionLabel,
     selectedSemesterMetadata,
-    selectedSemesterPeriodLabel,
-    selectedSemesterDateRange,
     showStudentDialog,
     handleStudentDialogChange,
     startAddStudent,
@@ -57,6 +55,19 @@ const WalikelasaDashboard = ({ currentUser, onLogout }) => {
     resetStudentForm,
     editStudent,
   } = useWalikelasDashboard(currentUser);
+
+  const {
+    getSemesterOptionLabel,
+    buildSemesterPeriodLabel,
+    buildSemesterDateRange,
+  } = useDashboardSemester({ semesters });
+
+  const selectedSemesterPeriodLabel = buildSemesterPeriodLabel(
+    selectedSemesterMetadata
+  );
+  const selectedSemesterDateRange = buildSemesterDateRange(
+    selectedSemesterMetadata
+  );
 
   return (
     <div className="min-h-screen bg-background">
