@@ -17,13 +17,25 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 
-import { UseTeacherDashboardReturn } from "@/hooks/use-teacher-dashboard";
+import {
+  type Semester,
+  UseTeacherDashboardReturn,
+} from "@/hooks/use-teacher-dashboard";
 
 type TeacherGradeDialogProps = {
   dashboard: UseTeacherDashboardReturn;
+  buildSemesterLabel: (semester: Semester | null) => string | null;
+  getSemesterLabelById: (
+    id: string | number | null,
+    fallback?: Semester | null
+  ) => string;
 };
 
-export function TeacherGradeDialog({ dashboard }: TeacherGradeDialogProps) {
+export function TeacherGradeDialog({
+  dashboard,
+  buildSemesterLabel,
+  getSemesterLabelById,
+}: TeacherGradeDialogProps) {
   const {
     showGradeDialog,
     handleGradeDialogOpenChange,
@@ -33,8 +45,6 @@ export function TeacherGradeDialog({ dashboard }: TeacherGradeDialogProps) {
     subjects,
     students,
     semesters,
-    buildSemesterLabel,
-    getSemesterLabelById,
     getClassesName,
     getStudentName,
     handleAddGrade,

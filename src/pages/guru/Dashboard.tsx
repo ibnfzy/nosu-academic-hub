@@ -7,6 +7,7 @@ import { TeacherGradeTableDialog } from "@/components/guru/TeacherGradeTableDial
 import { TeacherAttendanceTableDialog } from "@/components/guru/TeacherAttendanceTableDialog";
 import { TeacherStudentListDialog } from "@/components/guru/TeacherStudentListDialog";
 import { TeacherDashboardTabs } from "@/components/guru/TeacherDashboardTabs";
+import { useDashboardSemester } from "@/hooks/use-dashboard-semester";
 import {
   type TeacherDashboardUser,
   useTeacherDashboard,
@@ -26,9 +27,11 @@ const TeacherDashboard = ({ currentUser, onLogout }: TeacherDashboardProps) => {
     selectedSemesterId,
     setSelectedSemesterId,
     semesters,
-    buildSemesterLabel,
-    getSemesterLabelById,
   } = dashboard;
+
+  const { buildSemesterLabel, getSemesterLabelById } = useDashboardSemester({
+    semesters,
+  });
 
   return (
     <div className="min-h-screen bg-background">
@@ -44,8 +47,16 @@ const TeacherDashboard = ({ currentUser, onLogout }: TeacherDashboardProps) => {
         />
 
         <div className="flex flex-wrap gap-4 mb-8">
-          <TeacherGradeDialog dashboard={dashboard} />
-          <TeacherAttendanceDialog dashboard={dashboard} />
+          <TeacherGradeDialog
+            dashboard={dashboard}
+            buildSemesterLabel={buildSemesterLabel}
+            getSemesterLabelById={getSemesterLabelById}
+          />
+          <TeacherAttendanceDialog
+            dashboard={dashboard}
+            buildSemesterLabel={buildSemesterLabel}
+            getSemesterLabelById={getSemesterLabelById}
+          />
         </div>
 
         <TeacherGradeTableDialog dashboard={dashboard} />

@@ -6,8 +6,8 @@ import {
   useState,
 } from "react";
 import { useToast } from "@/hooks/use-toast";
+import { useDashboardSemester } from "@/hooks/use-dashboard-semester";
 import apiService from "@/services/apiService";
-import { formatAcademicPeriod } from "@/utils/helpers";
 
 type Identifier = string | number;
 type UnknownRecord = Record<string, unknown>;
@@ -219,6 +219,9 @@ export function useTeacherDashboard(currentUser: TeacherDashboardUser | null) {
   const [classes, setClasses] = useState<ClassInfo[]>([]);
   const [semesters, setSemesters] = useState<Semester[]>([]);
   const [selectedSemesterId, setSelectedSemesterId] = useState<string>("");
+  const { buildSemesterLabel, getSemesterLabelById } = useDashboardSemester({
+    semesters,
+  });
   const [showGradeDialog, setShowGradeDialog] = useState(false);
   const [showAttendanceDialog, setShowAttendanceDialog] = useState(false);
   const [showStudentListDialog, setShowStudentListDialog] = useState(false);
@@ -335,53 +338,6 @@ export function useTeacherDashboard(currentUser: TeacherDashboardUser | null) {
       return semesters.find((semester) => String(semester.id) === String(id));
     },
     [semesters]
-  );
-
-  const buildSemesterLabel = useCallback((semesterItem: Semester | null) => {
-    if (!semesterItem) return null;
-    if (semesterItem.label) return semesterItem.label;
-
-    const tahunAjaran =
-      semesterItem.tahunAjaran ||
-      semesterItem.tahun ||
-      semesterItem.academicYear ||
-      semesterItem.year ||
-      null;
-    const semesterNumber =
-      semesterItem.semester ??
-      semesterItem.semesterNumber ??
-      semesterItem.term ??
-      null;
-
-    if (
-      !tahunAjaran &&
-      (semesterNumber === null || semesterNumber === undefined)
-    ) {
-      return null;
-    }
-
-    const parsedSemester =
-      semesterNumber === null || semesterNumber === undefined
-        ? null
-        : Number(semesterNumber);
-    const normalizedSemester =
-      parsedSemester !== null && !Number.isNaN(parsedSemester)
-        ? parsedSemester
-        : semesterNumber;
-
-    return formatAcademicPeriod(tahunAjaran, normalizedSemester);
-  }, []);
-
-  const getSemesterLabelById = useCallback(
-    (id: Identifier | null, fallback?: Semester | null) => {
-      const semesterRecord = getSemesterRecordById(id);
-      return (
-        buildSemesterLabel(semesterRecord) ||
-        buildSemesterLabel(fallback) ||
-        "-"
-      );
-    },
-    [buildSemesterLabel, getSemesterRecordById]
   );
 
   const resolveSemesterDetails = useCallback(
@@ -1157,8 +1113,6 @@ export function useTeacherDashboard(currentUser: TeacherDashboardUser | null) {
     selectedSubjectKelasId,
     selectedSubjectForGrades,
     selectedSubjectForAttendance,
-    buildSemesterLabel,
-    getSemesterLabelById,
   };
 }
 

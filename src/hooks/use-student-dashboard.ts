@@ -1,10 +1,14 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
+import {
+  useDashboardSemester,
+  type DashboardSemesterMetadata,
+  type DashboardSemesterRecord,
+} from "@/hooks/use-dashboard-semester";
 import { useToast } from "@/hooks/use-toast";
 import apiService from "@/services/apiService";
 import {
   calculateAttendanceStats,
   calculateAverage,
-  formatDate,
   printReport,
 } from "@/utils/helpers";
 
@@ -39,43 +43,8 @@ export interface StudentAttendanceRecord {
   tanggal: string;
   status: string;
   keterangan?: string | null;
-  semesterInfo?: SemesterRecord;
+  semesterInfo?: DashboardSemesterRecord;
   [key: string]: unknown;
-}
-
-export type SemesterRecord = {
-  id?: string | number;
-  tahun?: string;
-  tahunAjaran?: string;
-  academicYear?: string;
-  year?: string;
-  semester?: number | string;
-  semesterNumber?: number | string;
-  term?: number | string;
-  startDate?: string;
-  endDate?: string;
-  tanggalMulai?: string;
-  tanggalSelesai?: string;
-  jumlahHariBelajar?: number | string;
-  learningDays?: number | string;
-  totalSchoolDays?: number | string;
-  hariEfektif?: number | string;
-  catatan?: string;
-  notes?: string;
-  keterangan?: string;
-  isActive?: boolean;
-  [key: string]: unknown;
-};
-
-export interface SemesterMetadata {
-  id: string | null;
-  tahunAjaran: string | null;
-  semesterNumber: number | string | null;
-  tanggalMulai: string | null;
-  tanggalSelesai: string | null;
-  jumlahHariBelajar: number | string | null;
-  catatan: string;
-  isActive: boolean;
 }
 
 export interface SubjectGradeGroup {
@@ -105,136 +74,15 @@ export const useStudentDashboard = ({
 
   const [grades, setGrades] = useState<StudentGrade[]>([]);
   const [attendance, setAttendance] = useState<StudentAttendanceRecord[]>([]);
-  const [semesters, setSemesters] = useState<SemesterRecord[]>([]);
+  const [semesters, setSemesters] = useState<DashboardSemesterRecord[]>([]);
   const [selectedSemesterId, setSelectedSemesterId] = useState<string>("");
   const [selectedSemesterMetadata, setSelectedSemesterMetadata] =
-    useState<SemesterMetadata | null>(null);
+    useState<DashboardSemesterMetadata | null>(null);
   const [semesterError, setSemesterError] = useState<string>("");
   const [loading, setLoading] = useState<boolean>(false);
 
-  const normalizeSemesterMetadata = useCallback(
-    (semesterItem?: SemesterRecord | null): SemesterMetadata | null => {
-      if (!semesterItem) return null;
-
-      const semesterRaw =
-        semesterItem.semester ?? semesterItem.semesterNumber ?? semesterItem.term;
-      let semesterNumber: number | string | null = null;
-
-      if (semesterRaw !== null && semesterRaw !== undefined) {
-        const parsed = Number(semesterRaw);
-        semesterNumber = Number.isNaN(parsed) ? semesterRaw : parsed;
-      }
-
-      return {
-        id: semesterItem.id ? String(semesterItem.id) : null,
-        tahunAjaran:
-          semesterItem.tahunAjaran ||
-          semesterItem.tahun ||
-          semesterItem.academicYear ||
-          semesterItem.year ||
-          null,
-        semesterNumber: semesterNumber ?? null,
-        tanggalMulai: semesterItem.tanggalMulai || semesterItem.startDate || null,
-        tanggalSelesai:
-          semesterItem.tanggalSelesai || semesterItem.endDate || null,
-        jumlahHariBelajar:
-          semesterItem.jumlahHariBelajar ??
-          semesterItem.learningDays ??
-          semesterItem.totalSchoolDays ??
-          semesterItem.hariEfektif ??
-          null,
-        catatan:
-          (semesterItem.catatan ||
-            semesterItem.notes ||
-            semesterItem.keterangan ||
-            "") ?? "",
-        isActive: Boolean(semesterItem.isActive),
-      };
-    },
-    []
-  );
-
-  const getSemesterRecordById = useCallback(
-    (semesterId: string | number | null): SemesterRecord | null => {
-      if (!semesterId) return null;
-      return (
-        semesters.find((item) => String(item.id) === String(semesterId)) || null
-      );
-    },
-    [semesters]
-  );
-
-  const resolveSemesterMetadata = useCallback(
-    (
-      semesterId: string | number | null,
-      fallback: SemesterRecord | null = null
-    ): SemesterMetadata | null => {
-      const record = getSemesterRecordById(semesterId) || fallback;
-      return normalizeSemesterMetadata(record);
-    },
-    [getSemesterRecordById, normalizeSemesterMetadata]
-  );
-
-  const formatSemesterNumberLabel = useCallback(
-    (value: number | string | null | undefined): string | null => {
-      if (value === null || value === undefined || value === "") return null;
-      const numericValue = Number(value);
-      if (!Number.isNaN(numericValue)) {
-        if (numericValue === 1) return "Semester Ganjil";
-        if (numericValue === 2) return "Semester Genap";
-        return `Semester ${numericValue}`;
-      }
-      return typeof value === "string" ? value : null;
-    },
-    []
-  );
-
-  const buildSemesterTitle = useCallback(
-    (metadata: SemesterMetadata | null, includeActiveFlag = false): string => {
-      if (!metadata) return "Semester";
-      const parts: string[] = [];
-
-      if (metadata.tahunAjaran) {
-        parts.push(metadata.tahunAjaran);
-      }
-
-      const semesterLabel = formatSemesterNumberLabel(metadata.semesterNumber);
-      if (semesterLabel) {
-        parts.push(semesterLabel);
-      }
-
-      const baseLabel = parts.join(" - ") || "Semester";
-      const suffix = includeActiveFlag && metadata.isActive ? " (Aktif)" : "";
-      return `${baseLabel}${suffix}`;
-    },
-    [formatSemesterNumberLabel]
-  );
-
-  const buildSemesterDateRange = useCallback(
-    (metadata: SemesterMetadata | null): string | null => {
-      if (!metadata) return null;
-      if (!metadata.tanggalMulai || !metadata.tanggalSelesai) return null;
-      return `${formatDate(metadata.tanggalMulai)} - ${formatDate(
-        metadata.tanggalSelesai
-      )}`;
-    },
-    []
-  );
-
-  const getSemesterMetadata = useCallback(
-    (semester: SemesterRecord | null | undefined): SemesterMetadata | null =>
-      normalizeSemesterMetadata(semester ?? null),
-    [normalizeSemesterMetadata]
-  );
-
-  const formatStudyDays = useCallback((metadata: SemesterMetadata | null): string => {
-    if (!metadata || metadata.jumlahHariBelajar === null) return "-";
-    const numericValue = Number(metadata.jumlahHariBelajar);
-    if (!Number.isNaN(numericValue)) {
-      return `${numericValue} hari`;
-    }
-    return String(metadata.jumlahHariBelajar);
-  }, []);
+  const { normalizeSemesterMetadata, resolveSemesterMetadata } =
+    useDashboardSemester({ semesters });
 
   const getEffectiveSemesterId = useCallback(
     (customId?: string | null): string => {
@@ -256,7 +104,7 @@ export const useStudentDashboard = ({
       const normalizedSemesters = Array.isArray(semestersResponse)
         ? semestersResponse
         : Object.values(semestersResponse || {}).filter(
-            (item): item is SemesterRecord =>
+            (item): item is DashboardSemesterRecord =>
               item !== null && typeof item === "object"
           );
 
@@ -356,17 +204,18 @@ export const useStudentDashboard = ({
           const gradeSemesterInfo = (
             gradesData.find(
               (item) =>
-                (item as unknown as { semesterInfo?: SemesterRecord })?.semesterInfo
-            ) as unknown as { semesterInfo?: SemesterRecord }
+                (item as unknown as { semesterInfo?: DashboardSemesterRecord })
+                  ?.semesterInfo
+            ) as unknown as { semesterInfo?: DashboardSemesterRecord }
           )?.semesterInfo;
           const attendanceSemesterInfo = (
             (attendanceData as Array<{
-              semesterInfo?: SemesterRecord;
+              semesterInfo?: DashboardSemesterRecord;
             }>).find((item) => item?.semesterInfo) || null
           )?.semesterInfo;
           const fallbackRecord =
             (gradeSemesterInfo || attendanceSemesterInfo || null) as
-              | SemesterRecord
+              | DashboardSemesterRecord
               | null;
           const fallbackMetadata = resolveSemesterMetadata(
             effectiveSemesterId,
@@ -447,8 +296,8 @@ export const useStudentDashboard = ({
       );
 
       const resolvedSemesterMetadata = resolveSemesterMetadata(
-        (reportData as SemesterRecord)?.semesterId ?? effectiveSemesterId,
-        (reportData as SemesterRecord)?.semesterInfo ?? null
+        (reportData as DashboardSemesterRecord)?.semesterId ?? effectiveSemesterId,
+        (reportData as DashboardSemesterRecord)?.semesterInfo ?? null
       );
 
       const enrichedReportData = {
@@ -459,25 +308,25 @@ export const useStudentDashboard = ({
           reportData?.semesterTanggalMulai ??
           resolvedSemesterMetadata?.tanggalMulai ??
           metadata?.tanggalMulai ??
-          (reportData as SemesterRecord)?.startDate ??
+          (reportData as DashboardSemesterRecord)?.startDate ??
           null,
         semesterTanggalSelesai:
           reportData?.semesterTanggalSelesai ??
           resolvedSemesterMetadata?.tanggalSelesai ??
           metadata?.tanggalSelesai ??
-          (reportData as SemesterRecord)?.endDate ??
+          (reportData as DashboardSemesterRecord)?.endDate ??
           null,
         semesterJumlahHariBelajar:
           reportData?.semesterJumlahHariBelajar ??
           resolvedSemesterMetadata?.jumlahHariBelajar ??
           metadata?.jumlahHariBelajar ??
-          (reportData as SemesterRecord)?.jumlahHariBelajar ??
+          (reportData as DashboardSemesterRecord)?.jumlahHariBelajar ??
           null,
         semesterCatatan:
           reportData?.semesterCatatan ??
           resolvedSemesterMetadata?.catatan ??
           metadata?.catatan ??
-          (reportData as SemesterRecord)?.catatan ??
+          (reportData as DashboardSemesterRecord)?.catatan ??
           null,
       };
 
