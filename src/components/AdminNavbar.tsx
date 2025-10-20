@@ -8,6 +8,7 @@ import {
   School,
   LogOut,
   Building2,
+  CalendarDays,
 } from "lucide-react";
 
 const menuItems = [
@@ -46,6 +47,12 @@ const menuItems = [
     icon: School,
     id: "classes",
     description: "Manajemen kelas",
+  },
+  {
+    title: "Semester",
+    icon: CalendarDays,
+    id: "semesters",
+    description: "Kelola periode semester akademik",
   },
   {
     title: "Profil Sekolah",

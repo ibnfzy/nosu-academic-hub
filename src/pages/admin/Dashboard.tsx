@@ -9,6 +9,7 @@ import UserManagement from "@/components/admin/UserManagement";
 import SubjectManagement from "@/components/admin/SubjectManagement";
 import ClassManagement from "@/components/admin/ClassManagement";
 import SchoolProfileManagement from "@/components/admin/SchoolProfileManagement";
+import SemesterManagement from "@/components/admin/SemesterManagement";
 
 const AdminDashboard = ({ currentUser, onLogout }) => {
   const [users, setUsers] = useState([]);
@@ -108,6 +109,11 @@ const AdminDashboard = ({ currentUser, onLogout }) => {
           {/* School Profile Management */}
           {activeSection === "school-profile" && (
             <SchoolProfileManagement onDataChange={loadAdminData} />
+          )}
+
+          {/* Semester Management */}
+          {activeSection === "semesters" && (
+            <SemesterManagement onDataChange={loadAdminData} />
           )}
         </div>
       </div>
