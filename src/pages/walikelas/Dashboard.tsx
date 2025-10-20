@@ -601,6 +601,30 @@ const WalikelasaDashboard = ({ currentUser, onLogout }) => {
         ...reportData,
         semesterInfo:
           resolvedSemesterMetadata || reportData?.semesterInfo || undefined,
+        semesterTanggalMulai:
+          reportData?.semesterTanggalMulai ??
+          resolvedSemesterMetadata?.tanggalMulai ??
+          reportData?.semesterInfo?.tanggalMulai ??
+          reportData?.semesterInfo?.startDate ??
+          null,
+        semesterTanggalSelesai:
+          reportData?.semesterTanggalSelesai ??
+          resolvedSemesterMetadata?.tanggalSelesai ??
+          reportData?.semesterInfo?.tanggalSelesai ??
+          reportData?.semesterInfo?.endDate ??
+          null,
+        semesterJumlahHariBelajar:
+          reportData?.semesterJumlahHariBelajar ??
+          resolvedSemesterMetadata?.jumlahHariBelajar ??
+          reportData?.semesterInfo?.jumlahHariBelajar ??
+          reportData?.semesterInfo?.learningDays ??
+          null,
+        semesterCatatan:
+          reportData?.semesterCatatan ??
+          resolvedSemesterMetadata?.catatan ??
+          reportData?.semesterInfo?.catatan ??
+          reportData?.semesterInfo?.notes ??
+          null,
       };
 
       printReport(enrichedReportData); // langsung kirim ke printer/pdf

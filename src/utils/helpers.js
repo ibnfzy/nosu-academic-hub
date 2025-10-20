@@ -186,11 +186,110 @@ export const filterByAcademicPeriod = (data, tahunAjaran, semester) => {
  * @param {number} semester - Semester
  * @returns {string} - Format display
  */
-export const formatAcademicPeriod = (tahunAjaran, semester) => {
-  if (!tahunAjaran) return "-";
+export const formatAcademicPeriod = (
+  tahunAjaranOrMetadata,
+  semesterValue,
+  semesterInfo = null
+) => {
+  const isObject =
+    tahunAjaranOrMetadata && typeof tahunAjaranOrMetadata === "object";
 
-  const semesterText = semester === 1 ? "Ganjil" : "Genap";
-  return `${tahunAjaran} - Semester ${semesterText}`;
+  const metadata = isObject
+    ? tahunAjaranOrMetadata
+    : typeof semesterInfo === "object" && semesterInfo
+    ? semesterInfo
+    : null;
+
+  const resolvedTahunAjaran = (() => {
+    if (isObject) {
+      return (
+        tahunAjaranOrMetadata?.tahunAjaran ||
+        tahunAjaranOrMetadata?.tahun ||
+        tahunAjaranOrMetadata?.academicYear ||
+        null
+      );
+    }
+
+    if (metadata) {
+      return (
+        metadata?.tahunAjaran ||
+        metadata?.tahun ||
+        metadata?.academicYear ||
+        tahunAjaranOrMetadata ||
+        null
+      );
+    }
+
+    return tahunAjaranOrMetadata || null;
+  })();
+
+  const resolvedSemester = (() => {
+    if (isObject) {
+      return (
+        tahunAjaranOrMetadata?.semesterNumber ||
+        tahunAjaranOrMetadata?.semester ||
+        tahunAjaranOrMetadata?.semesterValue ||
+        null
+      );
+    }
+
+    if (
+      semesterValue === undefined ||
+      semesterValue === null ||
+      semesterValue === ""
+    ) {
+      if (metadata) {
+        return (
+          metadata?.semesterNumber ||
+          metadata?.semester ||
+          metadata?.semesterValue ||
+          null
+        );
+      }
+      return null;
+    }
+
+    return semesterValue;
+  })();
+
+  const semesterLabel = (() => {
+    if (resolvedSemester === undefined || resolvedSemester === null) {
+      return "";
+    }
+
+    const numericValue = Number(resolvedSemester);
+    if (!Number.isNaN(numericValue)) {
+      if (numericValue === 1) return "Semester Ganjil";
+      if (numericValue === 2) return "Semester Genap";
+      return `Semester ${numericValue}`;
+    }
+
+    if (typeof resolvedSemester === "string" && resolvedSemester.trim()) {
+      const normalized = resolvedSemester.toLowerCase();
+      if (normalized === "ganjil" || normalized === "genap") {
+        return `Semester ${resolvedSemester[0].toUpperCase()}${resolvedSemester
+          .slice(1)
+          .toLowerCase()}`;
+      }
+      return resolvedSemester;
+    }
+
+    return "";
+  })();
+
+  if (!resolvedTahunAjaran && !semesterLabel) {
+    return "-";
+  }
+
+  if (!resolvedTahunAjaran) {
+    return semesterLabel || "-";
+  }
+
+  if (!semesterLabel) {
+    return resolvedTahunAjaran;
+  }
+
+  return `${resolvedTahunAjaran} - ${semesterLabel}`;
 };
 
 /**
@@ -329,6 +428,11 @@ export const generateReportHTML = (reportData) => {
     attendance,
     tahunAjaran,
     semester,
+    semesterInfo,
+    semesterTanggalMulai,
+    semesterTanggalSelesai,
+    semesterJumlahHariBelajar,
+    semesterCatatan,
     walikelas,
     profileSchool,
   } = reportData;
@@ -351,14 +455,83 @@ export const generateReportHTML = (reportData) => {
   const attendanceStats = calculateAttendanceStats(attendance);
   const finalGradeArr = [];
 
+  const resolvedSemesterInfo = (() => {
+    if (semesterInfo && typeof semesterInfo === "object") {
+      return semesterInfo;
+    }
+
+    return null;
+  })();
+
+  const semesterStartDate =
+    resolvedSemesterInfo?.tanggalMulai ||
+    resolvedSemesterInfo?.startDate ||
+    semesterTanggalMulai ||
+    resolvedSemesterInfo?.periodeMulai ||
+    resolvedSemesterInfo?.mulai ||
+    null;
+
+  const semesterEndDate =
+    resolvedSemesterInfo?.tanggalSelesai ||
+    resolvedSemesterInfo?.endDate ||
+    semesterTanggalSelesai ||
+    resolvedSemesterInfo?.periodeSelesai ||
+    resolvedSemesterInfo?.selesai ||
+    null;
+
+  const semesterLearningDays =
+    semesterJumlahHariBelajar ??
+    resolvedSemesterInfo?.jumlahHariBelajar ??
+    resolvedSemesterInfo?.learningDays ??
+    resolvedSemesterInfo?.totalSchoolDays ??
+    resolvedSemesterInfo?.hariEfektif ??
+    null;
+
+  const semesterNotes =
+    semesterCatatan ??
+    resolvedSemesterInfo?.catatan ??
+    resolvedSemesterInfo?.notes ??
+    resolvedSemesterInfo?.keterangan ??
+    "";
+
+  const formattedSemesterPeriod = formatAcademicPeriod(
+    tahunAjaran,
+    semester,
+    resolvedSemesterInfo
+  );
+
+  const formattedSemesterDateRange = (() => {
+    if (!semesterStartDate || !semesterEndDate) return "";
+    return `${formatDate(semesterStartDate)} - ${formatDate(semesterEndDate)}`;
+  })();
+
+  const formattedLearningDays = (() => {
+    if (
+      semesterLearningDays === null ||
+      semesterLearningDays === undefined ||
+      semesterLearningDays === ""
+    ) {
+      return "-";
+    }
+
+    const numericValue = Number(semesterLearningDays);
+    if (!Number.isNaN(numericValue)) {
+      return `${numericValue} hari`;
+    }
+
+    return `${semesterLearningDays}`;
+  })();
+
+  const formattedSemesterNotes =
+    typeof semesterNotes === "string" && semesterNotes.trim()
+      ? semesterNotes
+      : "-";
+
   return `
     <!DOCTYPE html>
     <html>
     <head>
-      <title>Raport ${student.nama} - ${formatAcademicPeriod(
-    tahunAjaran,
-    semester
-  )}</title>
+      <title>Raport ${student.nama} - ${formattedSemesterPeriod}</title>
       <style>
         @page { size: A4; margin: 20mm; }
         body { 
@@ -436,6 +609,12 @@ export const generateReportHTML = (reportData) => {
         <p>Telepon: ${profileSchool?.telepon} | Email: ${
     profileSchool?.email
   }</p>
+        <p><strong>Periode Akademik:</strong> ${formattedSemesterPeriod}</p>
+        ${formattedSemesterDateRange
+          ? `<p><strong>Rentang Semester:</strong> ${formattedSemesterDateRange}</p>`
+          : ""}
+        <p><strong>Jumlah Hari Belajar:</strong> ${formattedLearningDays}</p>
+        <p><strong>Catatan Semester:</strong> ${formattedSemesterNotes}</p>
       </div>
       
       <div class="student-info">
@@ -450,7 +629,7 @@ export const generateReportHTML = (reportData) => {
             <td><strong>Kelas</strong></td>
             <td>${student.kelasId}</td>
             <td><strong>Semester</strong></td>
-            <td>${semester} (${semester === 1 ? "Ganjil" : "Genap"})</td>
+            <td>${formattedSemesterPeriod}</td>
           </tr>
           <tr>
             <td><strong>Tahun Ajaran</strong></td>

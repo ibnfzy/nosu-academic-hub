@@ -431,6 +431,30 @@ const StudentDashboard = ({ currentUser, onLogout }) => {
         ...reportData,
         semesterInfo:
           resolvedSemesterMetadata || metadata || reportData?.semesterInfo || undefined,
+        semesterTanggalMulai:
+          reportData?.semesterTanggalMulai ??
+          resolvedSemesterMetadata?.tanggalMulai ??
+          metadata?.tanggalMulai ??
+          (reportData as SemesterRecord)?.startDate ??
+          null,
+        semesterTanggalSelesai:
+          reportData?.semesterTanggalSelesai ??
+          resolvedSemesterMetadata?.tanggalSelesai ??
+          metadata?.tanggalSelesai ??
+          (reportData as SemesterRecord)?.endDate ??
+          null,
+        semesterJumlahHariBelajar:
+          reportData?.semesterJumlahHariBelajar ??
+          resolvedSemesterMetadata?.jumlahHariBelajar ??
+          metadata?.jumlahHariBelajar ??
+          (reportData as SemesterRecord)?.jumlahHariBelajar ??
+          null,
+        semesterCatatan:
+          reportData?.semesterCatatan ??
+          resolvedSemesterMetadata?.catatan ??
+          metadata?.catatan ??
+          (reportData as SemesterRecord)?.catatan ??
+          null,
       };
 
       printReport(enrichedReportData);
