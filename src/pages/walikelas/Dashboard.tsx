@@ -48,6 +48,7 @@ import {
   getGradeColor,
   getAttendanceStatus,
   printReport,
+  formatAcademicPeriod,
 } from "@/utils/helpers";
 import { useIsMobile } from "@/hooks/use-mobile";
 import WalikelasNavbar from "@/components/WalikelasNavbar";
@@ -62,10 +63,8 @@ const WalikelasaDashboard = ({ currentUser, onLogout }) => {
   const [editingStudent, setEditingStudent] = useState(null);
   const [searchTerm, setSearchTerm] = useState("");
   const [activeSection, setActiveSection] = useState("students");
-  const [selectedPeriod, setSelectedPeriod] = useState({
-    tahun: "2024/2025",
-    semester: 1,
-  });
+  const [semesters, setSemesters] = useState([]);
+  const [selectedSemesterId, setSelectedSemesterId] = useState("");
 
   const [studentForm, setStudentForm] = useState({
     // Data dari tabel students
@@ -90,57 +89,258 @@ const WalikelasaDashboard = ({ currentUser, onLogout }) => {
   const { toast } = useToast();
   const isMobile = useIsMobile();
 
-  const academicPeriods = [
-    { tahun: "2023/2024", semester: 1, label: "2023/2024 - Semester Ganjil" },
-    { tahun: "2023/2024", semester: 2, label: "2023/2024 - Semester Genap" },
-    {
-      tahun: "2024/2025",
-      semester: 1,
-      label: "2024/2025 - Semester Ganjil (Aktif)",
-    },
-  ];
-
   useEffect(() => {
     if (currentUser) {
-      loadWalikelasData();
+      loadSemesters();
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [currentUser, selectedPeriod]);
+  }, [currentUser]);
 
-  const loadWalikelasData = async () => {
+  useEffect(() => {
+    if (!currentUser) return;
+
+    const hasSemesterSelection =
+      semesters.length === 0 || selectedSemesterId || semesters.length === 1;
+
+    if (hasSemesterSelection) {
+      const effectiveSemesterId = getEffectiveSemesterId();
+      loadWalikelasData(effectiveSemesterId);
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [currentUser, selectedSemesterId, semesters.length]);
+
+  const loadSemesters = async () => {
+    try {
+      const semestersData = await apiService.getSemesters();
+      const normalizedSemesters = Array.isArray(semestersData)
+        ? semestersData
+        : [];
+
+      setSemesters(normalizedSemesters);
+
+      if (normalizedSemesters.length > 0) {
+        const activeSemester = normalizedSemesters.find((item) => item?.isActive);
+        const initialSemesterId = activeSemester?.id ?? normalizedSemesters[0]?.id;
+
+        if (initialSemesterId && !selectedSemesterId) {
+          setSelectedSemesterId(String(initialSemesterId));
+        }
+      }
+    } catch (error) {
+      console.error("Failed to load semesters", error);
+      toast({
+        title: "Error",
+        description: "Gagal memuat data semester",
+        variant: "destructive",
+      });
+    }
+  };
+
+  const normalizeSemesterMetadata = (semesterItem) => {
+    if (!semesterItem) return null;
+
+    return {
+      id: semesterItem.id ?? null,
+      tahunAjaran:
+        semesterItem.tahunAjaran ||
+        semesterItem.tahun ||
+        semesterItem.academicYear ||
+        semesterItem.year ||
+        null,
+      semesterNumber:
+        semesterItem.semester ??
+        semesterItem.semesterNumber ??
+        semesterItem.term ??
+        null,
+      tanggalMulai: semesterItem.tanggalMulai || semesterItem.startDate || null,
+      tanggalSelesai:
+        semesterItem.tanggalSelesai || semesterItem.endDate || null,
+      jumlahHariBelajar:
+        semesterItem.jumlahHariBelajar ??
+        semesterItem.learningDays ??
+        semesterItem.totalSchoolDays ??
+        semesterItem.hariEfektif ??
+        null,
+      catatan: semesterItem.catatan || semesterItem.notes || semesterItem.keterangan || "",
+      isActive: Boolean(semesterItem.isActive),
+    };
+  };
+
+  const getSemesterRecordById = (semesterId) => {
+    if (!semesterId) return null;
+    return semesters.find((item) => String(item.id) === String(semesterId));
+  };
+
+  const resolveSemesterMetadata = (semesterId, fallback = null) => {
+    const record = getSemesterRecordById(semesterId) || fallback;
+    return normalizeSemesterMetadata(record);
+  };
+
+  const getEffectiveSemesterId = (customId) => {
+    if (customId) return String(customId);
+    if (selectedSemesterId) return String(selectedSemesterId);
+    if (semesters.length === 1) return String(semesters[0].id);
+    return "";
+  };
+
+  const formatSemesterNumberLabel = (value) => {
+    if (value === null || value === undefined || value === "") return null;
+    const numericValue = Number(value);
+    if (!Number.isNaN(numericValue)) {
+      if (numericValue === 1) return "Semester Ganjil";
+      if (numericValue === 2) return "Semester Genap";
+      return `Semester ${numericValue}`;
+    }
+    return typeof value === "string" ? value : null;
+  };
+
+  const buildSemesterTitle = (metadata, includeActiveFlag = false) => {
+    if (!metadata) return "-";
+
+    const semesterLabel = formatSemesterNumberLabel(metadata.semesterNumber);
+    const parts = [];
+
+    if (metadata.tahunAjaran) {
+      parts.push(metadata.tahunAjaran);
+    }
+
+    if (semesterLabel) {
+      parts.push(semesterLabel);
+    }
+
+    const baseLabel = parts.join(" - ") || "Semester";
+    const activeSuffix = includeActiveFlag && metadata.isActive ? " (Aktif)" : "";
+
+    return `${baseLabel}${activeSuffix}`;
+  };
+
+  const buildSemesterDateRange = (metadata) => {
+    if (!metadata) return null;
+    if (!metadata.tanggalMulai || !metadata.tanggalSelesai) return null;
+    return `${formatDate(metadata.tanggalMulai)} - ${formatDate(
+      metadata.tanggalSelesai
+    )}`;
+  };
+
+  const getSemesterOptionLabel = (semesterItem) => {
+    const metadata = normalizeSemesterMetadata(semesterItem);
+    if (!metadata) return "Semester";
+
+    const baseLabel = buildSemesterTitle(metadata, true);
+    const dateRange = buildSemesterDateRange(metadata);
+
+    return dateRange ? `${baseLabel} (${dateRange})` : baseLabel;
+  };
+
+  const selectedSemesterMetadata = selectedSemesterId
+    ? resolveSemesterMetadata(selectedSemesterId)
+    : semesters.length === 1
+    ? normalizeSemesterMetadata(semesters[0])
+    : null;
+
+  const selectedSemesterPeriodLabel = (() => {
+    if (!selectedSemesterMetadata) return "-";
+
+    const numericValue = Number(selectedSemesterMetadata.semesterNumber);
+    const hasNumericSemester = !Number.isNaN(numericValue);
+
+    if (selectedSemesterMetadata.tahunAjaran && hasNumericSemester) {
+      return formatAcademicPeriod(
+        selectedSemesterMetadata.tahunAjaran,
+        numericValue
+      );
+    }
+
+    return buildSemesterTitle(selectedSemesterMetadata);
+  })();
+
+  const selectedSemesterDateRange = buildSemesterDateRange(
+    selectedSemesterMetadata
+  );
+
+  const loadWalikelasData = async (
+    semesterIdParam = getEffectiveSemesterId()
+  ) => {
+    if (!currentUser) return;
+
     setLoading(true);
     try {
-      // Load class info and students data
+      const effectiveSemesterId = getEffectiveSemesterId(semesterIdParam);
+
       const [classesData, studentsData, gradesData, attendanceData] =
         await Promise.all([
           apiService.getClasses(),
           apiService.getClassStudents(currentUser.kelasId),
           apiService.getClassGrades(
             currentUser.kelasId,
-            selectedPeriod.tahun,
-            selectedPeriod.semester
+            null,
+            null,
+            effectiveSemesterId || null
           ),
           apiService.getClassAttendance(
             currentUser.kelasId,
-            selectedPeriod.tahun,
-            selectedPeriod.semester
+            null,
+            null,
+            effectiveSemesterId || null
           ),
         ]);
 
-      // Find current user's class
-      const currentClass = classesData.find(
-        (cls) => cls.walikelas === currentUser.id
-      );
+      const normalizedGrades = Array.isArray(gradesData) ? gradesData : [];
+      const normalizedAttendance = Array.isArray(attendanceData)
+        ? attendanceData
+        : [];
+
+      const gradesWithMetadata = normalizedGrades.map((grade) => {
+        const metadata = resolveSemesterMetadata(
+          grade?.semesterId,
+          grade?.semesterInfo
+        );
+        return {
+          ...grade,
+          semesterMetadata: metadata,
+          semesterLabel: metadata ? buildSemesterTitle(metadata) : null,
+        };
+      });
+
+      const attendanceWithMetadata = normalizedAttendance.map((record) => {
+        const metadata = resolveSemesterMetadata(
+          record?.semesterId,
+          record?.semesterInfo
+        );
+        return {
+          ...record,
+          semesterMetadata: metadata,
+          semesterLabel: metadata ? buildSemesterTitle(metadata) : null,
+        };
+      });
+
+      const currentClass = Array.isArray(classesData)
+        ? classesData.find((cls) => cls.walikelas === currentUser.id)
+        : null;
+
       setClassInfo(currentClass);
-      setStudents(studentsData);
-      setGrades(gradesData);
-      setAttendance(attendanceData);
+      setStudents(Array.isArray(studentsData) ? studentsData : []);
+      setGrades(gradesWithMetadata);
+      setAttendance(attendanceWithMetadata);
     } catch (error) {
+      console.error("Failed to load walikelas data", error);
+      const isSemesterNotFound =
+        error?.code === "SEMESTER_NOT_FOUND" ||
+        (typeof error?.message === "string" &&
+          error.message.toLowerCase().includes("semester tidak ditemukan"));
+
       toast({
         title: "Error",
-        description: "Gagal memuat data wali kelas",
+        description: isSemesterNotFound
+          ? "Semester tidak ditemukan. Silakan pilih semester lain."
+          : error?.message || "Gagal memuat data wali kelas",
         variant: "destructive",
       });
+
+      if (isSemesterNotFound) {
+        setGrades([]);
+        setAttendance([]);
+      }
     } finally {
       setLoading(false);
     }
@@ -374,11 +574,13 @@ const WalikelasaDashboard = ({ currentUser, onLogout }) => {
 
   const handlePrintReport = async (student) => {
     try {
+      const semesterIdForReport = getEffectiveSemesterId();
       const reportData = await apiService.getClassStudentReport(
         currentUser.id, // walikelasId
         student.id,
-        selectedPeriod.tahun,
-        selectedPeriod.semester
+        null,
+        null,
+        semesterIdForReport || null
       );
 
       if (!reportData) {
@@ -390,11 +592,30 @@ const WalikelasaDashboard = ({ currentUser, onLogout }) => {
         return;
       }
 
-      printReport(reportData); // langsung kirim ke printer/pdf
+      const resolvedSemesterMetadata = resolveSemesterMetadata(
+        reportData?.semesterId ?? semesterIdForReport,
+        reportData?.semesterInfo
+      );
+
+      const enrichedReportData = {
+        ...reportData,
+        semesterInfo:
+          resolvedSemesterMetadata || reportData?.semesterInfo || undefined,
+      };
+
+      printReport(enrichedReportData); // langsung kirim ke printer/pdf
     } catch (error) {
+      console.error("Failed to print report", error);
+      const isSemesterNotFound =
+        error?.code === "SEMESTER_NOT_FOUND" ||
+        (typeof error?.message === "string" &&
+          error.message.toLowerCase().includes("semester tidak ditemukan"));
+
       toast({
         title: "Error",
-        description: "Gagal mencetak raport",
+        description: isSemesterNotFound
+          ? "Semester tidak ditemukan. Silakan pilih semester lain."
+          : "Gagal mencetak raport",
         variant: "destructive",
       });
     }
@@ -457,33 +678,123 @@ const WalikelasaDashboard = ({ currentUser, onLogout }) => {
                 <p className="text-sm text-muted-foreground">
                   Pilih tahun ajaran dan semester yang ingin dilihat
                 </p>
+                {selectedSemesterPeriodLabel !== "-" && (
+                  <p className="text-xs text-muted-foreground mt-1">
+                    Saat ini: {selectedSemesterPeriodLabel}
+                    {selectedSemesterDateRange
+                      ? ` • ${selectedSemesterDateRange}`
+                      : ""}
+                  </p>
+                )}
               </div>
               <Select
-                value={`${selectedPeriod.tahun}-${selectedPeriod.semester}`}
+                value={
+                  selectedSemesterId ||
+                  (semesters.length === 1
+                    ? String(semesters[0].id)
+                    : undefined)
+                }
                 onValueChange={(value) => {
-                  const [tahun, semester] = value.split("-");
-                  setSelectedPeriod({ tahun, semester: parseInt(semester) });
+                  setSelectedSemesterId(String(value));
                 }}
+                disabled={semesters.length === 0}
               >
                 <SelectTrigger className="w-full md:w-64">
-                  <SelectValue />
+                  <SelectValue placeholder="Pilih semester" />
                 </SelectTrigger>
                 <SelectContent>
-                  {academicPeriods.map((period) => (
-                    <SelectItem
-                      key={`${period.tahun}-${period.semester}`}
-                      value={`${period.tahun}-${period.semester}`}
-                    >
-                      {period.label}
+                  {semesters.length > 0 ? (
+                    semesters.map((semesterItem) => (
+                      <SelectItem
+                        key={semesterItem.id}
+                        value={String(semesterItem.id)}
+                      >
+                        {getSemesterOptionLabel(semesterItem)}
+                      </SelectItem>
+                    ))
+                  ) : (
+                    <SelectItem value="__empty" disabled>
+                      Tidak ada data semester
                     </SelectItem>
-                  ))}
+                  )}
                 </SelectContent>
               </Select>
             </div>
           </CardContent>
         </Card>
 
+        {selectedSemesterMetadata && (
+          <Card className="mb-6 shadow-soft">
+            <CardContent className="p-4 space-y-4">
+              <div className="flex items-start space-x-3">
+                <div className="p-2 bg-primary/10 rounded-lg">
+                  <Calendar className="h-5 w-5 text-primary" />
+                </div>
+                <div>
+                  <h3 className="font-semibold text-foreground">
+                    Informasi Semester
+                  </h3>
+                  <p className="text-sm text-muted-foreground">
+                    {buildSemesterTitle(selectedSemesterMetadata, true)}
+                  </p>
+                  {selectedSemesterDateRange && (
+                    <p className="text-xs text-muted-foreground">
+                      {selectedSemesterDateRange}
+                    </p>
+                  )}
+                </div>
+              </div>
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-4 text-sm">
+                <div>
+                  <p className="text-xs uppercase tracking-wide text-muted-foreground">
+                    Tanggal Mulai
+                  </p>
+                  <p className="font-medium text-foreground">
+                    {selectedSemesterMetadata.tanggalMulai
+                      ? formatDate(selectedSemesterMetadata.tanggalMulai)
+                      : "-"}
+                  </p>
+                </div>
+                <div>
+                  <p className="text-xs uppercase tracking-wide text-muted-foreground">
+                    Tanggal Selesai
+                  </p>
+                  <p className="font-medium text-foreground">
+                    {selectedSemesterMetadata.tanggalSelesai
+                      ? formatDate(selectedSemesterMetadata.tanggalSelesai)
+                      : "-"}
+                  </p>
+                </div>
+                <div>
+                  <p className="text-xs uppercase tracking-wide text-muted-foreground">
+                    Jumlah Hari Belajar
+                  </p>
+                  <p className="font-medium text-foreground">
+                    {selectedSemesterMetadata.jumlahHariBelajar ?? "-"}
+                  </p>
+                </div>
+              </div>
+              {selectedSemesterMetadata.catatan && (
+                <div className="border border-border bg-muted/30 rounded-lg p-3 text-sm">
+                  <p className="font-medium text-foreground mb-1">
+                    Catatan Semester
+                  </p>
+                  <p className="text-muted-foreground whitespace-pre-line">
+                    {selectedSemesterMetadata.catatan}
+                  </p>
+                </div>
+              )}
+            </CardContent>
+          </Card>
+        )}
+
         {/* Stats Cards */}
+        {selectedSemesterMetadata && (
+          <div className="text-sm text-muted-foreground mb-3">
+            Statistik periode: {selectedSemesterPeriodLabel}
+            {selectedSemesterDateRange ? ` • ${selectedSemesterDateRange}` : ""}
+          </div>
+        )}
         <div className="grid grid-cols-2 md:grid-cols-4 gap-4 md:gap-6 mb-6 md:mb-8">
           <Card className="shadow-soft">
             <CardContent className="p-4 md:p-6">
@@ -1038,7 +1349,32 @@ const WalikelasaDashboard = ({ currentUser, onLogout }) => {
             <Card className="shadow-soft">
               <CardHeader>
                 <div className="flex flex-col md:flex-row justify-between items-start md:items-center space-y-4 md:space-y-0">
-                  <CardTitle>Laporan Raport Siswa</CardTitle>
+                  <div>
+                    <CardTitle>Laporan Raport Siswa</CardTitle>
+                    {selectedSemesterMetadata && (
+                      <div className="mt-1 text-xs text-muted-foreground space-y-1">
+                        <p>
+                          Periode: {selectedSemesterPeriodLabel}
+                          {selectedSemesterDateRange
+                            ? ` • ${selectedSemesterDateRange}`
+                            : ""}
+                        </p>
+                        <div className="flex flex-col md:flex-row md:items-center md:space-x-4 space-y-1 md:space-y-0">
+                          {selectedSemesterMetadata.jumlahHariBelajar !== null &&
+                            selectedSemesterMetadata.jumlahHariBelajar !== undefined && (
+                              <span>
+                                Hari belajar: {selectedSemesterMetadata.jumlahHariBelajar}
+                              </span>
+                            )}
+                          {selectedSemesterMetadata.catatan && (
+                            <span className="block truncate md:max-w-sm">
+                              Catatan: {selectedSemesterMetadata.catatan}
+                            </span>
+                          )}
+                        </div>
+                      </div>
+                    )}
+                  </div>
                   <div className="text-sm text-muted-foreground">
                     <span className="font-medium">
                       {studentsWithVerifiedGrades.length}
@@ -1093,8 +1429,10 @@ const WalikelasaDashboard = ({ currentUser, onLogout }) => {
                                 Rata-rata: {averageGrade}
                               </Badge>
                               <span className="text-xs text-muted-foreground">
-                                Periode: {selectedPeriod.tahun} - Semester{" "}
-                                {selectedPeriod.semester}
+                                Periode: {selectedSemesterPeriodLabel}
+                                {selectedSemesterDateRange
+                                  ? ` • ${selectedSemesterDateRange}`
+                                  : ""}
                               </span>
                             </div>
                           </div>

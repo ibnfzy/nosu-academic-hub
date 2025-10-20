@@ -1449,6 +1449,13 @@ const apiService = {
           query
         )
       );
+      if (response?.success === false) {
+        const error = new Error(
+          response?.message || "Gagal memuat data nilai kelas"
+        );
+        error.code = response?.code;
+        throw error;
+      }
       return normalizeData(response.data);
     } else {
       const grades = JSON.parse(
@@ -1485,6 +1492,13 @@ const apiService = {
           query
         )
       );
+      if (response?.success === false) {
+        const error = new Error(
+          response?.message || "Gagal memuat data kehadiran kelas"
+        );
+        error.code = response?.code;
+        throw error;
+      }
       return normalizeData(response.data);
     } else {
       const attendance = JSON.parse(
@@ -1711,6 +1725,13 @@ const apiService = {
           query
         )
       );
+      if (response?.success === false) {
+        const error = new Error(
+          response?.message || "Gagal memuat raport siswa"
+        );
+        error.code = response?.code;
+        throw error;
+      }
       return response.data;
     } else {
       const students = JSON.parse(
