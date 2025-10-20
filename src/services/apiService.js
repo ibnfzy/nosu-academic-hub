@@ -28,6 +28,13 @@ const STORAGE_KEYS = {
   SCHOOL_PROFILE: "akademik_school_profile",
   ACHIEVEMENTS: "akademik_achievements",
   PROGRAMS: "akademik_programs",
+  SEMESTER_ENFORCEMENT_SETTINGS: "akademik_semester_enforcement_settings",
+};
+
+const DEFAULT_SEMESTER_ENFORCEMENT_SETTINGS = {
+  mode: "relaxed",
+  activationDate: null,
+  activeSemester: null,
 };
 
 const buildSemesterQueryString = ({ semesterId, tahun, semester }) => {
@@ -1793,6 +1800,69 @@ const apiService = {
           ? { nama: walikelas.nama, nip: walikelas.nip }
           : null,
         profileSchool,
+      };
+    }
+  },
+
+  // ============= ADMIN SETTINGS =============
+  async getSemesterEnforcementSettings() {
+    if (USE_API) {
+      const response = await this.authFetch(
+        `${API_BASE_URL}/admin/settings/semester-enforcement`
+      );
+      return response?.data ?? response;
+    } else {
+      const stored = localStorage.getItem(
+        STORAGE_KEYS.SEMESTER_ENFORCEMENT_SETTINGS
+      );
+
+      if (!stored) {
+        return { ...DEFAULT_SEMESTER_ENFORCEMENT_SETTINGS };
+      }
+
+      try {
+        const parsed = JSON.parse(stored);
+        return {
+          ...DEFAULT_SEMESTER_ENFORCEMENT_SETTINGS,
+          ...(parsed && typeof parsed === "object" ? parsed : {}),
+        };
+      } catch (error) {
+        console.error(
+          "Failed to parse semester enforcement settings from storage",
+          error
+        );
+        return { ...DEFAULT_SEMESTER_ENFORCEMENT_SETTINGS };
+      }
+    }
+  },
+
+  async updateSemesterEnforcementSettings(payload = {}) {
+    if (USE_API) {
+      return this.authFetch(
+        `${API_BASE_URL}/admin/settings/semester-enforcement`,
+        {
+          method: "PUT",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify(payload),
+        }
+      );
+    } else {
+      const current = await this.getSemesterEnforcementSettings();
+      const updated = {
+        ...DEFAULT_SEMESTER_ENFORCEMENT_SETTINGS,
+        ...(current && typeof current === "object" ? current : {}),
+        ...(payload && typeof payload === "object" ? payload : {}),
+      };
+
+      localStorage.setItem(
+        STORAGE_KEYS.SEMESTER_ENFORCEMENT_SETTINGS,
+        JSON.stringify(updated)
+      );
+
+      return {
+        success: true,
+        data: updated,
+        message: "Pengaturan semester berhasil diperbarui (local)",
       };
     }
   },

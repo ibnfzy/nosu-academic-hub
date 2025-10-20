@@ -10,6 +10,7 @@ import SubjectManagement from "@/components/admin/SubjectManagement";
 import ClassManagement from "@/components/admin/ClassManagement";
 import SchoolProfileManagement from "@/components/admin/SchoolProfileManagement";
 import SemesterManagement from "@/components/admin/SemesterManagement";
+import SemesterEnforcementSettings from "@/components/admin/SemesterEnforcementSettings";
 
 const AdminDashboard = ({ currentUser, onLogout }) => {
   const [users, setUsers] = useState([]);
@@ -147,6 +148,11 @@ const AdminDashboard = ({ currentUser, onLogout }) => {
           {/* Semester Management */}
           {activeSection === "semesters" && (
             <SemesterManagement onDataChange={loadAdminData} />
+          )}
+
+          {/* Semester Enforcement Settings */}
+          {activeSection === "semester-enforcement" && (
+            <SemesterEnforcementSettings />
           )}
         </div>
       </div>

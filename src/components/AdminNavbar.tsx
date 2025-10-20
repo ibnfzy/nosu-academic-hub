@@ -15,6 +15,7 @@ import {
   Building2,
   LogOut,
   ChevronDown,
+  Settings2,
 } from "lucide-react";
 
 const groupedMenu = [
@@ -67,6 +68,12 @@ const groupedMenu = [
         icon: CalendarDays,
         id: "semesters",
         description: "Kelola periode semester akademik",
+      },
+      {
+        title: "Penegakan Semester",
+        icon: Settings2,
+        id: "semester-enforcement",
+        description: "Atur mode penegakan semester aktif",
       },
     ],
   },
