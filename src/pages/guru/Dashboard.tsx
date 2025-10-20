@@ -41,7 +41,7 @@ import {
 } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import apiService from "@/services/apiService";
-import { formatDate, getGradeColor } from "@/utils/helpers";
+import { formatDate, getGradeColor, formatAcademicPeriod } from "@/utils/helpers";
 
 const TeacherDashboard = ({ currentUser, onLogout }) => {
   const [subjects, setSubjects] = useState([]);
@@ -63,6 +63,8 @@ const TeacherDashboard = ({ currentUser, onLogout }) => {
   const [editingGrade, setEditingGrade] = useState(null);
   const [editingAttendance, setEditingAttendance] = useState(null);
   const [classes, setClasses] = useState([]);
+  const [semesters, setSemesters] = useState([]);
+  const [selectedSemesterId, setSelectedSemesterId] = useState("");
 
   const [gradeForm, setGradeForm] = useState({
     studentId: "",
@@ -71,6 +73,7 @@ const TeacherDashboard = ({ currentUser, onLogout }) => {
     nilai: "",
     kelasId: "",
     tanggal: new Date().toISOString().split("T")[0],
+    semesterId: "",
   });
 
   const [attendanceForm, setAttendanceForm] = useState({
@@ -80,6 +83,7 @@ const TeacherDashboard = ({ currentUser, onLogout }) => {
     keterangan: "",
     kelasId: "",
     tanggal: new Date().toISOString().split("T")[0],
+    semesterId: "",
   });
 
   const { toast } = useToast();
@@ -92,18 +96,65 @@ const TeacherDashboard = ({ currentUser, onLogout }) => {
     { value: "izin", label: "Izin" },
   ];
 
+  const loadSemesters = async () => {
+    try {
+      const semestersData = await apiService.getSemesters();
+      const normalizedSemesters = Array.isArray(semestersData)
+        ? semestersData
+        : [];
+
+      setSemesters(normalizedSemesters);
+
+      if (normalizedSemesters.length > 0) {
+        const activeSemester = normalizedSemesters.find(
+          (item) => item?.isActive
+        );
+        const initialSemesterId = activeSemester?.id ?? normalizedSemesters[0]?.id;
+
+        if (initialSemesterId && !selectedSemesterId) {
+          setSelectedSemesterId(String(initialSemesterId));
+        }
+      }
+    } catch (error) {
+      console.error(error);
+      toast({
+        title: "Error",
+        description: "Gagal memuat data semester",
+        variant: "destructive",
+      });
+    }
+  };
+
   useEffect(() => {
     if (currentUser) {
+      loadSemesters();
       loadTeacherData();
     }
   }, [currentUser]);
 
   useEffect(() => {
-    if (students.length > 0 && subjects.length > 0) {
+    const hasSemesterSelection = semesters.length === 0 || selectedSemesterId;
+    if (students.length > 0 && subjects.length > 0 && hasSemesterSelection) {
       loadGradesData();
       loadAttendanceData();
     }
-  }, [students, subjects]);
+  }, [students, subjects, selectedSemesterId, semesters.length]);
+
+  useEffect(() => {
+    if (!editingGrade) {
+      setGradeForm((prev) => ({
+        ...prev,
+        semesterId: selectedSemesterId || "",
+      }));
+    }
+
+    if (!editingAttendance) {
+      setAttendanceForm((prev) => ({
+        ...prev,
+        semesterId: selectedSemesterId || "",
+      }));
+    }
+  }, [selectedSemesterId, editingGrade, editingAttendance]);
 
   const loadTeacherData = async () => {
     setLoading(true);
@@ -151,11 +202,62 @@ const TeacherDashboard = ({ currentUser, onLogout }) => {
     }
   };
 
-  const loadGradesData = async () => {
-    try {
-      const allGrades = await apiService.getGrades();
+  const getSemesterRecordById = (id) => {
+    if (!id) return null;
+    return semesters.find((semester) => String(semester.id) === String(id));
+  };
 
-      console.log(allGrades);
+  const buildSemesterLabel = (semesterItem) => {
+    if (!semesterItem) return null;
+    if (semesterItem.label) return semesterItem.label;
+
+    const tahunAjaran =
+      semesterItem.tahunAjaran ||
+      semesterItem.tahun ||
+      semesterItem.academicYear ||
+      semesterItem.year ||
+      null;
+    const semesterNumber =
+      semesterItem.semester ??
+      semesterItem.semesterNumber ??
+      semesterItem.term ??
+      null;
+
+    if (!tahunAjaran && (semesterNumber === null || semesterNumber === undefined)) {
+      return null;
+    }
+
+    const parsedSemester =
+      semesterNumber === null || semesterNumber === undefined
+        ? null
+        : Number(semesterNumber);
+    const normalizedSemester =
+      parsedSemester !== null && !Number.isNaN(parsedSemester)
+        ? parsedSemester
+        : semesterNumber;
+
+    return formatAcademicPeriod(tahunAjaran, normalizedSemester);
+  };
+
+  const getSemesterLabelById = (id, fallback) => {
+    const semesterRecord = getSemesterRecordById(id);
+    return (
+      buildSemesterLabel(semesterRecord) ||
+      buildSemesterLabel(fallback) ||
+      "-"
+    );
+  };
+
+  const resolveSemesterDetails = (semesterId, fallback) => {
+    return getSemesterRecordById(semesterId) || fallback || null;
+  };
+
+  const loadGradesData = async (semesterIdParam = selectedSemesterId) => {
+    try {
+      const semesterIdToUse =
+        semesterIdParam ||
+        (semesters.length === 1 ? String(semesters[0].id) : null);
+      const allGrades = await apiService.getGrades(semesterIdToUse || null);
 
       const teacherSubjectIds = subjects
         .map((s) => (s && typeof s === "object" ? s.id : s))
@@ -176,21 +278,56 @@ const TeacherDashboard = ({ currentUser, onLogout }) => {
 
       const gradesWithNames = teacherGrades.map((grade) => {
         const student = students.find((s) => s.id === grade.studentId);
+        const semesterDetails = resolveSemesterDetails(
+          grade.semesterId,
+          grade.semesterInfo
+        );
+        const semesterLabel = getSemesterLabelById(
+          grade.semesterId,
+          semesterDetails || grade.semesterInfo
+        );
+        const tahunAjaranValue =
+          semesterDetails?.tahunAjaran ||
+          semesterDetails?.tahun ||
+          grade.tahunAjaran ||
+          grade.tahun ||
+          null;
+        const semesterNumberValue =
+          semesterDetails?.semester ?? grade.semester ?? null;
         return {
           ...grade,
           studentName: student?.nama || "Unknown Student",
+          semesterLabel,
+          tahunAjaran: tahunAjaranValue ?? grade.tahunAjaran,
+          semester:
+            semesterNumberValue === undefined || semesterNumberValue === null
+              ? grade.semester
+              : semesterNumberValue,
         };
       });
 
       setGrades(gradesWithNames);
     } catch (error) {
       console.error("Error loading grades:", error);
+      toast({
+        title: "Error",
+        description:
+          error?.code === "SEMESTER_NOT_FOUND"
+            ? "Semester tidak ditemukan. Silakan pilih semester lain."
+            : error?.message || "Gagal memuat data nilai",
+        variant: "destructive",
+      });
     }
   };
 
-  const loadAttendanceData = async () => {
+  const loadAttendanceData = async (semesterIdParam = selectedSemesterId) => {
     try {
-      const allAttendance = await apiService.getAttendance();
+      const semesterIdToUse =
+        semesterIdParam ||
+        (semesters.length === 1 ? String(semesters[0].id) : null);
+      const allAttendance = await apiService.getAttendance(
+        semesterIdToUse || null
+      );
 
       const teacherSubjectIds = subjects
         .map((s) => (s && typeof s === "object" ? s.id : s))
@@ -209,15 +346,45 @@ const TeacherDashboard = ({ currentUser, onLogout }) => {
 
       const attendanceWithNames = teacherAttendance.map((att) => {
         const student = students.find((s) => s.id === att.studentId);
+        const semesterDetails = resolveSemesterDetails(
+          att.semesterId,
+          att.semesterInfo
+        );
+        const semesterLabel = getSemesterLabelById(
+          att.semesterId,
+          semesterDetails || att.semesterInfo
+        );
+        const tahunAjaranValue =
+          semesterDetails?.tahunAjaran ||
+          semesterDetails?.tahun ||
+          att.tahunAjaran ||
+          att.tahun ||
+          null;
+        const semesterNumberValue =
+          semesterDetails?.semester ?? att.semester ?? null;
         return {
           ...att,
           studentName: student?.nama || "Unknown Student",
+          semesterLabel,
+          tahunAjaran: tahunAjaranValue ?? att.tahunAjaran,
+          semester:
+            semesterNumberValue === undefined || semesterNumberValue === null
+              ? att.semester
+              : semesterNumberValue,
         };
       });
 
       setAttendance(attendanceWithNames);
     } catch (error) {
       console.error("Error loading attendance:", error);
+      toast({
+        title: "Error",
+        description:
+          error?.code === "SEMESTER_NOT_FOUND"
+            ? "Semester tidak ditemukan. Silakan pilih semester lain."
+            : error?.message || "Gagal memuat data kehadiran",
+        variant: "destructive",
+      });
     }
   };
 
@@ -273,22 +440,64 @@ const TeacherDashboard = ({ currentUser, onLogout }) => {
         (s) => String(s.id) === String(gradeForm.studentId)
       );
 
+      const semesterIdToUse =
+        gradeForm.semesterId || selectedSemesterId || editingGrade?.semesterId;
+      const semesterDetails = resolveSemesterDetails(
+        semesterIdToUse,
+        editingGrade?.semesterInfo
+      );
+      const tahunAjaranValue =
+        semesterDetails?.tahunAjaran ||
+        semesterDetails?.tahun ||
+        gradeForm.tahunAjaran ||
+        gradeForm.tahun ||
+        editingGrade?.tahunAjaran ||
+        editingGrade?.tahun ||
+        null;
+      const semesterNumberValue =
+        semesterDetails?.semester ??
+        gradeForm.semester ??
+        editingGrade?.semester ??
+        null;
+
       const gradeData = {
         ...(editingGrade?.id && { id: editingGrade.id }), // hanya ada saat edit
-        ...gradeForm,
-        teacherId: currentUser.teacherId,
-        kelasId: studentData?.kelasId || "1",
-        tahunAjaran: "2024/2025", // bisa ambil dari selectedPeriod kalau ada
-        semester: 1,
+        studentId: gradeForm.studentId,
+        subjectId: gradeForm.subjectId,
+        jenis: gradeForm.jenis,
         nilai: nilaiNumber,
-        verified: false,
+        kelasId:
+          studentData?.kelasId ||
+          gradeForm.kelasId ||
+          editingGrade?.kelasId ||
+          "1",
+        tanggal: gradeForm.tanggal,
+        teacherId: currentUser.teacherId,
+        semesterId: semesterIdToUse ? String(semesterIdToUse) : null,
+        verified: editingGrade?.verified ?? false,
       };
+
+      if (tahunAjaranValue) {
+        gradeData.tahunAjaran = tahunAjaranValue;
+      }
+
+      if (semesterNumberValue !== null && semesterNumberValue !== undefined) {
+        gradeData.semester = semesterNumberValue;
+      }
 
       let result;
       if (editingGrade) {
-        result = await apiService.editGrade(currentUser.teacherId, gradeData);
+        result = await apiService.editGrade(
+          currentUser.teacherId,
+          gradeData,
+          gradeData.semesterId
+        );
       } else {
-        result = await apiService.addGrade(currentUser.teacherId, gradeData);
+        result = await apiService.addGrade(
+          currentUser.teacherId,
+          gradeData,
+          gradeData.semesterId
+        );
       }
 
       if (result.success) {
@@ -306,20 +515,27 @@ const TeacherDashboard = ({ currentUser, onLogout }) => {
           nilai: "",
           kelasId: "",
           tanggal: new Date().toISOString().split("T")[0],
+          semesterId: selectedSemesterId || "",
         });
         setEditingGrade(null);
         await loadGradesData();
       } else {
         toast({
           title: "Error",
-          description: result.message || "Gagal menyimpan nilai",
+          description:
+            result.code === "SEMESTER_NOT_FOUND"
+              ? "Semester tidak ditemukan. Silakan pilih semester yang valid."
+              : result.message || "Gagal menyimpan nilai",
           variant: "destructive",
         });
       }
     } catch (error) {
       toast({
         title: "Error",
-        description: "Gagal menyimpan nilai",
+        description:
+          error?.code === "SEMESTER_NOT_FOUND"
+            ? "Semester tidak ditemukan. Silakan pilih semester yang valid."
+            : error?.message || "Gagal menyimpan nilai",
         variant: "destructive",
       });
 
@@ -348,25 +564,64 @@ const TeacherDashboard = ({ currentUser, onLogout }) => {
         (s) => String(s.id) === String(attendanceForm.studentId)
       );
 
+      const semesterIdToUse =
+        attendanceForm.semesterId ||
+        selectedSemesterId ||
+        editingAttendance?.semesterId;
+      const semesterDetails = resolveSemesterDetails(
+        semesterIdToUse,
+        editingAttendance?.semesterInfo
+      );
+      const tahunAjaranValue =
+        semesterDetails?.tahunAjaran ||
+        semesterDetails?.tahun ||
+        attendanceForm.tahunAjaran ||
+        attendanceForm.tahun ||
+        editingAttendance?.tahunAjaran ||
+        editingAttendance?.tahun ||
+        null;
+      const semesterNumberValue =
+        semesterDetails?.semester ??
+        attendanceForm.semester ??
+        editingAttendance?.semester ??
+        null;
+
       const attendanceData = {
         ...(editingAttendance?.id && { id: editingAttendance.id }),
-        ...attendanceForm,
+        studentId: attendanceForm.studentId,
+        subjectId: attendanceForm.subjectId,
+        status: attendanceForm.status,
+        keterangan: attendanceForm.keterangan,
+        tanggal: attendanceForm.tanggal,
         teacherId: currentUser.teacherId,
-        kelasId: studentData?.kelasId || "1",
-        tahunAjaran: "2024/2025",
-        semester: 1,
+        kelasId:
+          studentData?.kelasId ||
+          attendanceForm.kelasId ||
+          editingAttendance?.kelasId ||
+          "1",
+        semesterId: semesterIdToUse ? String(semesterIdToUse) : null,
       };
+
+      if (tahunAjaranValue) {
+        attendanceData.tahunAjaran = tahunAjaranValue;
+      }
+
+      if (semesterNumberValue !== null && semesterNumberValue !== undefined) {
+        attendanceData.semester = semesterNumberValue;
+      }
 
       let result;
       if (editingAttendance) {
         result = await apiService.editAttendance(
           currentUser.teacherId,
-          attendanceData
+          attendanceData,
+          attendanceData.semesterId
         );
       } else {
         result = await apiService.addAttendance(
           currentUser.teacherId,
-          attendanceData
+          attendanceData,
+          attendanceData.semesterId
         );
       }
 
@@ -387,20 +642,27 @@ const TeacherDashboard = ({ currentUser, onLogout }) => {
           keterangan: "",
           kelasId: "",
           tanggal: new Date().toISOString().split("T")[0],
+          semesterId: selectedSemesterId || "",
         });
         setEditingAttendance(null);
         await loadAttendanceData();
       } else {
         toast({
           title: "Error",
-          description: result.message || "Gagal menyimpan kehadiran",
+          description:
+            result.code === "SEMESTER_NOT_FOUND"
+              ? "Semester tidak ditemukan. Silakan pilih semester yang valid."
+              : result.message || "Gagal menyimpan kehadiran",
           variant: "destructive",
         });
       }
     } catch (error) {
       toast({
         title: "Error",
-        description: "Gagal menyimpan kehadiran",
+        description:
+          error?.code === "SEMESTER_NOT_FOUND"
+            ? "Semester tidak ditemukan. Silakan pilih semester yang valid."
+            : error?.message || "Gagal menyimpan kehadiran",
         variant: "destructive",
       });
 
@@ -421,6 +683,12 @@ const TeacherDashboard = ({ currentUser, onLogout }) => {
       tanggal: grade.tanggal
         ? new Date(grade.tanggal).toISOString().split("T")[0]
         : "",
+      semesterId:
+        grade.semesterId
+          ? String(grade.semesterId)
+          : grade.semesterInfo?.id
+          ? String(grade.semesterInfo.id)
+          : selectedSemesterId || "",
     });
     setEditingGrade(grade);
     setShowGradeDialog(true);
@@ -472,6 +740,12 @@ const TeacherDashboard = ({ currentUser, onLogout }) => {
       tanggal: attendance.tanggal
         ? new Date(attendance.tanggal).toISOString().split("T")[0]
         : "",
+      semesterId:
+        attendance.semesterId
+          ? String(attendance.semesterId)
+          : attendance.semesterInfo?.id
+          ? String(attendance.semesterInfo.id)
+          : selectedSemesterId || "",
     });
     setEditingAttendance(attendance);
     setShowAttendanceDialog(true);
@@ -581,6 +855,56 @@ const TeacherDashboard = ({ currentUser, onLogout }) => {
       </div>
 
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6 md:py-8">
+        <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4 mb-6">
+          <div>
+            <h2 className="text-lg font-semibold text-foreground">
+              Periode Akademik
+            </h2>
+            <p className="text-sm text-muted-foreground">
+              {selectedSemesterId
+                ? `Menampilkan data untuk ${getSemesterLabelById(
+                    selectedSemesterId
+                  )}`
+                : semesters.length > 0
+                ? "Silakan pilih semester untuk menampilkan data."
+                : "Data semester belum tersedia."}
+            </p>
+          </div>
+          <div className="w-full md:w-64">
+            <Select
+              value={selectedSemesterId || ""}
+              onValueChange={(value) => setSelectedSemesterId(value)}
+            >
+              <SelectTrigger>
+                <SelectValue placeholder="Pilih semester">
+                  {selectedSemesterId
+                    ? getSemesterLabelById(selectedSemesterId)
+                    : semesters.length > 0
+                    ? "Pilih semester"
+                    : "Semester belum tersedia"}
+                </SelectValue>
+              </SelectTrigger>
+              <SelectContent>
+                {semesters.length > 0 ? (
+                  semesters.map((semester) => (
+                    <SelectItem
+                      key={semester.id}
+                      value={String(semester.id)}
+                    >
+                      {buildSemesterLabel(semester) ||
+                        `Semester ${semester.semester}`}
+                    </SelectItem>
+                  ))
+                ) : (
+                  <SelectItem value="" disabled>
+                    Data semester belum tersedia
+                  </SelectItem>
+                )}
+              </SelectContent>
+            </Select>
+          </div>
+        </div>
+
         {/* Quick Actions */}
         <div className="flex flex-wrap gap-4 mb-8">
           <Dialog
@@ -596,6 +920,7 @@ const TeacherDashboard = ({ currentUser, onLogout }) => {
                   nilai: "",
                   kelasId: "",
                   tanggal: new Date().toISOString().split("T")[0],
+                  semesterId: selectedSemesterId || "",
                 });
               }
             }}
@@ -677,6 +1002,46 @@ const TeacherDashboard = ({ currentUser, onLogout }) => {
                   </Select>
                 </div>
 
+                <div className="space-y-2">
+                  <Label>Semester</Label>
+                  <Select
+                    value={gradeForm.semesterId || ""}
+                    onValueChange={(value) =>
+                      setGradeForm((prev) => ({
+                        ...prev,
+                        semesterId: value,
+                      }))
+                    }
+                  >
+                    <SelectTrigger>
+                      <SelectValue placeholder="Pilih semester">
+                        {gradeForm.semesterId
+                          ? getSemesterLabelById(gradeForm.semesterId)
+                          : semesters.length > 0
+                          ? "Pilih semester"
+                          : "Semester belum tersedia"}
+                      </SelectValue>
+                    </SelectTrigger>
+                    <SelectContent>
+                      {semesters.length > 0 ? (
+                        semesters.map((semester) => (
+                          <SelectItem
+                            key={semester.id}
+                            value={String(semester.id)}
+                          >
+                            {buildSemesterLabel(semester) ||
+                              `Semester ${semester.semester}`}
+                          </SelectItem>
+                        ))
+                      ) : (
+                        <SelectItem value="" disabled>
+                          Data semester belum tersedia
+                        </SelectItem>
+                      )}
+                    </SelectContent>
+                  </Select>
+                </div>
+
                 <div className="grid grid-cols-2 gap-4">
                   <div className="space-y-2">
                     <Label>Jenis Penilaian</Label>
@@ -751,6 +1116,7 @@ const TeacherDashboard = ({ currentUser, onLogout }) => {
                   status: "",
                   keterangan: "",
                   tanggal: new Date().toISOString().split("T")[0],
+                  semesterId: selectedSemesterId || "",
                 });
               }
             }}
@@ -845,6 +1211,46 @@ const TeacherDashboard = ({ currentUser, onLogout }) => {
                   </Select>
                 </div>
 
+                <div className="space-y-2">
+                  <Label>Semester</Label>
+                  <Select
+                    value={attendanceForm.semesterId || ""}
+                    onValueChange={(value) =>
+                      setAttendanceForm((prev) => ({
+                        ...prev,
+                        semesterId: value,
+                      }))
+                    }
+                  >
+                    <SelectTrigger>
+                      <SelectValue placeholder="Pilih semester">
+                        {attendanceForm.semesterId
+                          ? getSemesterLabelById(attendanceForm.semesterId)
+                          : semesters.length > 0
+                          ? "Pilih semester"
+                          : "Semester belum tersedia"}
+                      </SelectValue>
+                    </SelectTrigger>
+                    <SelectContent>
+                      {semesters.length > 0 ? (
+                        semesters.map((semester) => (
+                          <SelectItem
+                            key={semester.id}
+                            value={String(semester.id)}
+                          >
+                            {buildSemesterLabel(semester) ||
+                              `Semester ${semester.semester}`}
+                          </SelectItem>
+                        ))
+                      ) : (
+                        <SelectItem value="" disabled>
+                          Data semester belum tersedia
+                        </SelectItem>
+                      )}
+                    </SelectContent>
+                  </Select>
+                </div>
+
                 <div className="grid grid-cols-2 gap-4">
                   <div className="space-y-2">
                     <Label>Status Kehadiran</Label>
@@ -928,6 +1334,7 @@ const TeacherDashboard = ({ currentUser, onLogout }) => {
                     <TableHead>Jenis Penilaian</TableHead>
                     <TableHead>Nilai</TableHead>
                     <TableHead>Tanggal</TableHead>
+                    <TableHead>Semester</TableHead>
                     <TableHead>Status</TableHead>
                     <TableHead>Aksi</TableHead>
                   </TableRow>
@@ -965,6 +1372,7 @@ const TeacherDashboard = ({ currentUser, onLogout }) => {
                           <TableCell className="text-muted-foreground">
                             {formatDate(grade.tanggal)}
                           </TableCell>
+                          <TableCell>{grade.semesterLabel || "-"}</TableCell>
                           <TableCell>
                             <Badge
                               variant={grade.verified ? "default" : "secondary"}
@@ -1032,6 +1440,7 @@ const TeacherDashboard = ({ currentUser, onLogout }) => {
                     <TableHead>NISN</TableHead>
                     <TableHead>Status Kehadiran</TableHead>
                     <TableHead>Tanggal</TableHead>
+                    <TableHead>Semester</TableHead>
                     <TableHead>Keterangan</TableHead>
                     <TableHead>Aksi</TableHead>
                   </TableRow>
@@ -1081,6 +1490,7 @@ const TeacherDashboard = ({ currentUser, onLogout }) => {
                           <TableCell className="text-muted-foreground">
                             {formatDate(att.tanggal)}
                           </TableCell>
+                          <TableCell>{att.semesterLabel || "-"}</TableCell>
                           <TableCell className="text-muted-foreground">
                             {att.keterangan || "-"}
                           </TableCell>
@@ -1386,7 +1796,15 @@ const TeacherDashboard = ({ currentUser, onLogout }) => {
                                     <span className="text-sm">
                                       {grade.studentName}
                                     </span>
-                                    <div className="flex items-center space-x-2">
+                                    <div className="flex items-center justify-end gap-2 flex-wrap">
+                                      {grade.semesterLabel && (
+                                        <Badge
+                                          variant="outline"
+                                          className="text-xs"
+                                        >
+                                          {grade.semesterLabel}
+                                        </Badge>
+                                      )}
                                       <Badge
                                         variant="outline"
                                         className="text-xs"
@@ -1450,26 +1868,36 @@ const TeacherDashboard = ({ currentUser, onLogout }) => {
                                     <span className="text-sm">
                                       {att.studentName}
                                     </span>
-                                    <Badge
-                                      variant="outline"
-                                      className={`text-xs ${
-                                        att.status === "hadir"
-                                          ? "bg-green-100 text-green-800"
+                                    <div className="flex items-center justify-end gap-2 flex-wrap">
+                                      {att.semesterLabel && (
+                                        <Badge
+                                          variant="outline"
+                                          className="text-xs"
+                                        >
+                                          {att.semesterLabel}
+                                        </Badge>
+                                      )}
+                                      <Badge
+                                        variant="outline"
+                                        className={`text-xs ${
+                                          att.status === "hadir"
+                                            ? "bg-green-100 text-green-800"
+                                            : att.status === "sakit"
+                                            ? "bg-yellow-100 text-yellow-800"
+                                            : att.status === "izin"
+                                            ? "bg-blue-100 text-blue-800"
+                                            : "bg-red-100 text-red-800"
+                                        }`}
+                                      >
+                                        {att.status === "hadir"
+                                          ? "Hadir"
                                           : att.status === "sakit"
-                                          ? "bg-yellow-100 text-yellow-800"
+                                          ? "Sakit"
                                           : att.status === "izin"
-                                          ? "bg-blue-100 text-blue-800"
-                                          : "bg-red-100 text-red-800"
-                                      }`}
-                                    >
-                                      {att.status === "hadir"
-                                        ? "Hadir"
-                                        : att.status === "sakit"
-                                        ? "Sakit"
-                                        : att.status === "izin"
-                                        ? "Izin"
-                                        : "Alfa"}
-                                    </Badge>
+                                          ? "Izin"
+                                          : "Alfa"}
+                                      </Badge>
+                                    </div>
                                   </div>
                                 ))}
                                 {subjectAttendance.length > 3 && (

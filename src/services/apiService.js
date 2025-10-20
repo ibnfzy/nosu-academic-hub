@@ -402,6 +402,13 @@ const apiService = {
       const response = await this.authFetch(
         appendQuery(`${API_BASE_URL}/guru/grades`, query)
       );
+      if (response?.success === false) {
+        const error = new Error(
+          response?.message || "Gagal memuat data nilai"
+        );
+        error.code = response?.code;
+        throw error;
+      }
       return normalizeData(response.data);
     } else {
       const grades = JSON.parse(
@@ -433,6 +440,13 @@ const apiService = {
       const response = await this.authFetch(
         appendQuery(`${API_BASE_URL}/guru/attendance`, query)
       );
+      if (response?.success === false) {
+        const error = new Error(
+          response?.message || "Gagal memuat data kehadiran"
+        );
+        error.code = response?.code;
+        throw error;
+      }
       return normalizeData(response.data);
     } else {
       const attendance = JSON.parse(
