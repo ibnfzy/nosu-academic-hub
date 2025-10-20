@@ -1,3 +1,4 @@
+/* eslint-disable @typescript-eslint/no-explicit-any */
 import { useEffect, useState, useCallback } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -100,9 +101,8 @@ export default function SemesterManagement({
 }: SemesterManagementProps) {
   const [semesters, setSemesters] = useState<any[]>([]);
   const [isDialogOpen, setIsDialogOpen] = useState(false);
-  const [formState, setFormState] = useState<SemesterFormState>(
-    initialFormState
-  );
+  const [formState, setFormState] =
+    useState<SemesterFormState>(initialFormState);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [formErrors, setFormErrors] = useState<BackendErrors>({});
   const { toast } = useToast();
@@ -110,6 +110,7 @@ export default function SemesterManagement({
   const loadSemesters = useCallback(async () => {
     try {
       const data = await apiService.getSemesters();
+      console.log(data);
       setSemesters(Array.isArray(data) ? data : []);
     } catch (error) {
       console.error("Failed to load semesters", error);
@@ -274,12 +275,15 @@ export default function SemesterManagement({
             <CalendarDays className="h-5 w-5 text-primary" />
             Manajemen Semester
           </CardTitle>
-          <Dialog open={isDialogOpen} onOpenChange={(open) => {
-            setIsDialogOpen(open);
-            if (!open) {
-              resetForm();
-            }
-          }}>
+          <Dialog
+            open={isDialogOpen}
+            onOpenChange={(open) => {
+              setIsDialogOpen(open);
+              if (!open) {
+                resetForm();
+              }
+            }}
+          >
             <DialogTrigger asChild>
               <Button onClick={openCreateDialog}>
                 <Plus className="mr-2 h-4 w-4" />
@@ -468,17 +472,31 @@ export default function SemesterManagement({
             <TableBody>
               {semesters.length === 0 ? (
                 <TableRow>
-                  <TableCell colSpan={7} className="text-center py-6 text-muted-foreground">
+                  <TableCell
+                    colSpan={7}
+                    className="text-center py-6 text-muted-foreground"
+                  >
                     Belum ada data semester.
                   </TableCell>
                 </TableRow>
               ) : (
                 semesters.map((semester) => (
-                  <TableRow key={semester.id ?? `${semester.tahunAjaran}-${semester.semester}`}>
-                    <TableCell>{semester.tahunAjaran || semester.tahun || "-"}</TableCell>
+                  <TableRow
+                    key={
+                      semester.id ??
+                      `${semester.tahunAjaran}-${semester.semester}`
+                    }
+                  >
+                    <TableCell>
+                      {semester.tahunAjaran || semester.tahun || "-"}
+                    </TableCell>
                     <TableCell>{getSemesterLabel(semester.semester)}</TableCell>
-                    <TableCell>{formatDate(semester.tanggalMulai || semester.startDate)}</TableCell>
-                    <TableCell>{formatDate(semester.tanggalSelesai || semester.endDate)}</TableCell>
+                    <TableCell>
+                      {formatDate(semester.tanggalMulai || semester.startDate)}
+                    </TableCell>
+                    <TableCell>
+                      {formatDate(semester.tanggalSelesai || semester.endDate)}
+                    </TableCell>
                     <TableCell className="text-center">
                       {semester.jumlahHariBelajar ?? "-"}
                     </TableCell>

@@ -486,6 +486,12 @@ export default function UserManagement({
     return d.toISOString().split("T")[0]; // hasil: "2024-09-28"
   };
 
+  function getFullJenisKelamin(kode: string): string {
+    if (kode === "P") return "Perempuan";
+    if (kode === "L") return "Laki-laki";
+    return "Tidak diketahui";
+  }
+
   const TableSkeleton = () => (
     <>
       {Array.from({ length: 5 }).map((_, idx) => (
@@ -971,14 +977,18 @@ export default function UserManagement({
                     <TableCell>{user.email || "-"}</TableCell>
                     {(user.role === "guru" || user.role === "walikelas") && (
                       <>
-                        <TableCell>{user.jenisKelamin}</TableCell>
+                        <TableCell>
+                          {getFullJenisKelamin(user.jenisKelamin)}
+                        </TableCell>
                         <TableCell>{user.alamat}</TableCell>
                         <TableCell>{user.nomorHP}</TableCell>
                       </>
                     )}
                     {user.role === "siswa" && (
                       <>
-                        <TableCell>{user.jenisKelamin}</TableCell>
+                        <TableCell>
+                          {getFullJenisKelamin(user.jenisKelamin)}
+                        </TableCell>
                         <TableCell>{formatDate(user.tanggalLahir)}</TableCell>
                         <TableCell>{user.alamat}</TableCell>
                         <TableCell>{user.nomorHP}</TableCell>

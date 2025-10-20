@@ -360,11 +360,25 @@ export default function SubjectManagement({
               {groupedSubjects.length > 0 ? (
                 groupedSubjects.map((subject) => (
                   <TableRow key={subject.id}>
-                    <TableCell className="font-mono">{subject.kode}</TableCell>
+                    <TableCell>
+                      <span className="inline-block bg-muted text-muted-foreground px-2 py-1 rounded-full text-xs font-mono">
+                        {subject.kode}
+                      </span>
+                    </TableCell>
+
                     <TableCell className="font-medium">
                       {subject.nama}
                     </TableCell>
-                    <TableCell>{subject.kelasNames.join(", ")}</TableCell>
+                    <TableCell>
+                      {subject.kelasNames.map((kelas, index) => (
+                        <span
+                          key={index}
+                          className="inline-block bg-primary/10 text-primary px-2 py-1 rounded-full text-xs font-medium"
+                        >
+                          {kelas}
+                        </span>
+                      ))}
+                    </TableCell>
                     <TableCell>{subject.teacherNames.join(", ")}</TableCell>
                     <TableCell className="text-right">
                       <div className="flex justify-end space-x-2">

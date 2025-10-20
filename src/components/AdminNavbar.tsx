@@ -1,64 +1,85 @@
 import { Button } from "@/components/ui/button";
 import {
+  DropdownMenu,
+  DropdownMenuTrigger,
+  DropdownMenuContent,
+  DropdownMenuItem,
+} from "@/components/ui/dropdown-menu";
+import {
   GraduationCap,
   Users,
-  UserCheck,
   Shield,
   BookOpen,
   School,
-  LogOut,
-  Building2,
   CalendarDays,
+  Building2,
+  LogOut,
+  ChevronDown,
 } from "lucide-react";
 
-const menuItems = [
+const groupedMenu = [
   {
-    title: "Siswa",
-    icon: GraduationCap,
-    id: "siswa",
-    description: "Kelola data akses siswa",
+    title: "Manajemen Akses",
+    items: [
+      {
+        title: "Siswa",
+        icon: GraduationCap,
+        id: "siswa",
+        description: "Kelola data akses siswa",
+      },
+      {
+        title: "Akses Guru",
+        icon: Users,
+        id: "guru",
+        description: "Kelola data akses guru",
+      },
+      {
+        title: "Akses Walikelas",
+        icon: Users,
+        id: "walikelas",
+        description: "Kelola data akses wali kelas",
+      },
+      {
+        title: "Admin",
+        icon: Shield,
+        id: "admin",
+        description: "Kelola data akses administrator",
+      },
+    ],
   },
   {
-    title: "Akses Guru",
-    icon: Users,
-    id: "guru",
-    description: "Kelola data akses guru",
+    title: "Akademik",
+    items: [
+      {
+        title: "Mata Pelajaran",
+        icon: BookOpen,
+        id: "subjects",
+        description: "Atur mata pelajaran",
+      },
+      {
+        title: "Kelas",
+        icon: School,
+        id: "classes",
+        description: "Manajemen kelas",
+      },
+      {
+        title: "Semester",
+        icon: CalendarDays,
+        id: "semesters",
+        description: "Kelola periode semester akademik",
+      },
+    ],
   },
   {
-    title: "Akses Walikelas",
-    icon: Users,
-    id: "walikelas",
-    description: "Kelola data akses wali kelas",
-  },
-  {
-    title: "Admin",
-    icon: Shield,
-    id: "admin",
-    description: "Kelola data akses administrator",
-  },
-  {
-    title: "Mata Pelajaran",
-    icon: BookOpen,
-    id: "subjects",
-    description: "Atur mata pelajaran",
-  },
-  {
-    title: "Kelas",
-    icon: School,
-    id: "classes",
-    description: "Manajemen kelas",
-  },
-  {
-    title: "Semester",
-    icon: CalendarDays,
-    id: "semesters",
-    description: "Kelola periode semester akademik",
-  },
-  {
-    title: "Profil Sekolah",
-    icon: Building2,
-    id: "school-profile",
-    description: "Kelola profil dan informasi sekolah",
+    title: "Sekolah",
+    items: [
+      {
+        title: "Profil Sekolah",
+        icon: Building2,
+        id: "school-profile",
+        description: "Kelola profil dan informasi sekolah",
+      },
+    ],
   },
 ];
 
@@ -85,29 +106,36 @@ export function AdminNavbar({
           </div>
 
           <div className="flex flex-col sm:flex-row gap-2 w-full lg:w-auto">
-            {menuItems.map((item) => {
-              const Icon = item.icon;
-              const isActive = activeSection === item.id;
+            {groupedMenu.map((group) => (
+              <DropdownMenu key={group.title}>
+                <DropdownMenuTrigger asChild>
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    className="text-white hover:bg-white/20 hover:text-white flex items-center space-x-2 w-full sm:w-auto"
+                  >
+                    <span>{group.title}</span>
+                    <ChevronDown className="h-4 w-4" />
+                  </Button>
+                </DropdownMenuTrigger>
+                <DropdownMenuContent className="bg-white text-primary shadow-lg">
+                  {group.items.map((item) => {
+                    const Icon = item.icon;
+                    return (
+                      <DropdownMenuItem
+                        key={item.id}
+                        onClick={() => setActiveSection(item.id)}
+                        className="flex items-center space-x-2 cursor-pointer"
+                      >
+                        <Icon className="h-4 w-4" />
+                        <span>{item.title}</span>
+                      </DropdownMenuItem>
+                    );
+                  })}
+                </DropdownMenuContent>
+              </DropdownMenu>
+            ))}
 
-              return (
-                <Button
-                  key={item.id}
-                  onClick={() => setActiveSection(item.id)}
-                  variant={isActive ? "secondary" : "ghost"}
-                  size="sm"
-                  className={`flex items-center space-x-2 transition-smooth w-full sm:w-auto ${
-                    isActive
-                      ? "bg-white text-primary shadow-glow"
-                      : "text-white hover:bg-white/20 hover:text-white"
-                  }`}
-                >
-                  <Icon className="h-4 w-4" />
-                  <span className="font-medium">{item.title}</span>
-                </Button>
-              );
-            })}
-
-            {/* Logout Button */}
             <Button
               onClick={onLogout}
               variant="ghost"
@@ -120,12 +148,13 @@ export function AdminNavbar({
           </div>
         </div>
 
-        {/* Section Description */}
         <div className="mt-4 lg:mt-6">
           <div className="bg-white/10 backdrop-blur-sm rounded-lg px-4 py-2">
             <p className="text-white text-sm">
-              {menuItems.find((item) => item.id === activeSection)
-                ?.description || "Pilih menu untuk memulai"}
+              {groupedMenu
+                .flatMap((group) => group.items)
+                .find((item) => item.id === activeSection)?.description ||
+                "Pilih menu untuk memulai"}
             </p>
           </div>
         </div>

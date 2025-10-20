@@ -1,38 +1,32 @@
-import { Button } from '@/components/ui/button';
-import { 
-  Users,
-  CheckCircle,
-  Calendar,
-  BarChart3,
-  LogOut
-} from 'lucide-react';
+import { Button } from "@/components/ui/button";
+import { Users, CheckCircle, Calendar, BarChart3, LogOut } from "lucide-react";
 
 // Menu items for walikelas dashboard
 const menuItems = [
   {
-    title: 'Siswa',
+    title: "Siswa",
     icon: Users,
-    id: 'students',
-    description: 'Kelola data siswa kelas'
+    id: "students",
+    description: "Kelola data siswa kelas",
   },
   {
-    title: 'Verifikasi Nilai',
-    icon: CheckCircle, 
-    id: 'grades',
-    description: 'Verifikasi nilai siswa'
+    title: "Verifikasi Nilai",
+    icon: CheckCircle,
+    id: "grades",
+    description: "Verifikasi nilai siswa",
   },
   {
-    title: 'Kehadiran',
+    title: "Kehadiran",
     icon: Calendar,
-    id: 'attendance', 
-    description: 'Monitor kehadiran siswa'
+    id: "attendance",
+    description: "Monitor kehadiran siswa",
   },
   {
-    title: 'Laporan',
+    title: "Laporan",
     icon: BarChart3,
-    id: 'reports',
-    description: 'Laporan kelas dan siswa'
-  }
+    id: "reports",
+    description: "Laporan kelas dan siswa",
+  },
 ];
 
 interface WalikelasNavbarProps {
@@ -41,8 +35,12 @@ interface WalikelasNavbarProps {
   onLogout: () => void;
 }
 
-const WalikelasNavbar = ({ activeSection, setActiveSection, onLogout }: WalikelasNavbarProps) => {
-  const activeItem = menuItems.find(item => item.id === activeSection);
+const WalikelasNavbar = ({
+  activeSection,
+  setActiveSection,
+  onLogout,
+}: WalikelasNavbarProps) => {
+  const activeItem = menuItems.find((item) => item.id === activeSection);
 
   return (
     <div className="bg-card border-b border-border shadow-sm">
@@ -51,14 +49,16 @@ const WalikelasNavbar = ({ activeSection, setActiveSection, onLogout }: Walikela
           {/* Navigation Title */}
           <div className="flex justify-between items-center">
             <div>
-              <h2 className="text-lg font-semibold text-foreground">Panel Wali Kelas</h2>
+              <h2 className="text-lg font-semibold text-foreground">
+                Panel Wali Kelas
+              </h2>
               <p className="text-sm text-muted-foreground">
-                {activeItem?.description || 'Kelola kelas Anda'}
+                {activeItem?.description || "Kelola kelas Anda"}
               </p>
             </div>
-            <Button 
-              variant="outline" 
-              size="sm" 
+            <Button
+              variant="outline"
+              size="sm"
               onClick={onLogout}
               className="text-destructive hover:text-destructive-foreground hover:bg-destructive"
             >
@@ -66,13 +66,13 @@ const WalikelasNavbar = ({ activeSection, setActiveSection, onLogout }: Walikela
               Logout
             </Button>
           </div>
-          
+
           {/* Navigation Menu */}
           <div className="flex flex-wrap gap-2">
             {menuItems.map((item) => {
               const Icon = item.icon;
               const isActive = activeSection === item.id;
-              
+
               return (
                 <Button
                   key={item.id}
@@ -80,8 +80,8 @@ const WalikelasNavbar = ({ activeSection, setActiveSection, onLogout }: Walikela
                   size="sm"
                   onClick={() => setActiveSection(item.id)}
                   className={`flex items-center space-x-2 ${
-                    isActive 
-                      ? "bg-primary text-primary-foreground" 
+                    isActive
+                      ? "bg-primary text-primary-foreground"
                       : "text-muted-foreground hover:text-foreground hover:bg-muted"
                   }`}
                 >

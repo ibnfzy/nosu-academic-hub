@@ -59,9 +59,7 @@ const findLocalSemesterRecord = (semesterId, tahun, semester) => {
   );
 
   if (semesterId) {
-    const matched = semesters.find(
-      (item) => `${item.id}` === `${semesterId}`
-    );
+    const matched = semesters.find((item) => `${item.id}` === `${semesterId}`);
     if (matched) {
       return matched;
     }
@@ -233,25 +231,21 @@ const apiService = {
     if (USE_API) {
       const query = buildSemesterQueryString({ semesterId, tahun, semester });
       const response = await this.authFetch(
-        appendQuery(
-          `${API_BASE_URL}/siswa/${studentId}/nilai`,
-          query
-        )
+        appendQuery(`${API_BASE_URL}/siswa/${studentId}/nilai`, query)
       );
       return normalizeData(response.data);
     } else {
       const grades = JSON.parse(
         localStorage.getItem(STORAGE_KEYS.GRADES) || "[]"
       );
-      const { tahunAjaran, semester: semesterNumber } = resolveLocalSemesterInfo(
-        semesterId,
-        tahun,
-        semester
-      );
+      const { tahunAjaran, semester: semesterNumber } =
+        resolveLocalSemesterInfo(semesterId, tahun, semester);
       return grades.filter((g) => {
         if (g.studentId !== studentId) return false;
         const matchTahun =
-          !tahunAjaran || g.tahunAjaran === tahunAjaran || g.tahun === tahunAjaran;
+          !tahunAjaran ||
+          g.tahunAjaran === tahunAjaran ||
+          g.tahun === tahunAjaran;
         const matchSemester =
           semesterNumber === null || semesterNumber === undefined
             ? true
@@ -261,34 +255,25 @@ const apiService = {
     }
   },
 
-  async getStudentAttendance(
-    studentId,
-    tahun,
-    semester,
-    semesterId = null
-  ) {
+  async getStudentAttendance(studentId, tahun, semester, semesterId = null) {
     if (USE_API) {
       const query = buildSemesterQueryString({ semesterId, tahun, semester });
       const response = await this.authFetch(
-        appendQuery(
-          `${API_BASE_URL}/siswa/${studentId}/kehadiran`,
-          query
-        )
+        appendQuery(`${API_BASE_URL}/siswa/${studentId}/kehadiran`, query)
       );
       return normalizeData(response.data);
     } else {
       const attendance = JSON.parse(
         localStorage.getItem(STORAGE_KEYS.ATTENDANCE) || "[]"
       );
-      const { tahunAjaran, semester: semesterNumber } = resolveLocalSemesterInfo(
-        semesterId,
-        tahun,
-        semester
-      );
+      const { tahunAjaran, semester: semesterNumber } =
+        resolveLocalSemesterInfo(semesterId, tahun, semester);
       return attendance.filter((a) => {
         if (a.studentId !== studentId) return false;
         const matchTahun =
-          !tahunAjaran || a.tahunAjaran === tahunAjaran || a.tahun === tahunAjaran;
+          !tahunAjaran ||
+          a.tahunAjaran === tahunAjaran ||
+          a.tahun === tahunAjaran;
         const matchSemester =
           semesterNumber === null || semesterNumber === undefined
             ? true
@@ -302,15 +287,15 @@ const apiService = {
     if (USE_API) {
       const query = buildSemesterQueryString({ semesterId, tahun, semester });
       const response = await this.authFetch(
-        appendQuery(
-          `${API_BASE_URL}/siswa/${studentId}/raport`,
-          query
-        )
+        appendQuery(`${API_BASE_URL}/siswa/${studentId}/raport`, query)
       );
       return response.data;
     } else {
-      const { tahunAjaran, semester: semesterNumber, record } =
-        resolveLocalSemesterInfo(semesterId, tahun, semester);
+      const {
+        tahunAjaran,
+        semester: semesterNumber,
+        record,
+      } = resolveLocalSemesterInfo(semesterId, tahun, semester);
       const grades = await this.getStudentGrades(
         studentId,
         tahunAjaran,
@@ -403,9 +388,7 @@ const apiService = {
         appendQuery(`${API_BASE_URL}/guru/grades`, query)
       );
       if (response?.success === false) {
-        const error = new Error(
-          response?.message || "Gagal memuat data nilai"
-        );
+        const error = new Error(response?.message || "Gagal memuat data nilai");
         error.code = response?.code;
         throw error;
       }
@@ -414,17 +397,20 @@ const apiService = {
       const grades = JSON.parse(
         localStorage.getItem(STORAGE_KEYS.GRADES) || "[]"
       );
-      if (!semesterId && !tahun && (semester === null || semester === undefined)) {
+      if (
+        !semesterId &&
+        !tahun &&
+        (semester === null || semester === undefined)
+      ) {
         return grades;
       }
-      const { tahunAjaran, semester: semesterNumber } = resolveLocalSemesterInfo(
-        semesterId,
-        tahun,
-        semester
-      );
+      const { tahunAjaran, semester: semesterNumber } =
+        resolveLocalSemesterInfo(semesterId, tahun, semester);
       return grades.filter((g) => {
         const matchTahun =
-          !tahunAjaran || g.tahunAjaran === tahunAjaran || g.tahun === tahunAjaran;
+          !tahunAjaran ||
+          g.tahunAjaran === tahunAjaran ||
+          g.tahun === tahunAjaran;
         const matchSemester =
           semesterNumber === null || semesterNumber === undefined
             ? true
@@ -452,17 +438,20 @@ const apiService = {
       const attendance = JSON.parse(
         localStorage.getItem(STORAGE_KEYS.ATTENDANCE) || "[]"
       );
-      if (!semesterId && !tahun && (semester === null || semester === undefined)) {
+      if (
+        !semesterId &&
+        !tahun &&
+        (semester === null || semester === undefined)
+      ) {
         return attendance;
       }
-      const { tahunAjaran, semester: semesterNumber } = resolveLocalSemesterInfo(
-        semesterId,
-        tahun,
-        semester
-      );
+      const { tahunAjaran, semester: semesterNumber } =
+        resolveLocalSemesterInfo(semesterId, tahun, semester);
       return attendance.filter((a) => {
         const matchTahun =
-          !tahunAjaran || a.tahunAjaran === tahunAjaran || a.tahun === tahunAjaran;
+          !tahunAjaran ||
+          a.tahunAjaran === tahunAjaran ||
+          a.tahun === tahunAjaran;
         const matchSemester =
           semesterNumber === null || semesterNumber === undefined
             ? true
@@ -490,11 +479,12 @@ const apiService = {
       const grades = JSON.parse(
         localStorage.getItem(STORAGE_KEYS.GRADES) || "[]"
       );
-      const { tahunAjaran, semester: semesterNumber } = resolveLocalSemesterInfo(
-        semesterId,
-        gradeData?.tahunAjaran ?? gradeData?.tahun ?? null,
-        gradeData?.semester ?? null
-      );
+      const { tahunAjaran, semester: semesterNumber } =
+        resolveLocalSemesterInfo(
+          semesterId,
+          gradeData?.tahunAjaran ?? gradeData?.tahun ?? null,
+          gradeData?.semester ?? null
+        );
       const newGrade = {
         id: Date.now().toString(),
         ...gradeData,
@@ -535,11 +525,12 @@ const apiService = {
       const attendance = JSON.parse(
         localStorage.getItem(STORAGE_KEYS.ATTENDANCE) || "[]"
       );
-      const { tahunAjaran, semester: semesterNumber } = resolveLocalSemesterInfo(
-        semesterId,
-        attendanceData?.tahunAjaran ?? attendanceData?.tahun ?? null,
-        attendanceData?.semester ?? null
-      );
+      const { tahunAjaran, semester: semesterNumber } =
+        resolveLocalSemesterInfo(
+          semesterId,
+          attendanceData?.tahunAjaran ?? attendanceData?.tahun ?? null,
+          attendanceData?.semester ?? null
+        );
       const newAttendance = {
         id: Date.now().toString(),
         ...attendanceData,
@@ -552,7 +543,8 @@ const apiService = {
       if (
         semesterNumber !== undefined &&
         semesterNumber !== null &&
-        (newAttendance.semester === undefined || newAttendance.semester === null)
+        (newAttendance.semester === undefined ||
+          newAttendance.semester === null)
       ) {
         newAttendance.semester = semesterNumber;
       }
@@ -583,15 +575,23 @@ const apiService = {
       const idx = grades.findIndex((g) => g.id === gradeData.id);
 
       if (idx !== -1) {
-        const { tahunAjaran, semester: semesterNumber } = resolveLocalSemesterInfo(
-          semesterId,
-          gradeData?.tahunAjaran ?? grades[idx]?.tahunAjaran ?? grades[idx]?.tahun ?? null,
-          gradeData?.semester ?? grades[idx]?.semester ?? null
-        );
+        const { tahunAjaran, semester: semesterNumber } =
+          resolveLocalSemesterInfo(
+            semesterId,
+            gradeData?.tahunAjaran ??
+              grades[idx]?.tahunAjaran ??
+              grades[idx]?.tahun ??
+              null,
+            gradeData?.semester ?? grades[idx]?.semester ?? null
+          );
         grades[idx] = {
           ...grades[idx],
           ...gradeData,
-          semesterId: semesterId ?? gradeData?.semesterId ?? grades[idx].semesterId ?? null,
+          semesterId:
+            semesterId ??
+            gradeData?.semesterId ??
+            grades[idx].semesterId ??
+            null,
           updatedAt: new Date().toISOString(),
         };
         if (tahunAjaran && !grades[idx].tahunAjaran) {
@@ -650,16 +650,23 @@ const apiService = {
       const idx = attendance.findIndex((a) => a.id === attendanceData.id);
 
       if (idx !== -1) {
-        const { tahunAjaran, semester: semesterNumber } = resolveLocalSemesterInfo(
-          semesterId,
-          attendanceData?.tahunAjaran ?? attendance[idx]?.tahunAjaran ?? attendance[idx]?.tahun ?? null,
-          attendanceData?.semester ?? attendance[idx]?.semester ?? null
-        );
+        const { tahunAjaran, semester: semesterNumber } =
+          resolveLocalSemesterInfo(
+            semesterId,
+            attendanceData?.tahunAjaran ??
+              attendance[idx]?.tahunAjaran ??
+              attendance[idx]?.tahun ??
+              null,
+            attendanceData?.semester ?? attendance[idx]?.semester ?? null
+          );
         attendance[idx] = {
           ...attendance[idx],
           ...attendanceData,
           semesterId:
-            semesterId ?? attendanceData?.semesterId ?? attendance[idx].semesterId ?? null,
+            semesterId ??
+            attendanceData?.semesterId ??
+            attendance[idx].semesterId ??
+            null,
           updatedAt: new Date().toISOString(),
         };
         if (tahunAjaran && !attendance[idx].tahunAjaran) {
@@ -668,7 +675,8 @@ const apiService = {
         if (
           semesterNumber !== undefined &&
           semesterNumber !== null &&
-          (attendance[idx].semester === undefined || attendance[idx].semester === null)
+          (attendance[idx].semester === undefined ||
+            attendance[idx].semester === null)
         ) {
           attendance[idx].semester = semesterNumber;
         }
@@ -1121,9 +1129,7 @@ const apiService = {
   // ============= SEMESTER MANAGEMENT =============
   async getSemesters() {
     if (USE_API) {
-      const response = await this.authFetch(
-        `${API_BASE_URL}/api/admin/semesters`
-      );
+      const response = await this.authFetch(`${API_BASE_URL}/admin/semesters`);
       return normalizeData(response.data);
     } else {
       return JSON.parse(
@@ -1134,14 +1140,11 @@ const apiService = {
 
   async createSemester(semesterData) {
     if (USE_API) {
-      const response = await this.authFetch(
-        `${API_BASE_URL}/api/admin/semesters`,
-        {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify(semesterData),
-        }
-      );
+      const response = await this.authFetch(`${API_BASE_URL}/admin/semesters`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(semesterData),
+      });
       return response.data;
     } else {
       const semesters = JSON.parse(
@@ -1164,7 +1167,7 @@ const apiService = {
   async updateSemester(semesterId, semesterData) {
     if (USE_API) {
       const response = await this.authFetch(
-        `${API_BASE_URL}/api/admin/semesters/${semesterId}`,
+        `${API_BASE_URL}/admin/semesters/${semesterId}`,
         {
           method: "PUT",
           headers: { "Content-Type": "application/json" },
@@ -1203,7 +1206,7 @@ const apiService = {
   async deleteSemester(semesterId) {
     if (USE_API) {
       const response = await this.authFetch(
-        `${API_BASE_URL}/api/admin/semesters/${semesterId}`,
+        `${API_BASE_URL}/admin/semesters/${semesterId}`,
         {
           method: "DELETE",
         }
@@ -1213,7 +1216,9 @@ const apiService = {
       const semesters = JSON.parse(
         localStorage.getItem(STORAGE_KEYS.ACADEMIC_YEARS) || "[]"
       );
-      const filtered = semesters.filter((item) => `${item.id}` !== `${semesterId}`);
+      const filtered = semesters.filter(
+        (item) => `${item.id}` !== `${semesterId}`
+      );
 
       localStorage.setItem(
         STORAGE_KEYS.ACADEMIC_YEARS,
@@ -1435,12 +1440,7 @@ const apiService = {
     }
   },
 
-  async getClassGrades(
-    walikelasId,
-    tahun,
-    semester,
-    semesterId = null
-  ) {
+  async getClassGrades(walikelasId, tahun, semester, semesterId = null) {
     if (USE_API) {
       const query = buildSemesterQueryString({ semesterId, tahun, semester });
       const response = await this.authFetch(
@@ -1461,14 +1461,13 @@ const apiService = {
       const grades = JSON.parse(
         localStorage.getItem(STORAGE_KEYS.GRADES) || "[]"
       );
-      const { tahunAjaran, semester: semesterNumber } = resolveLocalSemesterInfo(
-        semesterId,
-        tahun,
-        semester
-      );
+      const { tahunAjaran, semester: semesterNumber } =
+        resolveLocalSemesterInfo(semesterId, tahun, semester);
       return grades.filter((g) => {
         const matchTahun =
-          !tahunAjaran || g.tahunAjaran === tahunAjaran || g.tahun === tahunAjaran;
+          !tahunAjaran ||
+          g.tahunAjaran === tahunAjaran ||
+          g.tahun === tahunAjaran;
         const matchSemester =
           semesterNumber === null || semesterNumber === undefined
             ? true
@@ -1478,12 +1477,7 @@ const apiService = {
     }
   },
 
-  async getClassAttendance(
-    walikelasId,
-    tahun,
-    semester,
-    semesterId = null
-  ) {
+  async getClassAttendance(walikelasId, tahun, semester, semesterId = null) {
     if (USE_API) {
       const query = buildSemesterQueryString({ semesterId, tahun, semester });
       const response = await this.authFetch(
@@ -1504,14 +1498,13 @@ const apiService = {
       const attendance = JSON.parse(
         localStorage.getItem(STORAGE_KEYS.ATTENDANCE) || "[]"
       );
-      const { tahunAjaran, semester: semesterNumber } = resolveLocalSemesterInfo(
-        semesterId,
-        tahun,
-        semester
-      );
+      const { tahunAjaran, semester: semesterNumber } =
+        resolveLocalSemesterInfo(semesterId, tahun, semester);
       return attendance.filter((a) => {
         const matchTahun =
-          !tahunAjaran || a.tahunAjaran === tahunAjaran || a.tahun === tahunAjaran;
+          !tahunAjaran ||
+          a.tahunAjaran === tahunAjaran ||
+          a.tahun === tahunAjaran;
         const matchSemester =
           semesterNumber === null || semesterNumber === undefined
             ? true
@@ -1748,8 +1741,11 @@ const apiService = {
       );
 
       const student = students.find((s) => s.id === studentId);
-      const { tahunAjaran, semester: semesterNumber, record } =
-        resolveLocalSemesterInfo(semesterId, tahun, semester);
+      const {
+        tahunAjaran,
+        semester: semesterNumber,
+        record,
+      } = resolveLocalSemesterInfo(semesterId, tahun, semester);
       const grades = await this.getStudentGrades(
         studentId,
         tahunAjaran,
