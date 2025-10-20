@@ -50,15 +50,24 @@ const apiService = {
 
     let result;
     if (typeof response.json === "function") {
-      result = await response.json(); // fetch asli
+      result = await response.json();
     } else {
-      result = response; // sudah JSON (axios / wrapper)
+      result = response;
     }
 
-    if (response.status === 401 || result.success === false) {
-      this.logout();
-      throw new Error(result.message || "Unauthorized. Please login again.");
-    }
+    // if (response.status === 401 || result.success === false) {
+    //   // simpan pesan sementara
+    //   localStorage.setItem(
+    //     "sessionMessage",
+    //     result.message || "Sesi Anda sudah habis, silakan login kembali."
+    //   );
+
+    //   this.logout(); // hapus token, data user, dll
+
+    //   // arahkan ke login
+    //   window.location.href = "/";
+    //   return; // pastikan berhenti
+    // }
 
     return result;
   },

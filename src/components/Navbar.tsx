@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
@@ -40,6 +40,18 @@ const Navbar = ({ currentUser, onLogin, onLogout }) => {
   const [isLoading, setIsLoading] = useState(false);
   const [showLogin, setShowLogin] = useState(false);
   const { toast } = useToast();
+
+  useEffect(() => {
+    const msg = localStorage.getItem("sessionMessage");
+    if (msg) {
+      toast({
+        title: "Error API / Sesi Login berakhir",
+        description: msg,
+        variant: "destructive",
+      });
+      localStorage.removeItem("sessionMessage"); // hapus setelah ditampilkan
+    }
+  }, [toast]);
 
   const roleOptions = [
     {
@@ -294,7 +306,7 @@ const Navbar = ({ currentUser, onLogin, onLogout }) => {
                     </Button>
                   </form>
 
-                  <div className="mt-4 p-3 bg-muted rounded-lg">
+                  {/* <div className="mt-4 p-3 bg-muted rounded-lg">
                     <p className="text-xs text-muted-foreground mb-2">
                       Demo Credentials:
                     </p>
@@ -304,7 +316,7 @@ const Navbar = ({ currentUser, onLogin, onLogout }) => {
                       <p>• Guru: guru003 / guru123</p>
                       <p>• Walikelas: guru001 / guru123</p>
                     </div>
-                  </div>
+                  </div> */}
                 </DialogContent>
               </Dialog>
             )}

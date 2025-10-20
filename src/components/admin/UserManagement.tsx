@@ -30,6 +30,7 @@ import {
 import { Plus, Edit, Trash2, Search } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import apiService from "@/services/apiService";
+import { Skeleton } from "@/components/ui/skeleton";
 
 interface UserManagementProps {
   users: any[];
@@ -47,6 +48,8 @@ export default function UserManagement({
   const [searchTerm, setSearchTerm] = useState("");
   const [roleFilter, setRoleFilter] = useState("all");
   const [classes, setClasses] = useState<any[]>([]);
+  const [loadingUsers, setLoadingUsers] = useState(true);
+  const [loadingClasses, setLoadingClasses] = useState(true);
   const [userForm, setUserForm] = useState({
     // Users table fields
     username: "",
@@ -81,6 +84,7 @@ export default function UserManagement({
 
   // Load classes data
   const loadClasses = useCallback(async () => {
+    setLoadingClasses(true);
     try {
       const classesData = await apiService.getClasses();
       setClasses(classesData);
@@ -91,6 +95,8 @@ export default function UserManagement({
         description: "Gagal memuat data kelas",
         variant: "destructive",
       });
+    } finally {
+      setLoadingClasses(false);
     }
   }, [toast]);
 
@@ -98,6 +104,14 @@ export default function UserManagement({
   useEffect(() => {
     loadClasses();
   }, [loadClasses]);
+
+  useEffect(() => {
+    if (users && users.length === 0) {
+      setLoadingUsers(true);
+    } else {
+      setLoadingUsers(false);
+    }
+  }, [users]);
 
   // Auto-set role when activeSection changes
   useEffect(() => {
@@ -111,6 +125,7 @@ export default function UserManagement({
   const roles = [
     { value: "admin", label: "Administrator" },
     { value: "guru", label: "Guru" },
+    { value: "walikelas", label: "Walikelas" },
     { value: "siswa", label: "Siswa" },
   ];
 
@@ -254,7 +269,6 @@ export default function UserManagement({
       };
 
       let payload;
-      let apiEndpoint;
 
       if (currentRole === "siswa") {
         payload = {
@@ -272,7 +286,6 @@ export default function UserManagement({
             tahunMasuk: userForm.tahunMasuk,
           },
         };
-        apiEndpoint = "/admin/students";
       } else if (currentRole === "guru") {
         payload = {
           users: baseUserData,
@@ -285,7 +298,6 @@ export default function UserManagement({
             nomorHP: userForm.nomorHP,
           },
         };
-        apiEndpoint = "/admin/teachers";
       } else if (currentRole === "walikelas") {
         payload = {
           users: baseUserData,
@@ -298,11 +310,9 @@ export default function UserManagement({
             nomorHP: userForm.nomorHP,
           },
         };
-        apiEndpoint = "/admin/walikelas";
       } else {
         // Admin users only need users table
         payload = baseUserData;
-        apiEndpoint = "/admin/users";
       }
 
       let result;
@@ -382,6 +392,7 @@ export default function UserManagement({
         }
 
         if (result.success) {
+          console.log(result);
           toast({
             title: "Berhasil",
             description: "User berhasil dihapus",
@@ -424,8 +435,24 @@ export default function UserManagement({
   };
 
   const editUser = (user: any) => {
-    // Untuk admin, jangan set nama karena tidak diperlukan
-    const formData = user.role === "admin" ? { ...user, nama: "" } : user;
+    console.log("User : ", user);
+    const formData = {
+      username: user.username || "",
+      nama: user.role === "admin" ? "" : user.nama || "",
+      email: user.email || "",
+      nisn: user.nisn || "",
+      nip: user.nip || "",
+      role: user.role || "",
+      jenisKelamin: user.jenisKelamin || "",
+      tahunMasuk: user.tahunMasuk || "",
+      tanggalLahir: formatDate(user.tanggalLahir),
+      alamat: user.alamat || "",
+      nomorHP: user.nomorHP || "",
+      namaOrangTua: user.namaOrangTua || "",
+      pekerjaanOrangTua: user.pekerjaanOrangTua || "",
+      kelasId: user.kelasId ? String(user.kelasId) : "", // tambahkan ini
+      password: "", // kosongkan password saat edit
+    };
 
     setUserForm(formData);
     setEditingItem(user);
@@ -445,6 +472,43 @@ export default function UserManagement({
     }
     return matchesRole && matchesSearch;
   });
+
+  const getKelasName = (kelasId: string, classes: any[]) => {
+    if (!kelasId) return "-";
+    const kelas = classes.find((c) => String(c.id) === String(kelasId));
+    return kelas ? kelas.nama : "-";
+  };
+
+  const formatDate = (dateString: string) => {
+    if (!dateString) return "";
+    const d = new Date(dateString);
+    if (isNaN(d.getTime())) return "";
+    return d.toISOString().split("T")[0]; // hasil: "2024-09-28"
+  };
+
+  const TableSkeleton = () => (
+    <>
+      {Array.from({ length: 5 }).map((_, idx) => (
+        <TableRow key={idx}>
+          <TableCell>
+            <Skeleton className="h-4 w-24" />
+          </TableCell>
+          <TableCell>
+            <Skeleton className="h-4 w-20" />
+          </TableCell>
+          <TableCell>
+            <Skeleton className="h-4 w-16" />
+          </TableCell>
+          <TableCell>
+            <Skeleton className="h-4 w-32" />
+          </TableCell>
+          <TableCell className="text-right">
+            <Skeleton className="h-8 w-16 rounded" />
+          </TableCell>
+        </TableRow>
+      ))}
+    </>
+  );
 
   return (
     <Card className="shadow-soft">
@@ -499,7 +563,7 @@ export default function UserManagement({
                   </div>
 
                   <div className="space-y-2">
-                    <Label>Password *</Label>
+                    <Label>Password {editingItem ? "" : "*"}</Label>
                     <Input
                       type="password"
                       value={userForm.password}
@@ -509,8 +573,16 @@ export default function UserManagement({
                           password: e.target.value,
                         }))
                       }
-                      required={!editingItem}
+                      required={!editingItem} // hanya wajib kalau tambah user baru
+                      placeholder={
+                        editingItem ? "Kosongkan jika tidak ingin mengubah" : ""
+                      }
                     />
+                    {editingItem && (
+                      <p className="text-sm text-gray-500">
+                        Biarkan kosong jika tidak ingin mengubah password
+                      </p>
+                    )}
                   </div>
 
                   {userForm.role !== "admin" && (
@@ -526,6 +598,29 @@ export default function UserManagement({
                         }
                         required
                       />
+                    </div>
+                  )}
+
+                  {(userForm.role === "siswa" || activeSection === "siswa") && (
+                    <div className="space-y-2">
+                      <Label>Kelas *</Label>
+                      <Select
+                        value={userForm.kelasId}
+                        onValueChange={(value) =>
+                          setUserForm((prev) => ({ ...prev, kelasId: value }))
+                        }
+                      >
+                        <SelectTrigger>
+                          <SelectValue placeholder="Pilih kelas" />
+                        </SelectTrigger>
+                        <SelectContent>
+                          {classes.map((kelas) => (
+                            <SelectItem key={kelas.id} value={String(kelas.id)}>
+                              {kelas.nama}
+                            </SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
                     </div>
                   )}
 
@@ -597,26 +692,6 @@ export default function UserManagement({
                         )}
                       </div>
                       <div className="space-y-2">
-                        <Label>Jenis Kelamin *</Label>
-                        <Select
-                          value={userForm.jenisKelamin}
-                          onValueChange={(value) =>
-                            setUserForm((prev) => ({
-                              ...prev,
-                              jenisKelamin: value,
-                            }))
-                          }
-                        >
-                          <SelectTrigger>
-                            <SelectValue placeholder="Pilih jenis kelamin" />
-                          </SelectTrigger>
-                          <SelectContent>
-                            <SelectItem value="L">Laki-laki</SelectItem>
-                            <SelectItem value="P">Perempuan</SelectItem>
-                          </SelectContent>
-                        </Select>
-                      </div>
-                      <div className="space-y-2">
                         <Label>Tahun Masuk *</Label>
                         <Input
                           type="number"
@@ -629,6 +704,19 @@ export default function UserManagement({
                           }
                           placeholder="2024"
                           required
+                        />
+                      </div>
+                      <div className="space-y-2">
+                        <Label>Tanggal Lahir</Label>
+                        <Input
+                          type="date"
+                          value={userForm.tanggalLahir}
+                          onChange={(e) =>
+                            setUserForm((prev) => ({
+                              ...prev,
+                              tanggalLahir: e.target.value,
+                            }))
+                          }
                         />
                       </div>
                     </>
@@ -660,6 +748,17 @@ export default function UserManagement({
                           </p>
                         )}
                       </div>
+                    </>
+                  )}
+
+                  {/* Additional fields for students and teachers */}
+                  {(userForm.role === "siswa" ||
+                    userForm.role === "guru" ||
+                    userForm.role === "walikelas" ||
+                    activeSection === "siswa" ||
+                    activeSection === "guru" ||
+                    activeSection === "walikelas") && (
+                    <>
                       <div className="space-y-2">
                         <Label>Jenis Kelamin *</Label>
                         <Select
@@ -679,30 +778,6 @@ export default function UserManagement({
                             <SelectItem value="P">Perempuan</SelectItem>
                           </SelectContent>
                         </Select>
-                      </div>
-                    </>
-                  )}
-
-                  {/* Additional fields for students and teachers */}
-                  {(userForm.role === "siswa" ||
-                    userForm.role === "guru" ||
-                    userForm.role === "walikelas" ||
-                    activeSection === "siswa" ||
-                    activeSection === "guru" ||
-                    activeSection === "walikelas") && (
-                    <>
-                      <div className="space-y-2">
-                        <Label>Tanggal Lahir</Label>
-                        <Input
-                          type="date"
-                          value={userForm.tanggalLahir}
-                          onChange={(e) =>
-                            setUserForm((prev) => ({
-                              ...prev,
-                              tanggalLahir: e.target.value,
-                            }))
-                          }
-                        />
                       </div>
                       <div className="space-y-2">
                         <Label>Alamat</Label>
@@ -815,7 +890,7 @@ export default function UserManagement({
         </div>
 
         <div className="rounded-md border">
-          <Table>
+          <Table className="w-ful text-sm">
             <TableHeader>
               <TableRow>
                 {/* Tampilkan Nama & Identitas hanya jika bukan admin */}
@@ -829,13 +904,38 @@ export default function UserManagement({
                 )}
                 <TableHead>Username</TableHead>
                 <TableHead>Role</TableHead>
+                {filteredUsers.some((u) => u.role === "siswa") && (
+                  <TableHead>Kelas</TableHead>
+                )}
                 <TableHead>Email</TableHead>
+                {filteredUsers.some((u) =>
+                  ["guru", "walikelas"].includes(u.role)
+                ) && (
+                  <>
+                    <TableHead>Jenis Kelamin</TableHead>
+                    <TableHead>Alamat</TableHead>
+                    <TableHead>Nomor HP</TableHead>
+                  </>
+                )}
+                {filteredUsers.some((u) => u.role === "siswa") && (
+                  <>
+                    <TableHead>Jenis Kelamin</TableHead>
+                    <TableHead>Tanggal Lahir</TableHead>
+                    <TableHead>Alamat</TableHead>
+                    <TableHead>Nomor HP</TableHead>
+                    <TableHead>Nama Orang Tua</TableHead>
+                    <TableHead>Pekerjaan Orang Tua</TableHead>
+                    <TableHead>Tahun Masuk</TableHead>
+                  </>
+                )}
                 <TableHead className="text-right">Aksi</TableHead>
               </TableRow>
             </TableHeader>
 
             <TableBody>
-              {filteredUsers.length > 0 ? (
+              {loadingUsers ? (
+                <TableSkeleton />
+              ) : filteredUsers.length > 0 ? (
                 filteredUsers.map((user) => (
                   <TableRow key={user.id}>
                     {/* Nama hanya tampil jika bukan admin */}
@@ -863,7 +963,30 @@ export default function UserManagement({
                           user.role}
                       </Badge>
                     </TableCell>
+                    {user.role === "siswa" && (
+                      <TableCell>
+                        {getKelasName(user.kelasId, classes)}
+                      </TableCell>
+                    )}
                     <TableCell>{user.email || "-"}</TableCell>
+                    {(user.role === "guru" || user.role === "walikelas") && (
+                      <>
+                        <TableCell>{user.jenisKelamin}</TableCell>
+                        <TableCell>{user.alamat}</TableCell>
+                        <TableCell>{user.nomorHP}</TableCell>
+                      </>
+                    )}
+                    {user.role === "siswa" && (
+                      <>
+                        <TableCell>{user.jenisKelamin}</TableCell>
+                        <TableCell>{formatDate(user.tanggalLahir)}</TableCell>
+                        <TableCell>{user.alamat}</TableCell>
+                        <TableCell>{user.nomorHP}</TableCell>
+                        <TableCell>{user.namaOrangTua}</TableCell>
+                        <TableCell>{user.pekerjaanOrangTua}</TableCell>
+                        <TableCell>{user.tahunMasuk}</TableCell>
+                      </>
+                    )}
                     <TableCell className="text-right">
                       <div className="flex justify-end space-x-2">
                         <Button
@@ -887,7 +1010,7 @@ export default function UserManagement({
               ) : (
                 <TableRow>
                   <TableCell
-                    colSpan={6}
+                    colSpan={7}
                     className="text-center py-8 text-muted-foreground"
                   >
                     Tidak ada data pengguna

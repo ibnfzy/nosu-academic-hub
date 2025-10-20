@@ -49,23 +49,7 @@ const AdminDashboard = ({ currentUser, onLogout }) => {
         apiService.getPrograms(),
       ]);
 
-      // Gabungkan data users dengan data siswa dan guru untuk menampilkan data lengkap
-      const combinedUsers = usersData.map((user) => {
-        if (user.role === "siswa") {
-          const studentData = studentsData.find(
-            (student) => student.userId === user.id
-          );
-          return { ...user, ...studentData };
-        } else if (user.role === "guru" || user.role === "walikelas") {
-          const teacherData = teachersData.find(
-            (teacher) => teacher.userId === user.id
-          );
-          return { ...user, ...teacherData };
-        }
-        return user;
-      });
-
-      setUsers(combinedUsers);
+      setUsers(usersData);
       setSubjects(subjectsData);
       setClasses(classesData);
       setSchoolProfile(schoolProfileData);

@@ -26,7 +26,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { Plus, Edit, Trash2, School } from "lucide-react";
+import { Plus, Edit, Trash2, School, Eye } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import apiService from "@/services/apiService";
 
@@ -41,6 +41,8 @@ export default function ClassManagement({
   const [editingItem, setEditingItem] = useState(null);
   const [classes, setClasses] = useState<any[]>([]);
   const [users, setUsers] = useState<any[]>([]);
+  const [selectedClass, setSelectedClass] = useState<any | null>(null);
+  const [showStudentDialog, setShowStudentDialog] = useState(false);
   const [classForm, setClassForm] = useState({
     nama: "",
     tingkat: "",
@@ -49,6 +51,11 @@ export default function ClassManagement({
   });
 
   const { toast } = useToast();
+
+  const getStudentsByClass = (classId: string) =>
+    users.filter(
+      (u) => u.role === "siswa" && String(u.kelasId) === String(classId)
+    );
 
   // Load data from apiService
   const loadData = useCallback(async () => {
@@ -326,6 +333,17 @@ export default function ClassManagement({
                         <Button
                           size="sm"
                           variant="outline"
+                          onClick={() => {
+                            setSelectedClass(kelas);
+                            setShowStudentDialog(true);
+                          }}
+                        >
+                          <Eye className="h-4 w-4 mr-1" />
+                          Siswa
+                        </Button>
+                        <Button
+                          size="sm"
+                          variant="outline"
                           onClick={() => editClass(kelas)}
                         >
                           <Edit className="h-4 w-4" />
@@ -356,6 +374,63 @@ export default function ClassManagement({
           </Table>
         </div>
       </CardContent>
+
+      <Dialog open={showStudentDialog} onOpenChange={setShowStudentDialog}>
+        <DialogContent className="w-[95vw] max-w-[100vw] h-[90vh] overflow-auto">
+          <DialogHeader>
+            <DialogTitle>
+              Daftar Siswa {selectedClass ? `- ${selectedClass.nama}` : ""}
+            </DialogTitle>
+          </DialogHeader>
+
+          <div className="rounded-md border mt-4">
+            <Table className="w-full text-sm">
+              <TableHeader>
+                <TableRow>
+                  <TableHead>Nama</TableHead>
+                  <TableHead>NISN</TableHead>
+                  <TableHead>Email</TableHead>
+                  <TableHead>Jenis Kelamin</TableHead>
+                  <TableHead>Tanggal Lahir</TableHead>
+                  <TableHead>Alamat</TableHead>
+                  <TableHead>Nomor HP</TableHead>
+                  <TableHead>Nama Orang Tua</TableHead>
+                  <TableHead>Pekerjaan Orang Tua</TableHead>
+                  <TableHead>Tahun Masuk</TableHead>
+                </TableRow>
+              </TableHeader>
+              <TableBody>
+                {selectedClass &&
+                getStudentsByClass(selectedClass.id).length > 0 ? (
+                  getStudentsByClass(selectedClass.id).map((siswa) => (
+                    <TableRow key={siswa.id}>
+                      <TableCell>{siswa.nama}</TableCell>
+                      <TableCell>{siswa.nisn}</TableCell>
+                      <TableCell>{siswa.email}</TableCell>
+                      <TableCell>{siswa.jenisKelamin}</TableCell>
+                      <TableCell>{siswa.tanggalLahir}</TableCell>
+                      <TableCell>{siswa.alamat}</TableCell>
+                      <TableCell>{siswa.nomorHP}</TableCell>
+                      <TableCell>{siswa.namaOrangTua}</TableCell>
+                      <TableCell>{siswa.pekerjaanOrangTua}</TableCell>
+                      <TableCell>{siswa.tahunMasuk}</TableCell>
+                    </TableRow>
+                  ))
+                ) : (
+                  <TableRow>
+                    <TableCell
+                      colSpan={3}
+                      className="text-center py-4 text-muted-foreground"
+                    >
+                      Tidak ada siswa di kelas ini
+                    </TableCell>
+                  </TableRow>
+                )}
+              </TableBody>
+            </Table>
+          </div>
+        </DialogContent>
+      </Dialog>
     </Card>
   );
 }

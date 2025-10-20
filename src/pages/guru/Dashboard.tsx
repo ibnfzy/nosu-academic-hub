@@ -35,8 +35,6 @@ import {
   FileText,
   Calendar,
   Plus,
-  Check,
-  Clock,
   LogOut,
   Edit,
   Trash2,
@@ -57,18 +55,21 @@ const TeacherDashboard = ({ currentUser, onLogout }) => {
   const [showGradeTableDialog, setShowGradeTableDialog] = useState(false);
   const [showAttendanceTableDialog, setShowAttendanceTableDialog] =
     useState(false);
-  const [selectedSubject, setSelectedSubject] = useState("");
+  const [selectedSubjectId, setSelectedSubjectId] = useState("");
+  const [selectedSubjectKelasId, setSelectedSubjectKelasId] = useState("");
   const [selectedSubjectForGrades, setSelectedSubjectForGrades] = useState("");
   const [selectedSubjectForAttendance, setSelectedSubjectForAttendance] =
     useState("");
   const [editingGrade, setEditingGrade] = useState(null);
   const [editingAttendance, setEditingAttendance] = useState(null);
+  const [classes, setClasses] = useState([]);
 
   const [gradeForm, setGradeForm] = useState({
     studentId: "",
     subjectId: "",
     jenis: "",
     nilai: "",
+    kelasId: "",
     tanggal: new Date().toISOString().split("T")[0],
   });
 
@@ -77,6 +78,7 @@ const TeacherDashboard = ({ currentUser, onLogout }) => {
     subjectId: "",
     status: "",
     keterangan: "",
+    kelasId: "",
     tanggal: new Date().toISOString().split("T")[0],
   });
 
@@ -113,6 +115,7 @@ const TeacherDashboard = ({ currentUser, onLogout }) => {
         currentUser.teacherId
       );
       const allSubjects = await apiService.getSubjects();
+      const classesData = await apiService.getClasses();
 
       // Jika local pakai objek langsung, kalau API mungkin array relasi
       const subjectIds = Array.isArray(subjectsData)
@@ -129,10 +132,12 @@ const TeacherDashboard = ({ currentUser, onLogout }) => {
       );
 
       setSubjects(teacherSubjects);
+      setClasses(classesData);
 
       // Ambil semua siswa
       const allUsers = await apiService.getUsers();
       const studentsData = allUsers.filter((user) => user.role === "siswa");
+      console.log("All Student : ", studentsData);
       setStudents(studentsData);
     } catch (error) {
       console.error(error);
@@ -149,6 +154,8 @@ const TeacherDashboard = ({ currentUser, onLogout }) => {
   const loadGradesData = async () => {
     try {
       const allGrades = await apiService.getGrades();
+
+      console.log(allGrades);
 
       const teacherSubjectIds = subjects
         .map((s) => (s && typeof s === "object" ? s.id : s))
@@ -262,7 +269,9 @@ const TeacherDashboard = ({ currentUser, onLogout }) => {
     }
 
     try {
-      const studentData = students.find((s) => s.id === gradeForm.studentId);
+      const studentData = students.find(
+        (s) => String(s.id) === String(gradeForm.studentId)
+      );
 
       const gradeData = {
         ...(editingGrade?.id && { id: editingGrade.id }), // hanya ada saat edit
@@ -295,6 +304,7 @@ const TeacherDashboard = ({ currentUser, onLogout }) => {
           subjectId: "",
           jenis: "",
           nilai: "",
+          kelasId: "",
           tanggal: new Date().toISOString().split("T")[0],
         });
         setEditingGrade(null);
@@ -335,7 +345,7 @@ const TeacherDashboard = ({ currentUser, onLogout }) => {
 
     try {
       const studentData = students.find(
-        (s) => s.id === attendanceForm.studentId
+        (s) => String(s.id) === String(attendanceForm.studentId)
       );
 
       const attendanceData = {
@@ -375,6 +385,7 @@ const TeacherDashboard = ({ currentUser, onLogout }) => {
           subjectId: "",
           status: "",
           keterangan: "",
+          kelasId: "",
           tanggal: new Date().toISOString().split("T")[0],
         });
         setEditingAttendance(null);
@@ -400,6 +411,7 @@ const TeacherDashboard = ({ currentUser, onLogout }) => {
   const handleEditGrade = (grade) => {
     setGradeForm({
       studentId: grade.studentId,
+      kelasId: grade.kelasId,
       subjectId:
         grade && typeof grade.subjectId === "object" && grade.subjectId !== null
           ? grade.subjectId.id
@@ -448,6 +460,7 @@ const TeacherDashboard = ({ currentUser, onLogout }) => {
   const handleEditAttendance = (attendance) => {
     setAttendanceForm({
       studentId: attendance.studentId,
+      kelasId: attendance.kelasId,
       subjectId:
         attendance &&
         typeof attendance.subjectId === "object" &&
@@ -497,18 +510,21 @@ const TeacherDashboard = ({ currentUser, onLogout }) => {
     }
   };
 
-  const handleViewStudentList = (subject) => {
-    setSelectedSubject(subject);
+  const handleViewStudentList = (subject, kelasId) => {
+    setSelectedSubjectId(subject);
+    setSelectedSubjectKelasId(kelasId);
     setShowStudentListDialog(true);
   };
 
-  const handleViewAllGrades = (subjectId) => {
+  const handleViewAllGrades = (subjectId, kelasId) => {
     setSelectedSubjectForGrades(subjectId);
+    setSelectedSubjectKelasId(kelasId);
     setShowGradeTableDialog(true);
   };
 
-  const handleViewAllAttendance = (subjectId) => {
+  const handleViewAllAttendance = (subjectId, kelasId) => {
     setSelectedSubjectForAttendance(subjectId);
+    setSelectedSubjectKelasId(kelasId);
     setShowAttendanceTableDialog(true);
   };
 
@@ -521,6 +537,15 @@ const TeacherDashboard = ({ currentUser, onLogout }) => {
     const student = students.find((s) => String(s.id) === String(id));
     return student ? `${student.nama} (${student.nisn})` : "Pilih siswa";
   };
+
+  const getClassesName = (id: string | number) => {
+    const kelas = classes.find((c) => String(c.id) === String(id));
+    return kelas ? kelas.nama : "";
+  };
+
+  const filteredStudents = students.filter(
+    (student) => String(student.kelasId) === String(selectedSubjectKelasId)
+  );
 
   return (
     <div className="min-h-screen bg-background">
@@ -569,6 +594,7 @@ const TeacherDashboard = ({ currentUser, onLogout }) => {
                   subjectId: "",
                   jenis: "",
                   nilai: "",
+                  kelasId: "",
                   tanggal: new Date().toISOString().split("T")[0],
                 });
               }
@@ -588,6 +614,40 @@ const TeacherDashboard = ({ currentUser, onLogout }) => {
               </DialogHeader>
               <form onSubmit={handleAddGrade} className="space-y-4">
                 <div className="space-y-2">
+                  <Label>Mata Pelajaran</Label>
+                  <Select
+                    value={
+                      gradeForm.subjectId && gradeForm.kelasId
+                        ? `${gradeForm.subjectId}-${gradeForm.kelasId}`
+                        : ""
+                    }
+                    onValueChange={(value) => {
+                      const [subjectId, kelasId] = value.split("-");
+                      setGradeForm((prev) => ({
+                        ...prev,
+                        subjectId,
+                        kelasId,
+                        studentId: "", // reset student kalau ganti subject
+                      }));
+                    }}
+                  >
+                    <SelectTrigger>
+                      <SelectValue placeholder="Pilih mata pelajaran" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {subjects.map((subject, idx) => (
+                        <SelectItem
+                          key={`${subject.id}-${subject.kelasId}-${idx}`}
+                          value={`${subject.id}-${subject.kelasId}`}
+                        >
+                          {subject.nama} ({getClassesName(subject.kelasId)})
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+
+                <div className="space-y-2">
                   <Label>Siswa</Label>
                   <Select
                     value={gradeForm.studentId}
@@ -601,32 +661,18 @@ const TeacherDashboard = ({ currentUser, onLogout }) => {
                       </SelectValue>
                     </SelectTrigger>
                     <SelectContent>
-                      {students.map((student) => (
-                        <SelectItem key={student.id} value={String(student.id)}>
-                          {student.nama} ({student.nisn})
-                        </SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
-                </div>
-
-                <div className="space-y-2">
-                  <Label>Mata Pelajaran</Label>
-                  <Select
-                    value={gradeForm.subjectId}
-                    onValueChange={(value) =>
-                      setGradeForm((prev) => ({ ...prev, subjectId: value }))
-                    }
-                  >
-                    <SelectTrigger>
-                      <SelectValue placeholder="Pilih mata pelajaran" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      {subjects.map((subject) => (
-                        <SelectItem key={subject.id} value={subject.id}>
-                          {subject.nama}
-                        </SelectItem>
-                      ))}
+                      {students
+                        .filter(
+                          (s) => String(s.kelasId) === String(gradeForm.kelasId)
+                        )
+                        .map((student) => (
+                          <SelectItem
+                            key={student.id}
+                            value={String(student.id)}
+                          >
+                            {student.nama} ({student.nisn})
+                          </SelectItem>
+                        ))}
                     </SelectContent>
                   </Select>
                 </div>
@@ -700,6 +746,7 @@ const TeacherDashboard = ({ currentUser, onLogout }) => {
                 setEditingAttendance(null);
                 setAttendanceForm({
                   studentId: "",
+                  kelasId: "",
                   subjectId: "",
                   status: "",
                   keterangan: "",
@@ -724,6 +771,47 @@ const TeacherDashboard = ({ currentUser, onLogout }) => {
               </DialogHeader>
               <form onSubmit={handleAddAttendance} className="space-y-4">
                 <div className="space-y-2">
+                  <Label>Mata Pelajaran</Label>
+                  <Select
+                    value={
+                      attendanceForm.subjectId && attendanceForm.kelasId
+                        ? `${attendanceForm.subjectId}-${attendanceForm.kelasId}`
+                        : ""
+                    }
+                    onValueChange={(value) => {
+                      const [subjectId, kelasId] = value.split("-");
+                      setAttendanceForm((prev) => ({
+                        ...prev,
+                        subjectId,
+                        kelasId,
+                        studentId: "", // reset student kalau ganti subject
+                      }));
+                    }}
+                  >
+                    <SelectTrigger>
+                      <SelectValue placeholder="Pilih mata pelajaran">
+                        {attendanceForm.subjectId
+                          ? `${getSubjectName(
+                              attendanceForm.subjectId
+                            )} (${getClassesName(attendanceForm.kelasId)})`
+                          : "Pilih mata pelajaran"}
+                      </SelectValue>
+                    </SelectTrigger>
+                    <SelectContent>
+                      {subjects.map((subject, idx) => (
+                        <SelectItem
+                          key={`${subject.id}-${subject.kelasId}-${idx}`}
+                          value={`${subject.id}-${subject.kelasId}`}
+                        >
+                          {subject.nama} ({getClassesName(subject.kelasId)})
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+
+                {/* Select Student */}
+                <div className="space-y-2">
                   <Label>Siswa</Label>
                   <Select
                     value={attendanceForm.studentId}
@@ -740,37 +828,19 @@ const TeacherDashboard = ({ currentUser, onLogout }) => {
                       </SelectValue>
                     </SelectTrigger>
                     <SelectContent>
-                      {students.map((student) => (
-                        <SelectItem key={student.id} value={student.id}>
-                          {student.nama} ({student.nisn})
-                        </SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
-                </div>
-
-                <div className="space-y-2">
-                  <Label>Mata Pelajaran</Label>
-                  <Select
-                    value={attendanceForm.subjectId}
-                    onValueChange={(value) =>
-                      setAttendanceForm((prev) => ({
-                        ...prev,
-                        subjectId: value,
-                      }))
-                    }
-                  >
-                    <SelectTrigger>
-                      <SelectValue placeholder="Pilih mata pelajaran">
-                        {getSubjectName(attendanceForm.subjectId)}
-                      </SelectValue>
-                    </SelectTrigger>
-                    <SelectContent>
-                      {subjects.map((subject) => (
-                        <SelectItem key={subject.id} value={subject.id}>
-                          {subject.nama}
-                        </SelectItem>
-                      ))}
+                      {students
+                        .filter(
+                          (s) =>
+                            String(s.kelasId) === String(attendanceForm.kelasId)
+                        )
+                        .map((student) => (
+                          <SelectItem
+                            key={student.id}
+                            value={String(student.id)}
+                          >
+                            {student.nama} ({student.nisn})
+                          </SelectItem>
+                        ))}
                     </SelectContent>
                   </Select>
                 </div>
@@ -865,7 +935,9 @@ const TeacherDashboard = ({ currentUser, onLogout }) => {
                 <TableBody>
                   {grades
                     .filter(
-                      (grade) => grade.subjectId === selectedSubjectForGrades
+                      (grade) =>
+                        grade.subjectId === selectedSubjectForGrades &&
+                        grade.kelasId === selectedSubjectKelasId
                     )
                     .map((grade) => {
                       const student = students.find(
@@ -967,7 +1039,10 @@ const TeacherDashboard = ({ currentUser, onLogout }) => {
                 <TableBody>
                   {attendance
                     .filter(
-                      (att) => att.subjectId === selectedSubjectForAttendance
+                      (att) =>
+                        String(att.subjectId) ===
+                          String(selectedSubjectForAttendance) &&
+                        String(att.kelasId) === String(selectedSubjectKelasId)
                     )
                     .map((att) => {
                       const student = students.find(
@@ -1055,12 +1130,13 @@ const TeacherDashboard = ({ currentUser, onLogout }) => {
           <DialogContent className="max-w-2xl">
             <DialogHeader>
               <DialogTitle>
-                Daftar Siswa - {getSubjectName(selectedSubject)}
+                Daftar Siswa - {getSubjectName(selectedSubjectId)} - Kelas{" "}
+                {getClassesName(selectedSubjectKelasId)}
               </DialogTitle>
             </DialogHeader>
             <div className="space-y-4 max-h-96 overflow-y-auto">
-              {students.length > 0 ? (
-                students.map((student) => (
+              {filteredStudents.length > 0 ? (
+                filteredStudents.map((student) => (
                   <div
                     key={student.id}
                     className="flex justify-between items-center p-4 border border-border rounded-lg"
@@ -1088,7 +1164,7 @@ const TeacherDashboard = ({ currentUser, onLogout }) => {
                           setGradeForm((prev) => ({
                             ...prev,
                             studentId: student.id,
-                            subjectId: selectedSubject,
+                            subjectId: selectedSubjectId,
                           }));
                           setShowStudentListDialog(false);
                           setShowGradeDialog(true);
@@ -1103,7 +1179,7 @@ const TeacherDashboard = ({ currentUser, onLogout }) => {
                           setAttendanceForm((prev) => ({
                             ...prev,
                             studentId: student.id,
-                            subjectId: selectedSubject,
+                            subjectId: selectedSubjectId,
                           }));
                           setShowStudentListDialog(false);
                           setShowAttendanceDialog(true);
@@ -1118,7 +1194,7 @@ const TeacherDashboard = ({ currentUser, onLogout }) => {
                 <div className="text-center py-8">
                   <Users className="h-12 w-12 mx-auto mb-4 text-muted-foreground" />
                   <p className="text-muted-foreground">
-                    Belum ada data siswa untuk mata pelajaran ini
+                    Belum ada data siswa untuk kelas ini
                   </p>
                 </div>
               )}
@@ -1203,10 +1279,14 @@ const TeacherDashboard = ({ currentUser, onLogout }) => {
               <div className="grid gap-6">
                 {subjects.map((subject) => {
                   const subjectGrades = grades.filter(
-                    (grade) => grade.subjectId === subject.id
+                    (grade) =>
+                      grade.subjectId === subject.id &&
+                      grade.kelasId === subject.kelasId
                   );
                   const subjectAttendance = attendance.filter(
-                    (att) => att.subjectId === subject.id
+                    (att) =>
+                      att.subjectId === subject.id &&
+                      att.kelasId === subject.kelasId
                   );
 
                   return (
@@ -1216,7 +1296,10 @@ const TeacherDashboard = ({ currentUser, onLogout }) => {
                           <div>
                             <CardTitle className="flex items-center space-x-2">
                               <BookOpen className="h-5 w-5 text-primary" />
-                              <span>{getSubjectName(subject.id)}</span>
+                              <span>
+                                {getSubjectName(subject.id)} Kelas{" "}
+                                {getClassesName(subject.kelasId)}
+                              </span>
                             </CardTitle>
                             <p className="text-muted-foreground">
                               Nilai: {subjectGrades.length} | Kehadiran:{" "}
@@ -1228,7 +1311,12 @@ const TeacherDashboard = ({ currentUser, onLogout }) => {
                             <Button
                               size="sm"
                               variant="outline"
-                              onClick={() => handleViewStudentList(subject.id)}
+                              onClick={() =>
+                                handleViewStudentList(
+                                  subject.id,
+                                  subject.kelasId
+                                )
+                              }
                             >
                               <Users className="h-4 w-4 mr-2" />
                               Lihat Siswa
@@ -1278,7 +1366,10 @@ const TeacherDashboard = ({ currentUser, onLogout }) => {
                                   size="sm"
                                   variant="outline"
                                   onClick={() =>
-                                    handleViewAllGrades(subject.id)
+                                    handleViewAllGrades(
+                                      subject.id,
+                                      subject.kelasId
+                                    )
                                   }
                                 >
                                   Lihat Semua
@@ -1339,7 +1430,10 @@ const TeacherDashboard = ({ currentUser, onLogout }) => {
                                   size="sm"
                                   variant="outline"
                                   onClick={() =>
-                                    handleViewAllAttendance(subject.id)
+                                    handleViewAllAttendance(
+                                      subject.id,
+                                      subject.kelasId
+                                    )
                                   }
                                 >
                                   Lihat Semua
