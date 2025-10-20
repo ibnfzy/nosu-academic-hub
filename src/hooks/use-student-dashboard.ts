@@ -1,9 +1,10 @@
-import { useCallback, useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import {
   useDashboardSemester,
   type DashboardSemesterMetadata,
   type DashboardSemesterRecord,
 } from "@/hooks/use-dashboard-semester";
+import { useSemesterEnforcement } from "@/hooks/use-semester-enforcement";
 import { useToast } from "@/hooks/use-toast";
 import apiService from "@/services/apiService";
 import {
@@ -79,6 +80,7 @@ export const useStudentDashboard = ({
   const [selectedSemesterMetadata, setSelectedSemesterMetadata] =
     useState<DashboardSemesterMetadata | null>(null);
   const [semesterError, setSemesterError] = useState<string>("");
+  const [semesterWarning, setSemesterWarning] = useState<string>("");
   const [loading, setLoading] = useState<boolean>(false);
 
   const {
@@ -88,6 +90,19 @@ export const useStudentDashboard = ({
     buildSemesterTitle,
     formatStudyDays,
   } = useDashboardSemester({ semesters });
+
+  const {
+    mode: enforcementMode,
+    isStrictMode,
+    isStrictModeActive,
+    isRelaxedMode,
+    activeSemesterMetadata: enforcedActiveSemester,
+    hasActiveSemester: hasEnforcedActiveSemester,
+    shouldAttachSemesterId,
+    isSemesterExpired,
+  } = useSemesterEnforcement();
+
+  const semesterWarningRef = useRef<string | null>(null);
 
   const getSemesterMetadata = useCallback(
     (semesterId?: string | number | null) => {
@@ -105,13 +120,21 @@ export const useStudentDashboard = ({
   const getEffectiveSemesterId = useCallback(
     (customId?: string | null): string => {
       if (customId) return String(customId);
+      if (isStrictModeActive && enforcedActiveSemester?.id) {
+        return String(enforcedActiveSemester.id);
+      }
       if (selectedSemesterId) return String(selectedSemesterId);
       if (semesters.length === 1 && semesters[0]?.id) {
         return String(semesters[0].id);
       }
       return "";
     },
-    [selectedSemesterId, semesters]
+    [
+      enforcedActiveSemester?.id,
+      isStrictModeActive,
+      selectedSemesterId,
+      semesters,
+    ]
   );
 
   const loadSemesters = useCallback(async () => {
@@ -128,12 +151,23 @@ export const useStudentDashboard = ({
 
       setSemesters(normalizedSemesters);
 
-      if (normalizedSemesters.length > 0) {
+      const enforcedId =
+        enforcedActiveSemester?.id !== undefined &&
+        enforcedActiveSemester?.id !== null
+          ? String(enforcedActiveSemester.id)
+          : "";
+
+      if (isStrictModeActive && enforcedId) {
+        if (selectedSemesterId !== enforcedId) {
+          setSelectedSemesterId(enforcedId);
+        }
+        setSelectedSemesterMetadata(enforcedActiveSemester);
+      } else if (normalizedSemesters.length > 0) {
         const activeSemester = normalizedSemesters.find((item) => item?.isActive);
         const initialRecord = activeSemester || normalizedSemesters[0];
         const initialId = initialRecord?.id ? String(initialRecord.id) : "";
 
-        if (initialId) {
+        if (initialId && !selectedSemesterId) {
           setSelectedSemesterId(initialId);
           setSelectedSemesterMetadata(normalizeSemesterMetadata(initialRecord));
         }
@@ -149,7 +183,14 @@ export const useStudentDashboard = ({
         variant: "destructive",
       });
     }
-  }, [normalizeSemesterMetadata, toast, userId]);
+  }, [
+    enforcedActiveSemester,
+    isStrictModeActive,
+    normalizeSemesterMetadata,
+    selectedSemesterId,
+    toast,
+    userId,
+  ]);
 
   const loadStudentData = useCallback(
     async (semesterIdParam?: string | null) => {
@@ -160,7 +201,38 @@ export const useStudentDashboard = ({
         ? getEffectiveSemesterId(semesterIdParam)
         : "";
 
-      if (hasSemesters && !effectiveSemesterId) {
+      const enforcedId =
+        enforcedActiveSemester?.id !== undefined &&
+        enforcedActiveSemester?.id !== null
+          ? String(enforcedActiveSemester.id)
+          : null;
+
+      const candidateSemesterId =
+        (effectiveSemesterId && effectiveSemesterId !== ""
+          ? effectiveSemesterId
+          : null) ?? enforcedId;
+
+      const shouldUseSemesterId = shouldAttachSemesterId(candidateSemesterId);
+      const requestSemesterId = shouldUseSemesterId
+        ? candidateSemesterId
+        : null;
+
+      if (isStrictModeActive && !requestSemesterId) {
+        const message = hasEnforcedActiveSemester
+          ? "Penegakan semester aktif membutuhkan semester aktif yang valid. Silakan hubungi admin untuk memperbarui daftar semester."
+          : "Penegakan semester aktif sedang berjalan. Silakan hubungi admin untuk menetapkan semester aktif sebelum melanjutkan.";
+        setGrades([]);
+        setAttendance([]);
+        setSemesterError(message);
+        toast({
+          title: "Penegakan semester",
+          description: message,
+          variant: "destructive",
+        });
+        return;
+      }
+
+      if (!isStrictModeActive && hasSemesters && !candidateSemesterId) {
         setGrades([]);
         setAttendance([]);
         setSemesterError("Silakan pilih semester untuk menampilkan data.");
@@ -170,31 +242,48 @@ export const useStudentDashboard = ({
       setLoading(true);
       setSemesterError("");
 
-      const semesterMetadata = effectiveSemesterId
-        ? resolveSemesterMetadata(effectiveSemesterId)
+      const selectionMetadata = candidateSemesterId
+        ? resolveSemesterMetadata(candidateSemesterId)
         : null;
-      if (semesterMetadata) {
-        setSelectedSemesterMetadata(semesterMetadata);
+      const effectiveMetadata = selectionMetadata ?? enforcedActiveSemester ?? null;
+
+      if (selectionMetadata) {
+        setSelectedSemesterMetadata(selectionMetadata);
       } else if (!hasSemesters) {
-        setSelectedSemesterMetadata(null);
+        setSelectedSemesterMetadata(enforcedActiveSemester ?? null);
+      }
+
+      if (isStrictModeActive && effectiveMetadata && isSemesterExpired(effectiveMetadata)) {
+        const message =
+          "Semester aktif telah berakhir. Hubungi admin untuk memperbarui semester aktif sebelum melanjutkan.";
+        setGrades([]);
+        setAttendance([]);
+        setSemesterError(message);
+        setLoading(false);
+        toast({
+          title: "Penegakan semester",
+          description: message,
+          variant: "destructive",
+        });
+        return;
       }
 
       try {
-        const tahunParam = semesterMetadata?.tahunAjaran ?? null;
-        const semesterNumberParam = semesterMetadata?.semesterNumber ?? null;
+        const tahunParam = effectiveMetadata?.tahunAjaran ?? null;
+        const semesterNumberParam = effectiveMetadata?.semesterNumber ?? null;
 
         const [gradesResponse, attendanceResponse] = await Promise.all([
           apiService.getStudentGrades(
             userId,
             tahunParam,
             semesterNumberParam,
-            effectiveSemesterId || null
+            requestSemesterId
           ),
           apiService.getStudentAttendance(
             userId,
             tahunParam,
             semesterNumberParam,
-            effectiveSemesterId || null
+            requestSemesterId
           ),
         ]);
 
@@ -218,7 +307,7 @@ export const useStudentDashboard = ({
         setGrades(gradesData);
         setAttendance(attendanceData);
 
-        if (!semesterMetadata) {
+        if (!selectionMetadata) {
           const gradeSemesterInfo = (
             gradesData.find(
               (item) =>
@@ -235,10 +324,9 @@ export const useStudentDashboard = ({
             (gradeSemesterInfo || attendanceSemesterInfo || null) as
               | DashboardSemesterRecord
               | null;
-          const fallbackMetadata = resolveSemesterMetadata(
-            effectiveSemesterId,
-            fallbackRecord
-          );
+          const fallbackMetadata = candidateSemesterId
+            ? resolveSemesterMetadata(candidateSemesterId, fallbackRecord)
+            : resolveSemesterMetadata(requestSemesterId, fallbackRecord);
           if (fallbackMetadata) {
             setSelectedSemesterMetadata(fallbackMetadata);
           }
@@ -289,7 +377,18 @@ export const useStudentDashboard = ({
         setLoading(false);
       }
     },
-    [getEffectiveSemesterId, resolveSemesterMetadata, semesters, toast, userId]
+    [
+      enforcedActiveSemester,
+      getEffectiveSemesterId,
+      hasEnforcedActiveSemester,
+      isSemesterExpired,
+      isStrictModeActive,
+      resolveSemesterMetadata,
+      semesters,
+      shouldAttachSemesterId,
+      toast,
+      userId,
+    ]
   );
 
   const handlePrintReport = useCallback(async () => {
@@ -423,6 +522,40 @@ export const useStudentDashboard = ({
     }
   }, [loadStudentData, selectedSemesterId, semesters.length, userId]);
 
+  useEffect(() => {
+    let warningMessage = "";
+
+    if (isRelaxedMode) {
+      if (enforcedActiveSemester && isSemesterExpired(enforcedActiveSemester)) {
+        warningMessage =
+          "Semester aktif sebelumnya telah berakhir. Anda dapat memilih semester secara manual atau hubungi admin untuk memperbarui semester aktif.";
+      } else if (!hasEnforcedActiveSemester) {
+        warningMessage =
+          "Belum ada semester aktif yang ditetapkan. Silakan pilih semester secara manual atau hubungi admin untuk bantuan lebih lanjut.";
+      }
+    }
+
+    setSemesterWarning(warningMessage);
+
+    if (warningMessage && semesterWarningRef.current !== warningMessage) {
+      toast({
+        title: "Informasi Semester",
+        description: warningMessage,
+      });
+      semesterWarningRef.current = warningMessage;
+    }
+
+    if (!warningMessage) {
+      semesterWarningRef.current = null;
+    }
+  }, [
+    enforcedActiveSemester,
+    hasEnforcedActiveSemester,
+    isRelaxedMode,
+    isSemesterExpired,
+    toast,
+  ]);
+
   const averageGrade = useMemo(() => calculateAverage(grades), [grades]);
   const attendanceStats = useMemo<AttendanceStats>(
     () => calculateAttendanceStats(attendance) as AttendanceStats,
@@ -452,14 +585,21 @@ export const useStudentDashboard = ({
     buildSemesterDateRange,
     buildSemesterTitle,
     formatStudyDays,
+    enforcementMode,
+    enforcedActiveSemester,
+    hasEnforcedActiveSemester,
     grades,
     getSemesterMetadata,
     handlePrintReport,
     handleSemesterChange,
+    isRelaxedMode,
+    isStrictMode,
+    isStrictModeActive,
     loading,
     selectedSemesterId,
     selectedSemesterMetadata,
     semesterError,
+    semesterWarning,
     semesters,
     subjectGrades,
   };

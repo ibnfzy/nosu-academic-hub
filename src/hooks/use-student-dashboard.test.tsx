@@ -12,6 +12,7 @@ vi.mock("@/hooks/use-toast", () => ({
 
 vi.mock("@/services/apiService", () => ({
   default: {
+    getSemesterEnforcementSettings: vi.fn(),
     getSemesters: vi.fn(),
     getStudentGrades: vi.fn(),
     getStudentAttendance: vi.fn(),
@@ -35,11 +36,17 @@ const mockSemesters = [
     tahunAjaran: "2024/2025",
     semester: 1,
     isActive: true,
-    tanggalMulai: "2024-07-01",
-    tanggalSelesai: "2024-12-31",
+    tanggalMulai: "2099-07-01",
+    tanggalSelesai: "2099-12-31",
     jumlahHariBelajar: 120,
   },
 ];
+
+const relaxedSettings = {
+  mode: "relaxed",
+  activationDate: null,
+  activeSemester: mockSemesters[0],
+};
 
 const mockGrades = [
   {
@@ -70,6 +77,9 @@ const mockAttendance = [
 describe("useStudentDashboard", () => {
   beforeEach(() => {
     vi.clearAllMocks();
+    vi
+      .mocked(apiService.getSemesterEnforcementSettings)
+      .mockResolvedValue(relaxedSettings);
   });
 
   it("loads semesters and student data", async () => {
@@ -86,6 +96,91 @@ describe("useStudentDashboard", () => {
     expect(result.current.selectedSemesterId).toBe("1");
     expect(result.current.averageGrade).toBe(90);
     expect(result.current.attendanceStats.hadir).toBe(1);
+  });
+
+  it("mengirim semesterId hanya ketika mode strict aktif", async () => {
+    const futureSemester = {
+      ...mockSemesters[0],
+      id: "2",
+    };
+
+    vi
+      .mocked(apiService.getSemesterEnforcementSettings)
+      .mockResolvedValue({
+        mode: "strict",
+        activationDate: new Date(Date.now() - 86400000).toISOString(),
+        activeSemester: futureSemester,
+      });
+
+    vi.mocked(apiService.getSemesters).mockResolvedValue([futureSemester]);
+    vi.mocked(apiService.getStudentGrades).mockResolvedValue(mockGrades);
+    vi.mocked(apiService.getStudentAttendance).mockResolvedValue(mockAttendance);
+
+    renderHook(() =>
+      useStudentDashboard({ currentUser: { id: 1, nama: "Budi" } })
+    );
+
+    await waitFor(() =>
+      expect(apiService.getStudentGrades).toHaveBeenCalledTimes(1)
+    );
+
+    const strictCall = vi.mocked(apiService.getStudentGrades).mock.calls[0];
+    expect(strictCall[3]).toBe("2");
+
+    vi.mocked(apiService.getSemesterEnforcementSettings).mockResolvedValue({
+      mode: "relaxed",
+      activationDate: null,
+      activeSemester: futureSemester,
+    });
+
+    vi.mocked(apiService.getStudentGrades).mockClear();
+    vi.mocked(apiService.getStudentAttendance).mockClear();
+
+    renderHook(() =>
+      useStudentDashboard({ currentUser: { id: 1, nama: "Budi" } })
+    );
+
+    await waitFor(() =>
+      expect(apiService.getStudentGrades).toHaveBeenCalledTimes(1)
+    );
+
+    const relaxedCall = vi.mocked(apiService.getStudentGrades).mock.calls[0];
+    expect(relaxedCall[3]).toBeNull();
+  });
+
+  it("menampilkan peringatan ketika mode relaxed dan semester aktif telah berakhir", async () => {
+    const expiredSemester = {
+      ...mockSemesters[0],
+      id: "3",
+      tanggalSelesai: "2019-01-01",
+    };
+
+    vi.mocked(apiService.getSemesterEnforcementSettings).mockResolvedValue({
+      mode: "relaxed",
+      activationDate: null,
+      activeSemester: expiredSemester,
+    });
+
+    vi.mocked(apiService.getSemesters).mockResolvedValue([expiredSemester]);
+    vi.mocked(apiService.getStudentGrades).mockResolvedValue(mockGrades);
+    vi.mocked(apiService.getStudentAttendance).mockResolvedValue(mockAttendance);
+
+    const { result } = renderHook(() =>
+      useStudentDashboard({ currentUser: { id: 1, nama: "Budi" } })
+    );
+
+    await waitFor(() => expect(result.current.semesterWarning).not.toBe(""));
+
+    expect(result.current.semesterWarning).toContain(
+      "Semester aktif sebelumnya telah berakhir"
+    );
+
+    expect(mockToast).toHaveBeenCalledWith(
+      expect.objectContaining({
+        title: "Informasi Semester",
+        description: expect.stringContaining("semester aktif sebelumnya"),
+      })
+    );
   });
 
   it("prints raport with resolved metadata", async () => {

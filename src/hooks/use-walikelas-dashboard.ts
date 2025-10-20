@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import {
   useDashboardSemester,
   type DashboardSemesterMetadata,
@@ -7,6 +7,7 @@ import {
 import apiService from "@/services/apiService";
 import { useToast } from "@/hooks/use-toast";
 import { printReport } from "@/utils/helpers";
+import { useSemesterEnforcement } from "@/hooks/use-semester-enforcement";
 
 interface CurrentUser {
   id: string;
@@ -65,6 +66,20 @@ const useWalikelasDashboard = (currentUser: CurrentUser | null) => {
   const [studentForm, setStudentForm] = useState<StudentFormState>(
     createDefaultStudentForm
   );
+  const [semesterWarning, setSemesterWarning] = useState<string>("");
+  const [uploadBlockedReason, setUploadBlockedReason] = useState<string>("");
+  const semesterWarningRef = useRef<string | null>(null);
+
+  const {
+    mode: enforcementMode,
+    isStrictMode,
+    isStrictModeActive,
+    isRelaxedMode,
+    activeSemesterMetadata: enforcedActiveSemester,
+    hasActiveSemester: hasEnforcedActiveSemester,
+    shouldAttachSemesterId,
+    isSemesterExpired,
+  } = useSemesterEnforcement();
 
   const clearStudentForm = useCallback(() => {
     setStudentForm(createDefaultStudentForm());
@@ -116,24 +131,42 @@ const useWalikelasDashboard = (currentUser: CurrentUser | null) => {
   const getEffectiveSemesterId = useCallback(
     (customId?: string | number | null) => {
       if (customId) return String(customId);
+      if (isStrictModeActive && enforcedActiveSemester?.id) {
+        return String(enforcedActiveSemester.id);
+      }
       if (selectedSemesterId) return String(selectedSemesterId);
       if (semesters.length === 1 && semesters[0]?.id) {
         return String(semesters[0].id);
       }
       return "";
     },
-    [selectedSemesterId, semesters]
+    [
+      enforcedActiveSemester?.id,
+      isStrictModeActive,
+      selectedSemesterId,
+      semesters,
+    ]
   );
 
   const selectedSemesterMetadata = useMemo(() => {
     if (selectedSemesterId) {
       return resolveSemesterMetadata(selectedSemesterId);
     }
+    if (isStrictModeActive && enforcedActiveSemester) {
+      return enforcedActiveSemester;
+    }
     if (semesters.length === 1) {
       return normalizeSemesterMetadata(semesters[0]);
     }
     return null;
-  }, [normalizeSemesterMetadata, resolveSemesterMetadata, selectedSemesterId, semesters]);
+  }, [
+    enforcedActiveSemester,
+    isStrictModeActive,
+    normalizeSemesterMetadata,
+    resolveSemesterMetadata,
+    selectedSemesterId,
+    semesters,
+  ]);
 
 
   const loadSemesters = useCallback(async () => {
@@ -145,7 +178,17 @@ const useWalikelasDashboard = (currentUser: CurrentUser | null) => {
 
       setSemesters(normalizedSemesters);
 
-      if (normalizedSemesters.length > 0) {
+      const enforcedId =
+        enforcedActiveSemester?.id !== undefined &&
+        enforcedActiveSemester?.id !== null
+          ? String(enforcedActiveSemester.id)
+          : "";
+
+      if (isStrictModeActive && enforcedId) {
+        if (selectedSemesterId !== enforcedId) {
+          setSelectedSemesterId(enforcedId);
+        }
+      } else if (normalizedSemesters.length > 0) {
         const activeSemester = normalizedSemesters.find((item) => item?.isActive);
         const initialSemesterId = activeSemester?.id ?? normalizedSemesters[0]?.id;
 
@@ -161,7 +204,7 @@ const useWalikelasDashboard = (currentUser: CurrentUser | null) => {
         variant: "destructive",
       });
     }
-  }, [selectedSemesterId, toast]);
+  }, [enforcedActiveSemester, isStrictModeActive, selectedSemesterId, toast]);
 
   const loadWalikelasData = useCallback(
     async (semesterIdParam?: string | number | null) => {
@@ -170,6 +213,62 @@ const useWalikelasDashboard = (currentUser: CurrentUser | null) => {
       setLoading(true);
       try {
         const effectiveSemesterId = getEffectiveSemesterId(semesterIdParam);
+        const enforcedId =
+          enforcedActiveSemester?.id !== undefined &&
+          enforcedActiveSemester?.id !== null
+            ? String(enforcedActiveSemester.id)
+            : null;
+        const candidateSemesterId =
+          (effectiveSemesterId && effectiveSemesterId !== ""
+            ? effectiveSemesterId
+            : null) ?? enforcedId;
+
+        const shouldUseSemesterId = shouldAttachSemesterId(candidateSemesterId);
+        const requestSemesterId = shouldUseSemesterId
+          ? candidateSemesterId
+          : null;
+
+        if (isStrictModeActive && !requestSemesterId) {
+          const message = hasEnforcedActiveSemester
+            ? "Penegakan semester aktif membutuhkan semester aktif yang valid. Hubungi admin untuk memperbarui daftar semester."
+            : "Penegakan semester aktif sedang berjalan. Hubungi admin untuk menetapkan semester aktif sebelum melanjutkan.";
+          setUploadBlockedReason(message);
+          setClassInfo(null);
+          setStudents([]);
+          setGrades([]);
+          setAttendance([]);
+          toast({
+            title: "Penegakan semester",
+            description: message,
+            variant: "destructive",
+          });
+          return;
+        }
+
+        const metadataForCheck =
+          (requestSemesterId
+            ? resolveSemesterMetadata(requestSemesterId)
+            : null) ?? enforcedActiveSemester;
+
+        if (
+          isStrictModeActive &&
+          metadataForCheck &&
+          isSemesterExpired(metadataForCheck)
+        ) {
+          const message =
+            "Semester aktif telah berakhir. Hubungi admin untuk memperbarui semester aktif sebelum melanjutkan.";
+          setUploadBlockedReason(message);
+          setClassInfo(null);
+          setStudents([]);
+          setGrades([]);
+          setAttendance([]);
+          toast({
+            title: "Penegakan semester",
+            description: message,
+            variant: "destructive",
+          });
+          return;
+        }
 
         const [classesData, studentsData, gradesData, attendanceData] =
           await Promise.all([
@@ -179,13 +278,13 @@ const useWalikelasDashboard = (currentUser: CurrentUser | null) => {
               currentUser.kelasId,
               null,
               null,
-              effectiveSemesterId || null
+              requestSemesterId
             ),
             apiService.getClassAttendance(
               currentUser.kelasId,
               null,
               null,
-              effectiveSemesterId || null
+              requestSemesterId
             ),
           ]);
 
@@ -226,6 +325,7 @@ const useWalikelasDashboard = (currentUser: CurrentUser | null) => {
         setStudents(Array.isArray(studentsData) ? studentsData : []);
         setGrades(gradesWithMetadata);
         setAttendance(attendanceWithMetadata);
+        setUploadBlockedReason("");
       } catch (error: any) {
         console.error("Failed to load walikelas data", error);
         const errorCode = typeof error?.code === "string" ? error.code : "";
@@ -264,8 +364,13 @@ const useWalikelasDashboard = (currentUser: CurrentUser | null) => {
     [
       buildSemesterTitle,
       currentUser,
+      enforcedActiveSemester,
       getEffectiveSemesterId,
+      hasEnforcedActiveSemester,
+      isSemesterExpired,
+      isStrictModeActive,
       resolveSemesterMetadata,
+      shouldAttachSemesterId,
       toast,
     ]
   );
@@ -292,6 +397,68 @@ const useWalikelasDashboard = (currentUser: CurrentUser | null) => {
     loadWalikelasData,
     selectedSemesterId,
     semesters,
+  ]);
+
+  useEffect(() => {
+    if (!isStrictModeActive) {
+      setUploadBlockedReason("");
+      return;
+    }
+
+    if (!hasEnforcedActiveSemester) {
+      setUploadBlockedReason(
+        "Penegakan semester aktif membutuhkan semester aktif yang valid. Hubungi admin untuk menetapkan semester aktif."
+      );
+      return;
+    }
+
+    if (enforcedActiveSemester && isSemesterExpired(enforcedActiveSemester)) {
+      setUploadBlockedReason(
+        "Semester aktif yang diberlakukan telah berakhir. Hubungi admin untuk memperbarui semester aktif sebelum melanjutkan."
+      );
+      return;
+    }
+
+    setUploadBlockedReason("");
+  }, [
+    enforcedActiveSemester,
+    hasEnforcedActiveSemester,
+    isSemesterExpired,
+    isStrictModeActive,
+  ]);
+
+  useEffect(() => {
+    let warningMessage = "";
+
+    if (isRelaxedMode) {
+      if (enforcedActiveSemester && isSemesterExpired(enforcedActiveSemester)) {
+        warningMessage =
+          "Semester aktif sebelumnya telah berakhir. Anda dapat memilih semester secara manual atau hubungi admin untuk memperbarui semester aktif.";
+      } else if (!hasEnforcedActiveSemester) {
+        warningMessage =
+          "Belum ada semester aktif yang ditetapkan. Silakan pilih semester secara manual atau hubungi admin untuk bantuan lebih lanjut.";
+      }
+    }
+
+    setSemesterWarning(warningMessage);
+
+    if (warningMessage && semesterWarningRef.current !== warningMessage) {
+      toast({
+        title: "Informasi Semester",
+        description: warningMessage,
+      });
+      semesterWarningRef.current = warningMessage;
+    }
+
+    if (!warningMessage) {
+      semesterWarningRef.current = null;
+    }
+  }, [
+    enforcedActiveSemester,
+    hasEnforcedActiveSemester,
+    isRelaxedMode,
+    isSemesterExpired,
+    toast,
   ]);
 
   const filteredStudents = useMemo(
@@ -518,12 +685,55 @@ const useWalikelasDashboard = (currentUser: CurrentUser | null) => {
     async (student: any) => {
       try {
         const semesterIdForReport = getEffectiveSemesterId();
+        const enforcedId =
+          enforcedActiveSemester?.id !== undefined &&
+          enforcedActiveSemester?.id !== null
+            ? String(enforcedActiveSemester.id)
+            : null;
+        const candidateSemesterId =
+          (semesterIdForReport && semesterIdForReport !== ""
+            ? semesterIdForReport
+            : null) ?? enforcedId;
+        const shouldUseSemesterId = shouldAttachSemesterId(candidateSemesterId);
+        const requestSemesterId = shouldUseSemesterId
+          ? candidateSemesterId
+          : null;
+
+        if (isStrictModeActive && !requestSemesterId) {
+          toast({
+            title: "Penegakan semester",
+            description:
+              "Penegakan semester aktif membutuhkan semester aktif yang valid. Hubungi admin untuk menetapkan semester aktif sebelum mencetak raport.",
+            variant: "destructive",
+          });
+          return;
+        }
+
+        const metadataForCheck =
+          (requestSemesterId
+            ? resolveSemesterMetadata(requestSemesterId)
+            : null) ?? enforcedActiveSemester;
+
+        if (
+          isStrictModeActive &&
+          metadataForCheck &&
+          isSemesterExpired(metadataForCheck)
+        ) {
+          toast({
+            title: "Penegakan semester",
+            description:
+              "Semester aktif telah berakhir. Hubungi admin untuk memperbarui semester aktif sebelum mencetak raport.",
+            variant: "destructive",
+          });
+          return;
+        }
+
         const reportData = await apiService.getClassStudentReport(
           currentUser?.id,
           student.id,
           null,
           null,
-          semesterIdForReport || null
+          requestSemesterId
         );
 
         if (!reportData) {
@@ -586,7 +796,17 @@ const useWalikelasDashboard = (currentUser: CurrentUser | null) => {
           variant: "destructive",
         });
       }
-    }, [currentUser, getEffectiveSemesterId, resolveSemesterMetadata, toast]);
+    }, [
+      currentUser,
+      enforcedActiveSemester,
+      getEffectiveSemesterId,
+      hasEnforcedActiveSemester,
+      isSemesterExpired,
+      isStrictModeActive,
+      resolveSemesterMetadata,
+      shouldAttachSemesterId,
+      toast,
+    ]);
 
   const handleSemesterChange = useCallback((value: string) => {
     setSelectedSemesterId(String(value));
@@ -606,6 +826,14 @@ const useWalikelasDashboard = (currentUser: CurrentUser | null) => {
     selectedSemesterId,
     handleSemesterChange,
     selectedSemesterMetadata,
+    enforcementMode,
+    enforcedActiveSemester,
+    hasEnforcedActiveSemester,
+    isStrictMode,
+    isStrictModeActive,
+    isRelaxedMode,
+    semesterWarning,
+    uploadBlockedReason,
     showStudentDialog,
     handleStudentDialogChange,
     startAddStudent,

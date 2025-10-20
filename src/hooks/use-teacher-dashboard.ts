@@ -3,10 +3,12 @@ import {
   useCallback,
   useEffect,
   useMemo,
+  useRef,
   useState,
 } from "react";
 import { useToast } from "@/hooks/use-toast";
 import { useDashboardSemester } from "@/hooks/use-dashboard-semester";
+import { useSemesterEnforcement } from "@/hooks/use-semester-enforcement";
 import apiService from "@/services/apiService";
 
 type Identifier = string | number;
@@ -219,9 +221,10 @@ export function useTeacherDashboard(currentUser: TeacherDashboardUser | null) {
   const [classes, setClasses] = useState<ClassInfo[]>([]);
   const [semesters, setSemesters] = useState<Semester[]>([]);
   const [selectedSemesterId, setSelectedSemesterId] = useState<string>("");
-  const { buildSemesterLabel, getSemesterLabelById } = useDashboardSemester({
-    semesters,
-  });
+  const { buildSemesterLabel, getSemesterLabelById, resolveSemesterMetadata } =
+    useDashboardSemester({
+      semesters,
+    });
   const [showGradeDialog, setShowGradeDialog] = useState(false);
   const [showAttendanceDialog, setShowAttendanceDialog] = useState(false);
   const [showStudentListDialog, setShowStudentListDialog] = useState(false);
@@ -246,6 +249,20 @@ export function useTeacherDashboard(currentUser: TeacherDashboardUser | null) {
     AttendanceRecord | null
   >(null);
   const { toast } = useToast();
+  const [semesterWarning, setSemesterWarning] = useState<string>("");
+  const [uploadBlockedReason, setUploadBlockedReason] = useState<string>("");
+  const semesterWarningRef = useRef<string | null>(null);
+
+  const {
+    mode: enforcementMode,
+    isStrictMode,
+    isStrictModeActive,
+    isRelaxedMode,
+    activeSemesterMetadata: enforcedActiveSemester,
+    hasActiveSemester: hasEnforcedActiveSemester,
+    shouldAttachSemesterId,
+    isSemesterExpired,
+  } = useSemesterEnforcement();
 
   const [gradeForm, setGradeForm] = useState<GradeFormState>({
     studentId: "",
@@ -358,7 +375,17 @@ export function useTeacherDashboard(currentUser: TeacherDashboardUser | null) {
 
       setSemesters(normalizedSemesters);
 
-      if (normalizedSemesters.length > 0) {
+      const enforcedId =
+        enforcedActiveSemester?.id !== undefined &&
+        enforcedActiveSemester?.id !== null
+          ? String(enforcedActiveSemester.id)
+          : "";
+
+      if (isStrictModeActive && enforcedId) {
+        if (selectedSemesterId !== enforcedId) {
+          setSelectedSemesterId(enforcedId);
+        }
+      } else if (normalizedSemesters.length > 0) {
         const activeSemester = normalizedSemesters.find(
           (item) => item?.isActive
         );
@@ -377,7 +404,7 @@ export function useTeacherDashboard(currentUser: TeacherDashboardUser | null) {
         variant: "destructive",
       });
     }
-  }, [selectedSemesterId, toast]);
+  }, [enforcedActiveSemester, isStrictModeActive, selectedSemesterId, toast]);
 
   const loadTeacherData = useCallback(async () => {
     if (!currentUser) return;
@@ -449,12 +476,69 @@ export function useTeacherDashboard(currentUser: TeacherDashboardUser | null) {
   const loadGradesData = useCallback(
     async (semesterIdParam?: string | number | null) => {
       try {
-        const semesterIdToUse =
-          semesterIdParam ||
-          (semesters.length === 1 ? String(semesters[0].id) : null);
-        const allGradesResponse = await apiService.getGrades(
-          semesterIdToUse || null
-        );
+        const explicitId =
+          semesterIdParam !== undefined && semesterIdParam !== null
+            ? String(semesterIdParam)
+            : "";
+        const defaultSemesterId = selectedSemesterId
+          ? String(selectedSemesterId)
+          : semesters.length === 1 && semesters[0]?.id
+          ? String(semesters[0].id)
+          : "";
+        const enforcedId =
+          enforcedActiveSemester?.id !== undefined &&
+          enforcedActiveSemester?.id !== null
+            ? String(enforcedActiveSemester.id)
+            : "";
+
+        const resolvedCandidateId =
+          explicitId || defaultSemesterId || (isStrictModeActive ? enforcedId : "");
+        const normalizedCandidateId =
+          resolvedCandidateId && resolvedCandidateId !== ""
+            ? resolvedCandidateId
+            : null;
+
+        const shouldUseId = shouldAttachSemesterId(normalizedCandidateId);
+
+        if (isStrictModeActive && !shouldUseId) {
+          const message = hasEnforcedActiveSemester
+            ? "Penegakan semester aktif membutuhkan semester aktif yang valid. Hubungi admin untuk memperbarui daftar semester."
+            : "Penegakan semester aktif sedang berjalan namun belum ada semester aktif. Hubungi admin untuk menetapkan semester aktif.";
+          setUploadBlockedReason(message);
+          setGrades([]);
+          toast({
+            title: "Penegakan semester aktif",
+            description: message,
+            variant: "destructive",
+          });
+          return;
+        }
+
+        const requestSemesterId = shouldUseId ? normalizedCandidateId : null;
+
+        const metadataForCheck =
+          (requestSemesterId
+            ? resolveSemesterMetadata(requestSemesterId)
+            : null) ?? enforcedActiveSemester;
+
+        if (
+          isStrictModeActive &&
+          metadataForCheck &&
+          isSemesterExpired(metadataForCheck)
+        ) {
+          const message =
+            "Data semester aktif telah berakhir. Hubungi admin untuk memperbarui semester aktif sebelum melanjutkan.";
+          setUploadBlockedReason(message);
+          setGrades([]);
+          toast({
+            title: "Penegakan semester aktif",
+            description: message,
+            variant: "destructive",
+          });
+          return;
+        }
+
+        const allGradesResponse = await apiService.getGrades(requestSemesterId);
 
         const allGrades = Array.isArray(allGradesResponse)
           ? allGradesResponse
@@ -501,6 +585,7 @@ export function useTeacherDashboard(currentUser: TeacherDashboardUser | null) {
         });
 
         setGrades(gradesWithNames);
+        setUploadBlockedReason("");
       } catch (error: unknown) {
         console.error("Error loading grades:", error);
         const { code, message } = (error as { code?: string; message?: string }) ?? {};
@@ -526,9 +611,16 @@ export function useTeacherDashboard(currentUser: TeacherDashboardUser | null) {
       }
     }, [
       currentUser?.teacherId,
+      enforcedActiveSemester,
       getSemesterLabelById,
+      hasEnforcedActiveSemester,
+      isSemesterExpired,
+      isStrictModeActive,
       resolveSemesterDetails,
+      resolveSemesterMetadata,
       semesters,
+      selectedSemesterId,
+      shouldAttachSemesterId,
       students,
       subjects,
       toast,
@@ -537,11 +629,70 @@ export function useTeacherDashboard(currentUser: TeacherDashboardUser | null) {
   const loadAttendanceData = useCallback(
     async (semesterIdParam?: string | number | null) => {
       try {
-        const semesterIdToUse =
-          semesterIdParam ||
-          (semesters.length === 1 ? String(semesters[0].id) : null);
+        const explicitId =
+          semesterIdParam !== undefined && semesterIdParam !== null
+            ? String(semesterIdParam)
+            : "";
+        const defaultSemesterId = selectedSemesterId
+          ? String(selectedSemesterId)
+          : semesters.length === 1 && semesters[0]?.id
+          ? String(semesters[0].id)
+          : "";
+        const enforcedId =
+          enforcedActiveSemester?.id !== undefined &&
+          enforcedActiveSemester?.id !== null
+            ? String(enforcedActiveSemester.id)
+            : "";
+
+        const resolvedCandidateId =
+          explicitId || defaultSemesterId || (isStrictModeActive ? enforcedId : "");
+        const normalizedCandidateId =
+          resolvedCandidateId && resolvedCandidateId !== ""
+            ? resolvedCandidateId
+            : null;
+
+        const shouldUseId = shouldAttachSemesterId(normalizedCandidateId);
+
+        if (isStrictModeActive && !shouldUseId) {
+          const message = hasEnforcedActiveSemester
+            ? "Penegakan semester aktif membutuhkan semester aktif yang valid. Hubungi admin untuk memperbarui daftar semester."
+            : "Penegakan semester aktif sedang berjalan namun belum ada semester aktif. Hubungi admin untuk menetapkan semester aktif.";
+          setUploadBlockedReason(message);
+          setAttendance([]);
+          toast({
+            title: "Penegakan semester aktif",
+            description: message,
+            variant: "destructive",
+          });
+          return;
+        }
+
+        const requestSemesterId = shouldUseId ? normalizedCandidateId : null;
+
+        const metadataForCheck =
+          (requestSemesterId
+            ? resolveSemesterMetadata(requestSemesterId)
+            : null) ?? enforcedActiveSemester;
+
+        if (
+          isStrictModeActive &&
+          metadataForCheck &&
+          isSemesterExpired(metadataForCheck)
+        ) {
+          const message =
+            "Data semester aktif telah berakhir. Hubungi admin untuk memperbarui semester aktif sebelum melanjutkan.";
+          setUploadBlockedReason(message);
+          setAttendance([]);
+          toast({
+            title: "Penegakan semester aktif",
+            description: message,
+            variant: "destructive",
+          });
+          return;
+        }
+
         const allAttendanceResponse = await apiService.getAttendance(
-          semesterIdToUse || null
+          requestSemesterId
         );
 
         const allAttendance = Array.isArray(allAttendanceResponse)
@@ -589,6 +740,7 @@ export function useTeacherDashboard(currentUser: TeacherDashboardUser | null) {
         });
 
         setAttendance(attendanceWithNames);
+        setUploadBlockedReason("");
       } catch (error: unknown) {
         console.error("Error loading attendance:", error);
         const { code, message } = (error as { code?: string; message?: string }) ?? {};
@@ -614,9 +766,16 @@ export function useTeacherDashboard(currentUser: TeacherDashboardUser | null) {
       }
     }, [
       currentUser?.teacherId,
+      enforcedActiveSemester,
       getSemesterLabelById,
+      hasEnforcedActiveSemester,
+      isSemesterExpired,
+      isStrictModeActive,
       resolveSemesterDetails,
+      resolveSemesterMetadata,
       semesters,
+      selectedSemesterId,
+      shouldAttachSemesterId,
       students,
       subjects,
       toast,
@@ -659,6 +818,68 @@ export function useTeacherDashboard(currentUser: TeacherDashboardUser | null) {
       }));
     }
   }, [editingAttendance, editingGrade, selectedSemesterId]);
+
+  useEffect(() => {
+    if (!isStrictModeActive) {
+      setUploadBlockedReason("");
+      return;
+    }
+
+    if (!hasEnforcedActiveSemester) {
+      setUploadBlockedReason(
+        "Penegakan semester aktif membutuhkan semester aktif yang valid. Hubungi admin untuk menetapkan semester aktif."
+      );
+      return;
+    }
+
+    if (enforcedActiveSemester && isSemesterExpired(enforcedActiveSemester)) {
+      setUploadBlockedReason(
+        "Semester aktif yang diberlakukan telah berakhir. Hubungi admin untuk memperbarui semester aktif sebelum melanjutkan."
+      );
+      return;
+    }
+
+    setUploadBlockedReason("");
+  }, [
+    enforcedActiveSemester,
+    hasEnforcedActiveSemester,
+    isSemesterExpired,
+    isStrictModeActive,
+  ]);
+
+  useEffect(() => {
+    let warningMessage = "";
+
+    if (isRelaxedMode) {
+      if (enforcedActiveSemester && isSemesterExpired(enforcedActiveSemester)) {
+        warningMessage =
+          "Semester aktif sebelumnya telah berakhir. Anda dapat memilih semester secara manual atau hubungi admin untuk memperbarui semester aktif.";
+      } else if (!hasEnforcedActiveSemester) {
+        warningMessage =
+          "Belum ada semester aktif yang ditetapkan. Silakan pilih semester secara manual atau hubungi admin untuk bantuan lebih lanjut.";
+      }
+    }
+
+    setSemesterWarning(warningMessage);
+
+    if (warningMessage && semesterWarningRef.current !== warningMessage) {
+      toast({
+        title: "Informasi Semester",
+        description: warningMessage,
+      });
+      semesterWarningRef.current = warningMessage;
+    }
+
+    if (!warningMessage) {
+      semesterWarningRef.current = null;
+    }
+  }, [
+    enforcedActiveSemester,
+    hasEnforcedActiveSemester,
+    isRelaxedMode,
+    isSemesterExpired,
+    toast,
+  ]);
 
   const handleAddGrade = useCallback(
     async (e: FormEvent<HTMLFormElement>) => {
@@ -714,6 +935,55 @@ export function useTeacherDashboard(currentUser: TeacherDashboardUser | null) {
           semesterIdToUse,
           editingGrade?.semesterInfo
         );
+        const enforcedId =
+          enforcedActiveSemester?.id !== undefined &&
+          enforcedActiveSemester?.id !== null
+            ? String(enforcedActiveSemester.id)
+            : null;
+        const candidateSemesterId =
+          semesterIdToUse || (isStrictModeActive ? enforcedId : null);
+        const shouldUseSemesterId = shouldAttachSemesterId(candidateSemesterId);
+
+        if (isStrictModeActive && !shouldUseSemesterId) {
+          const message = hasEnforcedActiveSemester
+            ? "Pengunggahan nilai diblokir karena semester aktif tidak tersedia. Hubungi admin untuk memperbarui daftar semester."
+            : "Pengunggahan nilai diblokir karena belum ada semester aktif yang ditetapkan. Hubungi admin untuk bantuan lebih lanjut.";
+          setUploadBlockedReason(message);
+          toast({
+            title: "Penegakan semester aktif",
+            description: message,
+            variant: "destructive",
+          });
+          handleGradeDialogOpenChange(false);
+          return;
+        }
+
+        const requestSemesterId = shouldUseSemesterId
+          ? candidateSemesterId
+          : null;
+
+        const semesterMetadataForCheck =
+          (requestSemesterId
+            ? resolveSemesterMetadata(requestSemesterId, semesterDetails)
+            : null) ?? enforcedActiveSemester;
+
+        if (
+          isStrictModeActive &&
+          semesterMetadataForCheck &&
+          isSemesterExpired(semesterMetadataForCheck)
+        ) {
+          const message =
+            "Pengunggahan nilai diblokir karena semester aktif telah berakhir. Hubungi admin untuk memperbarui semester aktif.";
+          setUploadBlockedReason(message);
+          toast({
+            title: "Penegakan semester aktif",
+            description: message,
+            variant: "destructive",
+          });
+          handleGradeDialogOpenChange(false);
+          return;
+        }
+
         const tahunAjaranValue =
           semesterDetails?.tahunAjaran ||
           semesterDetails?.tahun ||
@@ -743,7 +1013,7 @@ export function useTeacherDashboard(currentUser: TeacherDashboardUser | null) {
           kelasId: kelasIdValue,
           tanggal: gradeForm.tanggal,
           teacherId: currentUser?.teacherId,
-          semesterId: semesterIdToUse ? semesterIdToUse : null,
+          semesterId: requestSemesterId ? requestSemesterId : null,
           verified: editingGrade?.verified ?? false,
         };
 
@@ -846,12 +1116,18 @@ export function useTeacherDashboard(currentUser: TeacherDashboardUser | null) {
     }, [
       currentUser?.teacherId,
       editingGrade,
+      enforcedActiveSemester,
       gradeForm,
       grades,
       handleGradeDialogOpenChange,
+      hasEnforcedActiveSemester,
+      isSemesterExpired,
+      isStrictModeActive,
       loadGradesData,
       resolveSemesterDetails,
+      resolveSemesterMetadata,
       selectedSemesterId,
+      shouldAttachSemesterId,
       students,
       toast,
     ]);
@@ -880,6 +1156,55 @@ export function useTeacherDashboard(currentUser: TeacherDashboardUser | null) {
           semesterIdToUse,
           editingAttendance?.semesterInfo
         );
+        const enforcedId =
+          enforcedActiveSemester?.id !== undefined &&
+          enforcedActiveSemester?.id !== null
+            ? String(enforcedActiveSemester.id)
+            : null;
+        const candidateSemesterId =
+          semesterIdToUse || (isStrictModeActive ? enforcedId : null);
+        const shouldUseSemesterId = shouldAttachSemesterId(candidateSemesterId);
+
+        if (isStrictModeActive && !shouldUseSemesterId) {
+          const message = hasEnforcedActiveSemester
+            ? "Pengunggahan kehadiran diblokir karena semester aktif tidak tersedia. Hubungi admin untuk memperbarui daftar semester."
+            : "Pengunggahan kehadiran diblokir karena belum ada semester aktif yang ditetapkan. Hubungi admin untuk bantuan lebih lanjut.";
+          setUploadBlockedReason(message);
+          toast({
+            title: "Penegakan semester aktif",
+            description: message,
+            variant: "destructive",
+          });
+          handleAttendanceDialogOpenChange(false);
+          return;
+        }
+
+        const requestSemesterId = shouldUseSemesterId
+          ? candidateSemesterId
+          : null;
+
+        const semesterMetadataForCheck =
+          (requestSemesterId
+            ? resolveSemesterMetadata(requestSemesterId, semesterDetails)
+            : null) ?? enforcedActiveSemester;
+
+        if (
+          isStrictModeActive &&
+          semesterMetadataForCheck &&
+          isSemesterExpired(semesterMetadataForCheck)
+        ) {
+          const message =
+            "Pengunggahan kehadiran diblokir karena semester aktif telah berakhir. Hubungi admin untuk memperbarui semester aktif.";
+          setUploadBlockedReason(message);
+          toast({
+            title: "Penegakan semester aktif",
+            description: message,
+            variant: "destructive",
+          });
+          handleAttendanceDialogOpenChange(false);
+          return;
+        }
+
         const tahunAjaranValue =
           semesterDetails?.tahunAjaran ||
           semesterDetails?.tahun ||
@@ -906,7 +1231,7 @@ export function useTeacherDashboard(currentUser: TeacherDashboardUser | null) {
           keterangan: attendanceForm.keterangan,
           tanggal: attendanceForm.tanggal,
           teacherId: currentUser?.teacherId,
-          semesterId: semesterIdToUse ? semesterIdToUse : null,
+          semesterId: requestSemesterId ? requestSemesterId : null,
         };
 
         if (tahunAjaranValue) {
@@ -1011,10 +1336,16 @@ export function useTeacherDashboard(currentUser: TeacherDashboardUser | null) {
       attendanceForm,
       currentUser?.teacherId,
       editingAttendance,
+      enforcedActiveSemester,
       handleAttendanceDialogOpenChange,
+      hasEnforcedActiveSemester,
+      isSemesterExpired,
+      isStrictModeActive,
       loadAttendanceData,
       resolveSemesterDetails,
+      resolveSemesterMetadata,
       selectedSemesterId,
+      shouldAttachSemesterId,
       toast,
     ]);
 
@@ -1185,6 +1516,12 @@ export function useTeacherDashboard(currentUser: TeacherDashboardUser | null) {
     grades,
     attendance,
     loading,
+    enforcementMode,
+    enforcedActiveSemester,
+    hasEnforcedActiveSemester,
+    isRelaxedMode,
+    isStrictMode,
+    isStrictModeActive,
     semesters,
     selectedSemesterId,
     setSelectedSemesterId,
@@ -1225,6 +1562,8 @@ export function useTeacherDashboard(currentUser: TeacherDashboardUser | null) {
     selectedSubjectKelasId,
     selectedSubjectForGrades,
     selectedSubjectForAttendance,
+    semesterWarning,
+    uploadBlockedReason,
   };
 }
 
