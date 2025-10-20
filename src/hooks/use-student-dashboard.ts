@@ -81,8 +81,26 @@ export const useStudentDashboard = ({
   const [semesterError, setSemesterError] = useState<string>("");
   const [loading, setLoading] = useState<boolean>(false);
 
-  const { normalizeSemesterMetadata, resolveSemesterMetadata } =
-    useDashboardSemester({ semesters });
+  const {
+    normalizeSemesterMetadata,
+    resolveSemesterMetadata,
+    buildSemesterDateRange,
+    buildSemesterTitle,
+    formatStudyDays,
+  } = useDashboardSemester({ semesters });
+
+  const getSemesterMetadata = useCallback(
+    (semesterId?: string | number | null) => {
+      if (semesterId) {
+        return resolveSemesterMetadata(semesterId);
+      }
+      if (selectedSemesterId) {
+        return resolveSemesterMetadata(selectedSemesterId);
+      }
+      return null;
+    },
+    [resolveSemesterMetadata, selectedSemesterId]
+  );
 
   const getEffectiveSemesterId = useCallback(
     (customId?: string | null): string => {
@@ -227,8 +245,9 @@ export const useStudentDashboard = ({
         }
       } catch (error: any) {
         console.error("Failed to load student data", error);
+        const errorCode = typeof error?.code === "string" ? error.code : "";
         const isSemesterNotFound =
-          error?.code === "SEMESTER_NOT_FOUND" ||
+          errorCode === "SEMESTER_NOT_FOUND" ||
           (typeof error?.message === "string" &&
             error.message.toLowerCase().includes("semester tidak ditemukan"));
 
@@ -244,9 +263,18 @@ export const useStudentDashboard = ({
           return "";
         })();
 
-        const friendlyMessage = isSemesterNotFound
-          ? "Semester tidak ditemukan. Silakan pilih semester lain."
-          : semesterValidationMessage || "Gagal memuat data siswa";
+        const friendlyMessage = (() => {
+          if (errorCode === "SEMESTER_NOT_ACTIVE") {
+            return "Semester yang dipilih belum aktif. Silakan gunakan semester aktif yang berlaku.";
+          }
+          if (errorCode === "ACTIVE_SEMESTER_NOT_FOUND") {
+            return "Belum ada semester aktif yang ditetapkan. Silakan pilih semester aktif terlebih dahulu.";
+          }
+          if (isSemesterNotFound) {
+            return "Semester tidak ditemukan. Silakan pilih semester lain.";
+          }
+          return semesterValidationMessage || "Gagal memuat data siswa";
+        })();
 
         setGrades([]);
         setAttendance([]);
@@ -333,8 +361,9 @@ export const useStudentDashboard = ({
       printReport(enrichedReportData);
     } catch (error: any) {
       console.error("Failed to print report", error);
+      const errorCode = typeof error?.code === "string" ? error.code : "";
       const isSemesterNotFound =
-        error?.code === "SEMESTER_NOT_FOUND" ||
+        errorCode === "SEMESTER_NOT_FOUND" ||
         (typeof error?.message === "string" &&
           error.message.toLowerCase().includes("semester tidak ditemukan"));
 
@@ -350,9 +379,18 @@ export const useStudentDashboard = ({
         return "";
       })();
 
-      const friendlyMessage = isSemesterNotFound
-        ? "Semester tidak ditemukan. Silakan pilih semester lain."
-        : semesterValidationMessage || "Gagal mencetak raport";
+      const friendlyMessage = (() => {
+        if (errorCode === "SEMESTER_NOT_ACTIVE") {
+          return "Semester yang dipilih belum aktif. Cetak raport hanya bisa dilakukan pada semester aktif.";
+        }
+        if (errorCode === "ACTIVE_SEMESTER_NOT_FOUND") {
+          return "Belum ada semester aktif yang ditetapkan. Pilih semester aktif sebelum mencetak raport.";
+        }
+        if (isSemesterNotFound) {
+          return "Semester tidak ditemukan. Silakan pilih semester lain.";
+        }
+        return semesterValidationMessage || "Gagal mencetak raport";
+      })();
 
       toast({
         title: "Error",

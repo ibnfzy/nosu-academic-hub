@@ -228,20 +228,32 @@ const useWalikelasDashboard = (currentUser: CurrentUser | null) => {
         setAttendance(attendanceWithMetadata);
       } catch (error: any) {
         console.error("Failed to load walikelas data", error);
+        const errorCode = typeof error?.code === "string" ? error.code : "";
         const isSemesterNotFound =
-          error?.code === "SEMESTER_NOT_FOUND" ||
+          errorCode === "SEMESTER_NOT_FOUND" ||
           (typeof error?.message === "string" &&
             error.message.toLowerCase().includes("semester tidak ditemukan"));
 
+        const description = (() => {
+          if (errorCode === "SEMESTER_NOT_ACTIVE") {
+            return "Semester yang dipilih belum aktif. Silakan gunakan semester aktif agar data wali kelas dapat ditampilkan.";
+          }
+          if (errorCode === "ACTIVE_SEMESTER_NOT_FOUND") {
+            return "Belum ada semester aktif yang ditetapkan. Pilih atau tetapkan semester aktif untuk melihat data wali kelas.";
+          }
+          if (isSemesterNotFound) {
+            return "Semester tidak ditemukan. Silakan pilih semester lain.";
+          }
+          return error?.message || "Gagal memuat data wali kelas";
+        })();
+
         toast({
           title: "Error",
-          description: isSemesterNotFound
-            ? "Semester tidak ditemukan. Silakan pilih semester lain."
-            : error?.message || "Gagal memuat data wali kelas",
+          description,
           variant: "destructive",
         });
 
-        if (isSemesterNotFound) {
+        if (isSemesterNotFound || errorCode === "SEMESTER_NOT_ACTIVE" || errorCode === "ACTIVE_SEMESTER_NOT_FOUND") {
           setGrades([]);
           setAttendance([]);
         }

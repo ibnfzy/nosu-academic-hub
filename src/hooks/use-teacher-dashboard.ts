@@ -503,12 +503,24 @@ export function useTeacherDashboard(currentUser: TeacherDashboardUser | null) {
         setGrades(gradesWithNames);
       } catch (error: unknown) {
         console.error("Error loading grades:", error);
+        const { code, message } = (error as { code?: string; message?: string }) ?? {};
+        let description = message || "Gagal memuat data nilai";
+
+        if (code === "SEMESTER_NOT_ACTIVE") {
+          description =
+            "Semester yang dipilih belum aktif. Silakan pilih semester aktif untuk melihat data nilai.";
+          setGrades([]);
+        } else if (code === "ACTIVE_SEMESTER_NOT_FOUND") {
+          description =
+            "Belum ada semester aktif yang ditetapkan. Pilih semester aktif sebelum melihat data nilai.";
+          setGrades([]);
+        } else if (code === "SEMESTER_NOT_FOUND") {
+          description = "Semester tidak ditemukan. Silakan pilih semester lain.";
+        }
+
         toast({
           title: "Error",
-          description:
-            error?.code === "SEMESTER_NOT_FOUND"
-              ? "Semester tidak ditemukan. Silakan pilih semester lain."
-              : error?.message || "Gagal memuat data nilai",
+          description,
           variant: "destructive",
         });
       }
@@ -579,12 +591,24 @@ export function useTeacherDashboard(currentUser: TeacherDashboardUser | null) {
         setAttendance(attendanceWithNames);
       } catch (error: unknown) {
         console.error("Error loading attendance:", error);
+        const { code, message } = (error as { code?: string; message?: string }) ?? {};
+        let description = message || "Gagal memuat data kehadiran";
+
+        if (code === "SEMESTER_NOT_ACTIVE") {
+          description =
+            "Semester yang dipilih belum aktif. Silakan pilih semester aktif untuk melihat data kehadiran.";
+          setAttendance([]);
+        } else if (code === "ACTIVE_SEMESTER_NOT_FOUND") {
+          description =
+            "Belum ada semester aktif yang ditetapkan. Pilih semester aktif sebelum melihat data kehadiran.";
+          setAttendance([]);
+        } else if (code === "SEMESTER_NOT_FOUND") {
+          description = "Semester tidak ditemukan. Silakan pilih semester lain.";
+        }
+
         toast({
           title: "Error",
-          description:
-            error?.code === "SEMESTER_NOT_FOUND"
-              ? "Semester tidak ditemukan. Silakan pilih semester lain."
-              : error?.message || "Gagal memuat data kehadiran",
+          description,
           variant: "destructive",
         });
       }
@@ -759,19 +783,63 @@ export function useTeacherDashboard(currentUser: TeacherDashboardUser | null) {
           handleGradeDialogOpenChange(false);
           await loadGradesData();
         } else {
-          toast({
-            title: "Error",
-            description:
-              isRecord(result) && typeof result.message === "string"
-                ? result.message
-                : "Gagal menyimpan nilai",
-            variant: "destructive",
-          });
+          const resultCode =
+            isRecord(result) && typeof result.code === "string"
+              ? (result.code as string)
+              : undefined;
+          if (resultCode === "SEMESTER_NOT_ACTIVE") {
+            toast({
+              title: "Penegakan semester aktif",
+              description:
+                "Pengunggahan nilai diblokir karena semester yang dipilih belum aktif. Gunakan semester aktif sebelum menyimpan nilai.",
+              variant: "destructive",
+            });
+            handleGradeDialogOpenChange(false);
+          } else if (resultCode === "ACTIVE_SEMESTER_NOT_FOUND") {
+            toast({
+              title: "Penegakan semester aktif",
+              description:
+                "Belum ada semester aktif yang ditetapkan. Tetapkan semester aktif terlebih dahulu sebelum menambahkan nilai.",
+              variant: "destructive",
+            });
+            handleGradeDialogOpenChange(false);
+          } else {
+            toast({
+              title: "Error",
+              description:
+                isRecord(result) && typeof result.message === "string"
+                  ? result.message
+                  : "Gagal menyimpan nilai",
+              variant: "destructive",
+            });
+          }
         }
       } catch (error) {
+        const { code, message } = (error as { code?: string; message?: string }) ?? {};
+        if (code === "SEMESTER_NOT_ACTIVE") {
+          toast({
+            title: "Penegakan semester aktif",
+            description:
+              "Pengunggahan nilai diblokir karena semester yang dipilih belum aktif. Gunakan semester aktif sebelum menyimpan nilai.",
+            variant: "destructive",
+          });
+          handleGradeDialogOpenChange(false);
+          return;
+        }
+        if (code === "ACTIVE_SEMESTER_NOT_FOUND") {
+          toast({
+            title: "Penegakan semester aktif",
+            description:
+              "Belum ada semester aktif yang ditetapkan. Tetapkan semester aktif terlebih dahulu sebelum menambahkan nilai.",
+            variant: "destructive",
+          });
+          handleGradeDialogOpenChange(false);
+          return;
+        }
+
         toast({
           title: "Error",
-          description: "Gagal menyimpan nilai",
+          description: message || "Gagal menyimpan nilai",
           variant: "destructive",
         });
       }
@@ -879,19 +947,63 @@ export function useTeacherDashboard(currentUser: TeacherDashboardUser | null) {
           handleAttendanceDialogOpenChange(false);
           await loadAttendanceData();
         } else {
-          toast({
-            title: "Error",
-            description:
-              isRecord(result) && typeof result.message === "string"
-                ? result.message
-                : "Gagal menyimpan kehadiran",
-            variant: "destructive",
-          });
+          const resultCode =
+            isRecord(result) && typeof result.code === "string"
+              ? (result.code as string)
+              : undefined;
+          if (resultCode === "SEMESTER_NOT_ACTIVE") {
+            toast({
+              title: "Penegakan semester aktif",
+              description:
+                "Pengunggahan kehadiran diblokir karena semester yang dipilih belum aktif. Gunakan semester aktif sebelum menyimpan data.",
+              variant: "destructive",
+            });
+            handleAttendanceDialogOpenChange(false);
+          } else if (resultCode === "ACTIVE_SEMESTER_NOT_FOUND") {
+            toast({
+              title: "Penegakan semester aktif",
+              description:
+                "Belum ada semester aktif yang ditetapkan. Tetapkan semester aktif terlebih dahulu sebelum menambahkan data kehadiran.",
+              variant: "destructive",
+            });
+            handleAttendanceDialogOpenChange(false);
+          } else {
+            toast({
+              title: "Error",
+              description:
+                isRecord(result) && typeof result.message === "string"
+                  ? result.message
+                  : "Gagal menyimpan kehadiran",
+              variant: "destructive",
+            });
+          }
         }
       } catch (error) {
+        const { code, message } = (error as { code?: string; message?: string }) ?? {};
+        if (code === "SEMESTER_NOT_ACTIVE") {
+          toast({
+            title: "Penegakan semester aktif",
+            description:
+              "Pengunggahan kehadiran diblokir karena semester yang dipilih belum aktif. Gunakan semester aktif sebelum menyimpan data.",
+            variant: "destructive",
+          });
+          handleAttendanceDialogOpenChange(false);
+          return;
+        }
+        if (code === "ACTIVE_SEMESTER_NOT_FOUND") {
+          toast({
+            title: "Penegakan semester aktif",
+            description:
+              "Belum ada semester aktif yang ditetapkan. Tetapkan semester aktif terlebih dahulu sebelum menambahkan data kehadiran.",
+            variant: "destructive",
+          });
+          handleAttendanceDialogOpenChange(false);
+          return;
+        }
+
         toast({
           title: "Error",
-          description: "Gagal menyimpan kehadiran",
+          description: message || "Gagal menyimpan kehadiran",
           variant: "destructive",
         });
       }

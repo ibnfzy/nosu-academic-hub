@@ -114,4 +114,81 @@ describe("useStudentDashboard", () => {
       })
     );
   });
+
+  it("menampilkan pesan ketika semester aktif belum ditetapkan saat memuat data", async () => {
+    const error = { code: "ACTIVE_SEMESTER_NOT_FOUND" } as const;
+    vi.mocked(apiService.getSemesters).mockResolvedValue(mockSemesters);
+    vi.mocked(apiService.getStudentGrades).mockRejectedValue(error);
+    vi.mocked(apiService.getStudentAttendance).mockResolvedValue(mockAttendance);
+
+    const { result } = renderHook(() =>
+      useStudentDashboard({ currentUser: { id: 1, nama: "Budi" } })
+    );
+
+    await waitFor(() =>
+      expect(mockToast).toHaveBeenCalledWith(
+        expect.objectContaining({
+          description:
+            "Belum ada semester aktif yang ditetapkan. Silakan pilih semester aktif terlebih dahulu.",
+        })
+      )
+    );
+
+    expect(result.current.semesterError).toBe(
+      "Belum ada semester aktif yang ditetapkan. Silakan pilih semester aktif terlebih dahulu."
+    );
+    expect(result.current.grades).toHaveLength(0);
+    expect(result.current.attendance).toHaveLength(0);
+  });
+
+  it("menampilkan pesan ketika semester belum aktif saat memuat data", async () => {
+    const error = { code: "SEMESTER_NOT_ACTIVE" } as const;
+    vi.mocked(apiService.getSemesters).mockResolvedValue(mockSemesters);
+    vi.mocked(apiService.getStudentGrades).mockRejectedValue(error);
+    vi.mocked(apiService.getStudentAttendance).mockResolvedValue(mockAttendance);
+
+    const { result } = renderHook(() =>
+      useStudentDashboard({ currentUser: { id: 1, nama: "Budi" } })
+    );
+
+    await waitFor(() =>
+      expect(mockToast).toHaveBeenCalledWith(
+        expect.objectContaining({
+          description:
+            "Semester yang dipilih belum aktif. Silakan gunakan semester aktif yang berlaku.",
+        })
+      )
+    );
+
+    expect(result.current.semesterError).toBe(
+      "Semester yang dipilih belum aktif. Silakan gunakan semester aktif yang berlaku."
+    );
+    expect(result.current.grades).toHaveLength(0);
+    expect(result.current.attendance).toHaveLength(0);
+  });
+
+  it("menampilkan pesan saat cetak raport diblokir karena semester belum aktif", async () => {
+    const error = { code: "SEMESTER_NOT_ACTIVE" } as const;
+    vi.mocked(apiService.getSemesters).mockResolvedValue(mockSemesters);
+    vi.mocked(apiService.getStudentGrades).mockResolvedValue(mockGrades);
+    vi.mocked(apiService.getStudentAttendance).mockResolvedValue(mockAttendance);
+    vi.mocked(apiService.getStudentReport).mockRejectedValue(error);
+
+    const { result } = renderHook(() =>
+      useStudentDashboard({ currentUser: { id: 1, nama: "Budi" } })
+    );
+
+    await waitFor(() => expect(result.current.selectedSemesterId).toBe("1"));
+
+    await act(async () => {
+      await result.current.handlePrintReport();
+    });
+
+    expect(mockToast).toHaveBeenCalledWith(
+      expect.objectContaining({
+        description:
+          "Semester yang dipilih belum aktif. Cetak raport hanya bisa dilakukan pada semester aktif.",
+      })
+    );
+  });
 });
