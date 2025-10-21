@@ -166,6 +166,66 @@ export const calculateAttendanceStats = (attendance, options = {}) => {
 };
 
 /**
+ * Menghitung urutan hari belajar berdasarkan tanggal dan metadata semester.
+ * @param {string|Date|null|undefined} date - Tanggal kegiatan belajar.
+ * @param {Object} [options]
+ * @param {Object|null} [options.semesterMetadata] - Metadata semester terstandardisasi.
+ * @param {Object|null} [options.semesterInfo] - Informasi semester mentah (fallback).
+ * @param {string|Date|null|undefined} [options.startDate] - Tanggal mulai eksplisit.
+ * @param {string|Date|null|undefined} [options.fallbackStartDate] - Tanggal mulai cadangan.
+ * @returns {number|null} - Hari ke-berapa atau null jika tidak dapat dihitung.
+ */
+export const getStudyDayNumber = (date, options = {}) => {
+  if (!date) return null;
+
+  const { semesterMetadata = null, semesterInfo = null } = options || {};
+  const { startDate: explicitStartDate = null, fallbackStartDate = null } =
+    options || {};
+
+  const toDate = (value) => {
+    if (!value) return null;
+    const parsed = new Date(value);
+    if (Number.isNaN(parsed.getTime())) return null;
+    return parsed;
+  };
+
+  const recordDate = toDate(date);
+  if (!recordDate) return null;
+
+  const candidateStarts = [
+    explicitStartDate,
+    semesterMetadata?.tanggalMulai,
+    semesterMetadata?.startDate,
+    semesterInfo?.tanggalMulai,
+    semesterInfo?.startDate,
+    fallbackStartDate,
+  ];
+
+  for (const candidate of candidateStarts) {
+    const start = toDate(candidate);
+    if (!start) continue;
+
+    const recordUTC = Date.UTC(
+      recordDate.getUTCFullYear(),
+      recordDate.getUTCMonth(),
+      recordDate.getUTCDate()
+    );
+    const startUTC = Date.UTC(
+      start.getUTCFullYear(),
+      start.getUTCMonth(),
+      start.getUTCDate()
+    );
+
+    const diff = Math.floor((recordUTC - startUTC) / (1000 * 60 * 60 * 24));
+    if (Number.isFinite(diff) && diff >= 0) {
+      return diff + 1;
+    }
+  }
+
+  return null;
+};
+
+/**
  * Mendapatkan warna berdasarkan nilai
  * @param {number} nilai - Nilai numerik
  * @returns {string} - Class warna CSS
