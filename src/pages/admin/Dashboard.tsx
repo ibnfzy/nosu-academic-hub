@@ -3,6 +3,7 @@ import { AdminNavbar } from "@/components/AdminNavbar";
 import { useToast } from "@/hooks/use-toast";
 import apiService from "@/services/apiService";
 import { useIsMobile } from "@/hooks/use-mobile";
+import { mergeUserData } from "@/utils/mergeUserData";
 
 // Import modular components
 import UserManagement from "@/components/admin/UserManagement";
@@ -52,9 +53,9 @@ const AdminDashboard = ({ currentUser, onLogout }) => {
       ]);
 
       const mergedUserForms = mergeUserData(
-        usersData,
-        studentsData,
-        teachersData
+        Array.isArray(usersData) ? usersData : [],
+        Array.isArray(studentsData) ? studentsData : [],
+        Array.isArray(teachersData) ? teachersData : []
       );
 
       setUsers(mergedUserForms);
@@ -73,33 +74,6 @@ const AdminDashboard = ({ currentUser, onLogout }) => {
       setLoading(false);
     }
   }, [toast]);
-
-  const mergeUserData = (usersData, studentsData, teachersData) => {
-    return usersData.map((user) => {
-      const student = studentsData.find((s) => s.userId === user.id);
-      const teacher = teachersData.find((t) => t.userId === user.id);
-
-      return {
-        id: user.id, // gunakan ID dari tabel users
-        username: user.username || "",
-        password: "",
-        email: user.email || "",
-        role: user.role || "",
-
-        nama: user.nama || student?.nama || teacher?.nama || "",
-        nisn: student?.nisn || "",
-        nip: teacher?.nip || user.nip || "",
-        kelasId: student?.kelasId || "",
-        jenisKelamin: student?.jenisKelamin || teacher?.jenisKelamin || "",
-        tanggalLahir: student?.tanggalLahir || "",
-        alamat: student?.alamat || teacher?.alamat || "",
-        nomorHP: student?.nomorHP || teacher?.nomorHP || "",
-        namaOrangTua: student?.namaOrangTua || "",
-        pekerjaanOrangTua: student?.pekerjaanOrangTua || "",
-        tahunMasuk: student?.tahunMasuk || "",
-      };
-    });
-  };
 
   useEffect(() => {
     loadAdminData();

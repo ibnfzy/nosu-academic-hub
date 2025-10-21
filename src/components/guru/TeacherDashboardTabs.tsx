@@ -314,9 +314,13 @@ export function TeacherDashboardTabs({
           <CardContent>
             {students.length > 0 ? (
               <div className="space-y-4">
-                {students.map((student) => (
+                {students.map((student, index) => {
+                  const resolvedStudentId =
+                    student.studentId ?? student.userId ?? student.id;
+                  const identifier = String(resolvedStudentId ?? index);
+                  return (
                   <div
-                    key={student.id}
+                    key={identifier}
                     className="flex items-center justify-between rounded-lg bg-muted/20 p-4 shadow-sm"
                   >
                     <div className="flex items-center space-x-4">
@@ -332,36 +336,37 @@ export function TeacherDashboardTabs({
                       </div>
                     </div>
 
-                    <div className="flex space-x-2">
-                      <Button
-                        size="sm"
-                        variant="outline"
-                        onClick={() => {
-                          setGradeForm((prev) => ({
-                            ...prev,
-                            studentId: String(student.id),
-                          }));
-                          setShowGradeDialog(true);
-                        }}
-                      >
-                        Input Nilai
-                      </Button>
-                      <Button
-                        size="sm"
-                        variant="outline"
-                        onClick={() => {
-                          setAttendanceForm((prev) => ({
-                            ...prev,
-                            studentId: String(student.id),
-                          }));
-                          setShowAttendanceDialog(true);
-                        }}
-                      >
-                        Input Kehadiran
-                      </Button>
-                    </div>
+                        <div className="flex space-x-2">
+                          <Button
+                            size="sm"
+                            variant="outline"
+                            onClick={() => {
+                              setGradeForm((prev) => ({
+                                ...prev,
+                                studentId: identifier,
+                              }));
+                              setShowGradeDialog(true);
+                            }}
+                          >
+                            Input Nilai
+                          </Button>
+                          <Button
+                            size="sm"
+                            variant="outline"
+                            onClick={() => {
+                              setAttendanceForm((prev) => ({
+                                ...prev,
+                                studentId: identifier,
+                              }));
+                              setShowAttendanceDialog(true);
+                            }}
+                          >
+                            Input Kehadiran
+                          </Button>
+                        </div>
                   </div>
-                ))}
+                );
+                })}
               </div>
             ) : (
               <div className="text-center py-8">

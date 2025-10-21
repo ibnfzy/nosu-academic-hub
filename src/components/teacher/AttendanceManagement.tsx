@@ -216,11 +216,18 @@ export default function AttendanceManagement({ attendance, students, subjects, c
                       <SelectValue placeholder="Pilih siswa" />
                     </SelectTrigger>
                     <SelectContent>
-                      {students.map((student) => (
-                        <SelectItem key={student.id} value={student.id}>
-                          {student.nama} - {student.nisn || student.nis}
-                        </SelectItem>
-                      ))}
+                      {students.map((student, index) => {
+                        const resolvedStudentId =
+                          student.studentId ?? student.userId ?? student.id;
+                        const optionValue = String(
+                          resolvedStudentId ?? index
+                        );
+                        return (
+                          <SelectItem key={optionValue} value={optionValue}>
+                            {student.nama} - {student.nisn || student.nis}
+                          </SelectItem>
+                        );
+                      })}
                     </SelectContent>
                   </Select>
                 </div>

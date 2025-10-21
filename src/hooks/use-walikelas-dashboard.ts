@@ -5,6 +5,7 @@ import {
   type DashboardSemesterRecord,
 } from "@/hooks/use-dashboard-semester";
 import apiService from "@/services/apiService";
+import { mergeUserData } from "@/utils/mergeUserData";
 import { useToast } from "@/hooks/use-toast";
 import { printReport } from "@/utils/helpers";
 import { useSemesterEnforcement } from "@/hooks/use-semester-enforcement";
@@ -270,23 +271,33 @@ const useWalikelasDashboard = (currentUser: CurrentUser | null) => {
           return;
         }
 
-        const [classesData, studentsData, gradesData, attendanceData] =
-          await Promise.all([
-            apiService.getClasses(),
-            apiService.getClassStudents(currentUser.kelasId),
-            apiService.getClassGrades(
-              currentUser.kelasId,
-              null,
-              null,
-              requestSemesterId
-            ),
-            apiService.getClassAttendance(
-              currentUser.kelasId,
-              null,
-              null,
-              requestSemesterId
-            ),
-          ]);
+        const [
+          classesData,
+          studentsData,
+          gradesData,
+          attendanceData,
+          usersResponse,
+          allStudentsResponse,
+          teachersResponse,
+        ] = await Promise.all([
+          apiService.getClasses(),
+          apiService.getClassStudents(currentUser.kelasId),
+          apiService.getClassGrades(
+            currentUser.kelasId,
+            null,
+            null,
+            requestSemesterId
+          ),
+          apiService.getClassAttendance(
+            currentUser.kelasId,
+            null,
+            null,
+            requestSemesterId
+          ),
+          apiService.getUsers(),
+          apiService.getStudents(),
+          apiService.getTeachers(),
+        ]);
 
         const normalizedGrades = Array.isArray(gradesData) ? gradesData : [];
         const normalizedAttendance = Array.isArray(attendanceData)
@@ -322,7 +333,69 @@ const useWalikelasDashboard = (currentUser: CurrentUser | null) => {
           : null;
 
         setClassInfo(currentClass);
-        setStudents(Array.isArray(studentsData) ? studentsData : []);
+
+        const classStudents = Array.isArray(studentsData)
+          ? studentsData
+          : [];
+        const usersArray = Array.isArray(usersResponse)
+          ? usersResponse
+          : [];
+        const studentsArray = Array.isArray(allStudentsResponse)
+          ? allStudentsResponse
+          : [];
+        const teachersArray = Array.isArray(teachersResponse)
+          ? teachersResponse
+          : [];
+
+        const relevantUsers = usersArray.filter((user) =>
+          classStudents.some((student) =>
+            String(student?.userId ?? student?.id) === String(user?.id)
+          )
+        );
+
+        const mergedRecords = mergeUserData(
+          relevantUsers,
+          studentsArray,
+          teachersArray
+        );
+
+        const normalizedStudentsMap = new Map<string, any>();
+
+        mergedRecords.forEach((record) => {
+          const key = String(record?.userId ?? record?.id ?? "");
+          const classStudent = classStudents.find(
+            (student) =>
+              String(student?.userId ?? student?.id) ===
+              String(record?.userId ?? record?.id)
+          );
+
+          normalizedStudentsMap.set(key, {
+            ...(classStudent ?? {}),
+            ...record,
+            id: record?.userId ?? record?.id ?? key,
+            userId: record?.userId ?? record?.id ?? key,
+            studentId:
+              classStudent?.id ??
+              record?.studentId ??
+              classStudent?.studentId ??
+              null,
+            kelasId: classStudent?.kelasId ?? record?.kelasId ?? null,
+          });
+        });
+
+        classStudents.forEach((student, index) => {
+          const key = String(student?.userId ?? student?.id ?? index);
+          if (!normalizedStudentsMap.has(key)) {
+            normalizedStudentsMap.set(key, {
+              ...student,
+              id: key,
+              userId: key,
+              studentId: student?.id ?? student?.studentId ?? null,
+            });
+          }
+        });
+
+        setStudents(Array.from(normalizedStudentsMap.values()));
         setGrades(gradesWithMetadata);
         setAttendance(attendanceWithMetadata);
         setUploadBlockedReason("");
@@ -487,9 +560,18 @@ const useWalikelasDashboard = (currentUser: CurrentUser | null) => {
   const studentsWithVerifiedGrades = useMemo(
     () =>
       students.filter((student) =>
-        grades.some(
-          (grade) => grade.studentId === student.id && grade.verified
-        )
+        grades.some((grade) => {
+          const identifiers = [
+            student.studentId,
+            student.userId,
+            student.id,
+          ].filter((value) => value !== undefined && value !== null);
+          return (
+            identifiers.some(
+              (value) => String(value) === String(grade.studentId)
+            ) && grade.verified
+          );
+        })
       ),
     [grades, students]
   );
@@ -533,6 +615,9 @@ const useWalikelasDashboard = (currentUser: CurrentUser | null) => {
       }
 
       try {
+        const targetStudentId =
+          editingStudent?.studentId ?? editingStudent?.id ?? null;
+
         const studentData = {
           users: {
             username: studentForm.nisn,
@@ -541,7 +626,7 @@ const useWalikelasDashboard = (currentUser: CurrentUser | null) => {
             email: studentForm.email,
           },
           students: {
-            ...(editingStudent?.id && { id: editingStudent.id }),
+            ...(targetStudentId && { id: targetStudentId }),
             nama: studentForm.nama,
             nisn: studentForm.nisn,
             kelasId: currentUser?.kelasId,
@@ -556,10 +641,10 @@ const useWalikelasDashboard = (currentUser: CurrentUser | null) => {
         };
 
         let result;
-        if (editingStudent) {
+        if (editingStudent && targetStudentId) {
           result = await apiService.updateClassStudent(
             currentUser?.id,
-            studentData.students.id,
+            targetStudentId,
             studentData
           );
         } else {
@@ -602,9 +687,21 @@ const useWalikelasDashboard = (currentUser: CurrentUser | null) => {
     async (studentId: string) => {
       if (window.confirm("Apakah Anda yakin ingin menghapus siswa ini?")) {
         try {
+          const targetStudentId = (() => {
+            const candidate = students.find((s) => {
+              const identifiers = [s.studentId, s.userId, s.id].filter(
+                (value) => value !== undefined && value !== null
+              );
+              return identifiers.some(
+                (value) => String(value) === String(studentId)
+              );
+            });
+            return candidate?.studentId ?? studentId;
+          })();
+
           const result = await apiService.deleteClassStudent(
             currentUser?.id,
-            studentId
+            targetStudentId
           );
           if (result.success) {
             toast({
@@ -622,7 +719,7 @@ const useWalikelasDashboard = (currentUser: CurrentUser | null) => {
         }
       }
     },
-    [currentUser, loadWalikelasData, toast]
+    [currentUser, loadWalikelasData, students, toast]
   );
 
   const handleVerifyGrade = useCallback(

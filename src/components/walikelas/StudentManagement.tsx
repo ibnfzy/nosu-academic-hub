@@ -270,8 +270,12 @@ export default function StudentManagement({ students, currentUser, onDataChange 
             </TableHeader>
             <TableBody>
               {filteredStudents.length > 0 ? (
-                filteredStudents.map((student) => (
-                  <TableRow key={student.id}>
+                filteredStudents.map((student, index) => {
+                  const resolvedStudentId =
+                    student.studentId ?? student.userId ?? student.id;
+                  const rowKey = String(resolvedStudentId ?? index);
+                  return (
+                    <TableRow key={rowKey}>
                     <TableCell className="font-medium">{student.nama}</TableCell>
                     <TableCell>{student.nisn}</TableCell>
                     <TableCell>{student.username}</TableCell>
@@ -288,14 +292,17 @@ export default function StudentManagement({ students, currentUser, onDataChange 
                         <Button
                           size="sm"
                           variant="outline"
-                          onClick={() => handleDeleteStudent(student.id)}
+                          onClick={() =>
+                            handleDeleteStudent(String(resolvedStudentId ?? ""))
+                          }
                         >
                           <Trash2 className="h-4 w-4" />
                         </Button>
                       </div>
                     </TableCell>
-                  </TableRow>
-                ))
+                    </TableRow>
+                  );
+                })
               ) : searchTerm ? (
                 <TableRow>
                   <TableCell colSpan={5} className="text-center py-8 text-muted-foreground">

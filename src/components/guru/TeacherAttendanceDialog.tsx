@@ -153,11 +153,18 @@ export function TeacherAttendanceDialog({
                     .filter(
                       (s) => String(s.kelasId) === String(attendanceForm.kelasId)
                     )
-                    .map((student) => (
-                      <SelectItem key={student.id} value={String(student.id)}>
-                        {student.nama} ({student.nisn})
-                      </SelectItem>
-                    ))}
+                    .map((student, index) => {
+                      const resolvedStudentId =
+                        student.studentId ?? student.userId ?? student.id;
+                      const optionValue = String(
+                        resolvedStudentId ?? index
+                      );
+                      return (
+                        <SelectItem key={optionValue} value={optionValue}>
+                          {student.nama} ({student.nisn})
+                        </SelectItem>
+                      );
+                    })}
                 </SelectContent>
               </Select>
               <p className="text-xs text-muted-foreground">

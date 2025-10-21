@@ -86,12 +86,18 @@ export function TeacherStudentListDialog({
 
           <div className="space-y-4 max-h-96 overflow-y-auto pr-1">
             {displayedStudents.length > 0 ? (
-              displayedStudents.map((student) => {
+              displayedStudents.map((student, index) => {
                 const kelasName = getClassesName(student.kelasId ?? "");
                 const studentName = student.nama || "Nama tidak tersedia";
 
+                const resolvedStudentId =
+                  student.studentId ?? student.userId ?? student.id;
+
                 return (
-                  <Card key={student.id} className="border border-border">
+                  <Card
+                    key={String(resolvedStudentId ?? index)}
+                    className="border border-border"
+                  >
                     <CardHeader className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
                       <div className="flex items-start gap-3">
                         <div className="p-2 bg-primary/10 rounded-lg">
@@ -139,7 +145,7 @@ export function TeacherStudentListDialog({
                                 : "";
                               setGradeForm((prev) => ({
                                 ...prev,
-                                studentId: String(student.id),
+                                studentId: String(resolvedStudentId ?? ""),
                                 subjectId,
                                 kelasId,
                               }));
@@ -173,7 +179,7 @@ export function TeacherStudentListDialog({
                                 : "";
                               setAttendanceForm((prev) => ({
                                 ...prev,
-                                studentId: String(student.id),
+                                studentId: String(resolvedStudentId ?? ""),
                                 subjectId,
                                 kelasId,
                               }));
