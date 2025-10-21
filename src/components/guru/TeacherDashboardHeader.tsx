@@ -1,5 +1,20 @@
-import { GraduationCap, LogOut } from "lucide-react";
+import {
+  GraduationCap,
+  HelpCircle,
+  LogOut,
+  MoreVertical,
+  PlayCircle,
+} from "lucide-react";
 import { Button } from "@/components/ui/button";
+import { Card, CardContent } from "@/components/ui/card";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuLabel,
+  DropdownMenuSeparator,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
 
 import type { TeacherDashboardUser } from "@/hooks/use-teacher-dashboard";
 
@@ -13,32 +28,55 @@ export function TeacherDashboardHeader({
   onLogout,
 }: TeacherDashboardHeaderProps) {
   return (
-    <div className="gradient-accent text-white py-8">
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-        <div className="flex items-center justify-between">
-          <div className="flex items-center space-x-4">
-            <div className="p-2 md:p-3 bg-white/20 rounded-lg">
-              <GraduationCap className="h-6 w-6 md:h-8 md:w-8" />
+    <Card className="border border-muted/40 bg-background">
+      <CardContent className="max-w-7xl mx-auto flex flex-col gap-6 px-6 py-6 sm:px-8">
+        <div className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
+          <div className="flex items-start gap-4">
+            <div className="flex h-12 w-12 items-center justify-center rounded-xl bg-muted">
+              <GraduationCap className="h-6 w-6 text-primary" />
             </div>
             <div>
-              <h1 className="text-xl md:text-2xl font-bold">Dashboard Guru</h1>
-              <p className="opacity-90 text-sm md:text-base">
-                Selamat datang, {currentUser?.nama}
+              <h1 className="text-2xl font-semibold text-foreground">
+                Hai, {currentUser?.nama ?? "Guru hebat"}!
+              </h1>
+              <p className="mt-1 text-base text-muted-foreground">
+                Senang kamu di sini lagi. Yuk, kita rapikan info kelas dan tugas
+                hari ini bareng-bareng.
               </p>
             </div>
           </div>
 
-          <Button
-            variant="outline"
-            size="sm"
-            onClick={onLogout}
-            className="bg-white/10 border-white/20 text-white hover:bg-white/20 hover:text-white"
-          >
-            <LogOut className="h-4 w-4 mr-2" />
-            Logout
-          </Button>
+          <div className="flex items-center gap-3">
+            <div className="flex items-center gap-2">
+              <Button variant="secondary" size="sm" className="gap-2">
+                <HelpCircle className="h-4 w-4" />
+                Panduan singkat
+              </Button>
+              <Button variant="outline" size="sm" className="gap-2">
+                <PlayCircle className="h-4 w-4" />
+                Video
+              </Button>
+            </div>
+
+            <DropdownMenu>
+              <DropdownMenuTrigger asChild>
+                <Button variant="ghost" size="icon" className="text-muted-foreground">
+                  <MoreVertical className="h-5 w-5" />
+                  <span className="sr-only">Menu lainnya</span>
+                </Button>
+              </DropdownMenuTrigger>
+              <DropdownMenuContent align="end">
+                <DropdownMenuLabel>Akun</DropdownMenuLabel>
+                <DropdownMenuSeparator />
+                <DropdownMenuItem onSelect={() => onLogout()} className="gap-2">
+                  <LogOut className="h-4 w-4" />
+                  Logout
+                </DropdownMenuItem>
+              </DropdownMenuContent>
+            </DropdownMenu>
+          </div>
         </div>
-      </div>
-    </div>
+      </CardContent>
+    </Card>
   );
 }
