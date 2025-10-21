@@ -9,6 +9,7 @@
 
 import sampleData from "./localData.js";
 import { normalizeData } from "../utils/helpers.js";
+import { mergeUserData } from "../utils/mergeUserData.js";
 
 const USE_API = true; // Set to true untuk menggunakan REST API
 
@@ -730,35 +731,7 @@ const apiService = {
         localStorage.getItem(STORAGE_KEYS.TEACHERS) || "[]"
       );
 
-      return users.map((u) => {
-        let extraData = {};
-
-        if (u.role === "siswa") {
-          const student = students.find((s) => s.userId === u.id);
-          extraData = {
-            nama: student?.nama || u.username,
-            nisn: student?.nisn || null,
-            kelasId: student?.kelasId || null,
-          };
-        } else if (u.role === "guru" || u.role === "walikelas") {
-          const teacher = teachers.find((t) => t.userId === u.id);
-          extraData = {
-            nama: teacher?.nama || u.username,
-            nip: teacher?.nip || null,
-            kelasId: teacher?.kelasId || null,
-          };
-        } else if (u.role === "admin") {
-          extraData = {
-            nama: "-", // admin tidak punya nama guru/siswa
-          };
-        }
-
-        return {
-          ...u,
-          ...extraData,
-          password: undefined, // jangan expose password
-        };
-      });
+      return mergeUserData(users, students, teachers);
     }
   },
 
@@ -1423,27 +1396,25 @@ const apiService = {
       const students = JSON.parse(
         localStorage.getItem(STORAGE_KEYS.STUDENTS) || "[]"
       );
+      const teachers = JSON.parse(
+        localStorage.getItem(STORAGE_KEYS.TEACHERS) || "[]"
+      );
       const users = JSON.parse(
         localStorage.getItem(STORAGE_KEYS.USERS) || "[]"
       );
 
-      // ambil semua siswa di kelas yang dikelola walikelas
-      // misalnya walikelasId = 1 → ambil kelasId "1"
       const kelasId = "1"; // bisa kamu sesuaikan dinamis kalau sudah ada mapping walikelas → kelas
       const classStudents = students.filter((s) => s.kelasId === kelasId);
+      const relatedUsers = classStudents
+        .map((student) => users.find((user) => user.id === student.userId))
+        .filter((user) => user !== undefined && user !== null);
 
-      // gabungkan data student + user (pakai userId)
-      const merged = classStudents.map((student) => {
-        const user = users.find((u) => u.id === student.userId);
-        return {
-          ...student,
-          username: user?.username || "",
-          email: user?.email || "",
-          role: user?.role || "siswa",
-        };
-      });
+      const merged = mergeUserData(relatedUsers, classStudents, teachers);
 
-      return merged;
+      return merged.map((student) => ({
+        ...student,
+        studentId: student.studentId ?? classStudents.find((s) => String(s.userId) === String(student.userId))?.id ?? student.studentId,
+      }));
     }
   },
 
@@ -2098,35 +2069,7 @@ const apiService = {
         localStorage.getItem(STORAGE_KEYS.TEACHERS) || "[]"
       );
 
-      return users.map((u) => {
-        let extraData = {};
-
-        if (u.role === "siswa") {
-          const student = students.find((s) => s.userId === u.id);
-          extraData = {
-            nama: student?.nama || u.username,
-            nisn: student?.nisn || null,
-            kelasId: student?.kelasId || null,
-          };
-        } else if (u.role === "guru" || u.role === "walikelas") {
-          const teacher = teachers.find((t) => t.userId === u.id);
-          extraData = {
-            nama: teacher?.nama || u.username,
-            nip: teacher?.nip || null,
-            kelasId: teacher?.kelasId || null,
-          };
-        } else if (u.role === "admin") {
-          extraData = {
-            nama: "-", // admin tidak punya nama guru/siswa
-          };
-        }
-
-        return {
-          ...u,
-          ...extraData,
-          password: undefined, // jangan expose password
-        };
-      });
+      return mergeUserData(users, students, teachers).map(({ password, ...user }) => user);
     }
   },
 

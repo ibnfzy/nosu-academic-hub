@@ -10,6 +10,7 @@ import { useToast } from "@/hooks/use-toast";
 import { useDashboardSemester } from "@/hooks/use-dashboard-semester";
 import { useSemesterEnforcement } from "@/hooks/use-semester-enforcement";
 import apiService from "@/services/apiService";
+import { mergeUserData } from "@/utils/mergeUserData";
 import { getStudyDayNumber } from "@/utils/helpers";
 
 type Identifier = string | number;
@@ -46,6 +47,8 @@ export type Subject = UnknownRecord & {
 
 export type Student = UnknownRecord & {
   id: Identifier;
+  userId?: Identifier | null;
+  studentId?: Identifier | null;
   nama?: string;
   nisn?: string;
   kelasId?: Identifier;
@@ -218,6 +221,28 @@ const toAttendanceRecord = (value: unknown): AttendanceRecord | null => {
 export function useTeacherDashboard(currentUser: TeacherDashboardUser | null) {
   const [subjects, setSubjects] = useState<Subject[]>([]);
   const [students, setStudents] = useState<Student[]>([]);
+  const findStudentByAnyId = useCallback(
+    (candidateId: Identifier | null | undefined) => {
+      if (candidateId === undefined || candidateId === null) {
+        return undefined;
+      }
+      const target = String(candidateId);
+      return students.find((student) => {
+        if (!student) return false;
+        const identifiers: Array<Identifier | null | undefined> = [
+          student.studentId,
+          student.userId,
+          student.id,
+        ];
+        return identifiers.some((value) =>
+          value !== undefined && value !== null
+            ? String(value) === target
+            : false
+        );
+      });
+    },
+    [students]
+  );
   const [grades, setGrades] = useState<GradeRecord[]>([]);
   const [attendance, setAttendance] = useState<AttendanceRecord[]>([]);
   const [loading, setLoading] = useState(false);
@@ -436,8 +461,19 @@ export function useTeacherDashboard(currentUser: TeacherDashboardUser | null) {
       const subjectsData = await apiService.getTeacherSubjects(
         currentUser.teacherId
       );
-      const allSubjectsResponse = await apiService.getSubjects();
-      const classesResponse = await apiService.getClasses();
+      const [
+        allSubjectsResponse,
+        classesResponse,
+        usersResponse,
+        studentsResponse,
+        teachersResponse,
+      ] = await Promise.all([
+        apiService.getSubjects(),
+        apiService.getClasses(),
+        apiService.getUsers(),
+        apiService.getStudents(),
+        apiService.getTeachers(),
+      ]);
 
       const subjectIds: Identifier[] = Array.isArray(subjectsData)
         ? subjectsData
@@ -474,15 +510,20 @@ export function useTeacherDashboard(currentUser: TeacherDashboardUser | null) {
       setSubjects(teacherSubjects);
       setClasses(classesData);
 
-      const allUsers = await apiService.getUsers();
-      const studentsData = Array.isArray(allUsers)
-        ? allUsers
-            .map((item) => toStudent(item))
-            .filter(
-              (student): student is Student =>
-                student !== null && student.role === "siswa"
-            )
-        : [];
+      const mergedUsers = mergeUserData(
+        Array.isArray(usersResponse) ? usersResponse : [],
+        Array.isArray(studentsResponse) ? studentsResponse : [],
+        Array.isArray(teachersResponse) ? teachersResponse : []
+      );
+      const studentRecords = mergedUsers.filter(
+        (record) => record?.role === "siswa"
+      );
+      const studentsData = studentRecords.map((record) => ({
+        ...record,
+        id: record?.id as Identifier,
+        userId: (record?.userId as Identifier | null) ?? null,
+        studentId: (record?.studentId as Identifier | null) ?? null,
+      })) as Student[];
       setStudents(studentsData);
     } catch (error) {
       console.error(error);
@@ -578,7 +619,7 @@ export function useTeacherDashboard(currentUser: TeacherDashboardUser | null) {
         );
 
         const gradesWithNames = teacherGrades.map((grade) => {
-          const student = students.find((s) => s.id === grade.studentId);
+          const student = findStudentByAnyId(grade.studentId);
           const semesterDetails = resolveSemesterDetails(
             grade.semesterId,
             grade.semesterInfo
@@ -742,7 +783,7 @@ export function useTeacherDashboard(currentUser: TeacherDashboardUser | null) {
         );
 
         const attendanceWithNames = teacherAttendance.map((att) => {
-          const student = students.find((s) => s.id === att.studentId);
+          const student = findStudentByAnyId(att.studentId);
           const semesterDetails = resolveSemesterDetails(
             att.semesterId,
             att.semesterInfo
@@ -963,9 +1004,7 @@ export function useTeacherDashboard(currentUser: TeacherDashboardUser | null) {
       }
 
       try {
-        const studentData = students.find(
-          (s) => String(s.id) === String(gradeForm.studentId)
-        );
+        const studentData = findStudentByAnyId(gradeForm.studentId);
 
         const semesterIdToUse: string | null =
           gradeForm.semesterId ||
@@ -1529,7 +1568,7 @@ export function useTeacherDashboard(currentUser: TeacherDashboardUser | null) {
 
   const getStudentName = useCallback(
     (id: Identifier | "") => {
-      const student = students.find((s) => String(s.id) === String(id));
+      const student = findStudentByAnyId(id);
       return student ? `${student.nama} (${student.nisn})` : "Pilih siswa";
     },
     [students]
