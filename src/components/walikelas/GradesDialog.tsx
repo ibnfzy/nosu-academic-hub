@@ -56,18 +56,37 @@ const GradesDialog = ({
   const [verificationFilter, setVerificationFilter] = useState<
     "all" | "verified" | "unverified"
   >("all");
+  const [jenisFilter, setJenisFilter] = useState<"all" | string>("all");
+
+  const jenisOptions = useMemo(() => {
+    const uniqueJenis = Array.from(
+      new Set(grades.map((grade) => grade.jenis).filter(Boolean))
+    );
+
+    return [
+      { label: "Semua Jenis", value: "all" as const },
+      ...uniqueJenis.map((jenis) => ({
+        label: jenis,
+        value: jenis,
+      })),
+    ];
+  }, [grades]);
 
   const filteredGrades = useMemo(() => {
+    let result = grades;
+
     if (verificationFilter === "verified") {
-      return grades.filter((grade) => grade.verified);
+      result = result.filter((grade) => grade.verified);
+    } else if (verificationFilter === "unverified") {
+      result = result.filter((grade) => !grade.verified);
     }
 
-    if (verificationFilter === "unverified") {
-      return grades.filter((grade) => !grade.verified);
+    if (jenisFilter !== "all") {
+      result = result.filter((grade) => grade.jenis === jenisFilter);
     }
 
-    return grades;
-  }, [grades, verificationFilter]);
+    return result;
+  }, [grades, jenisFilter, verificationFilter]);
 
   const unverifiedCount = useMemo(
     () => grades.filter((grade) => !grade.verified).length,
@@ -79,8 +98,17 @@ const GradesDialog = ({
   useEffect(() => {
     if (!open) {
       setVerificationFilter("all");
+      setJenisFilter("all");
     }
   }, [open]);
+
+  useEffect(() => {
+    const availableJenis = jenisOptions.map((option) => option.value);
+
+    if (jenisFilter !== "all" && !availableJenis.includes(jenisFilter)) {
+      setJenisFilter("all");
+    }
+  }, [jenisFilter, jenisOptions]);
 
   const emptyMessage = useMemo(() => {
     if (grades.length === 0) {
@@ -90,21 +118,26 @@ const GradesDialog = ({
     }
 
     if (filteredGrades.length === 0) {
+      const filterDescriptions: string[] = [];
+
       if (verificationFilter === "verified") {
-        return selectedStudentName
-          ? "Siswa ini belum memiliki nilai yang sudah diverifikasi."
-          : "Belum ada nilai yang sudah diverifikasi.";
+        filterDescriptions.push("status sudah terverifikasi");
+      } else if (verificationFilter === "unverified") {
+        filterDescriptions.push("status belum terverifikasi");
       }
 
-      if (verificationFilter === "unverified") {
-        return selectedStudentName
-          ? "Siswa ini tidak memiliki nilai yang perlu diverifikasi."
-          : "Semua nilai telah diverifikasi.";
+      if (jenisFilter !== "all") {
+        filterDescriptions.push(`jenis ${jenisFilter}`);
       }
+
+      const filterText =
+        filterDescriptions.length > 0
+          ? ` dengan ${filterDescriptions.join(" dan ")}`
+          : "";
 
       return selectedStudentName
-        ? "Tidak ada nilai yang sesuai dengan filter ini untuk siswa tersebut."
-        : "Tidak ada nilai yang sesuai dengan filter ini.";
+        ? `Tidak ada nilai yang sesuai${filterText} untuk siswa tersebut.`
+        : `Tidak ada nilai yang sesuai${filterText}.`;
     }
 
     return undefined;
@@ -113,6 +146,7 @@ const GradesDialog = ({
     grades.length,
     selectedStudentName,
     verificationFilter,
+    jenisFilter,
   ]);
 
   return (
@@ -138,9 +172,25 @@ const GradesDialog = ({
                             : "Belum Terverifikasi"
                         }`
                       : ""}
+                    {jenisFilter !== "all" ? ` • Jenis: ${jenisFilter}` : ""}
                   </p>
                 </div>
                 <div className="flex flex-col md:flex-row gap-3 w-full md:w-auto">
+                  <Select
+                    value={jenisFilter}
+                    onValueChange={setJenisFilter}
+                  >
+                    <SelectTrigger className="w-full md:w-[220px]">
+                      <SelectValue placeholder="Filter jenis nilai" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {jenisOptions.map((option) => (
+                        <SelectItem key={option.value} value={option.value}>
+                          {option.label}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
                   <Select
                     value={verificationFilter}
                     onValueChange={(value) =>
