@@ -23,6 +23,11 @@ export type DashboardSemesterRecord = {
   keterangan?: string | null;
   isActive?: boolean;
   label?: string | null;
+  semesterId?: string | number | null;
+  semesterInfo?: DashboardSemesterRecord | null;
+  status?: string | number | boolean | null;
+  is_active?: string | number | boolean | null;
+  aktif?: string | number | boolean | null;
 };
 
 export type DashboardSemesterMetadata = {
@@ -63,6 +68,130 @@ export const useDashboardSemester = (
         semesterNumber = Number.isNaN(numericValue) ? rawSemester : numericValue;
       }
 
+      const tanggalMulaiValue =
+        semesterItem.tanggalMulai ?? semesterItem.startDate ?? null;
+      const tanggalSelesaiValue =
+        semesterItem.tanggalSelesai ?? semesterItem.endDate ?? null;
+
+      const parseActiveFlag = (value: unknown): boolean | null => {
+        if (value === null || value === undefined) {
+          return null;
+        }
+
+        if (typeof value === "boolean") {
+          return value;
+        }
+
+        if (typeof value === "number") {
+          if (Number.isNaN(value)) return null;
+          if (value === 1) return true;
+          if (value === 0) return false;
+          return value > 0;
+        }
+
+        if (typeof value === "string") {
+          const normalizedValue = value.trim().toLowerCase();
+          if (!normalizedValue) return null;
+
+          const positiveValues = new Set([
+            "1",
+            "true",
+            "aktif",
+            "active",
+            "ya",
+            "yes",
+            "ongoing",
+            "berjalan",
+          ]);
+          const negativeValues = new Set([
+            "0",
+            "false",
+            "nonaktif",
+            "non-aktif",
+            "non aktif",
+            "inactive",
+            "tidak",
+            "tidak aktif",
+            "belum aktif",
+            "selesai",
+            "berakhir",
+            "complete",
+            "completed",
+            "ended",
+          ]);
+
+          if (positiveValues.has(normalizedValue)) return true;
+          if (negativeValues.has(normalizedValue)) return false;
+
+          if (
+            normalizedValue.includes("tidak") ||
+            normalizedValue.includes("non") ||
+            normalizedValue.includes("selesai") ||
+            normalizedValue.includes("berakhir")
+          ) {
+            return false;
+          }
+
+          if (normalizedValue.includes("aktif")) {
+            return true;
+          }
+
+          return null;
+        }
+
+        return null;
+      };
+
+      const deriveIsActiveFromDates = (): boolean | null => {
+        if (!tanggalMulaiValue) return null;
+
+        const startDate = new Date(tanggalMulaiValue);
+        if (Number.isNaN(startDate.getTime())) return null;
+
+        const rawEndDate =
+          tanggalSelesaiValue !== null && tanggalSelesaiValue !== undefined
+            ? new Date(tanggalSelesaiValue)
+            : null;
+
+        if (rawEndDate && Number.isNaN(rawEndDate.getTime())) {
+          return null;
+        }
+
+        const now = new Date();
+        if (rawEndDate) {
+          const endOfDay = new Date(rawEndDate);
+          endOfDay.setHours(23, 59, 59, 999);
+          if (now.getTime() < startDate.getTime()) return false;
+          if (now.getTime() > endOfDay.getTime()) return false;
+          return true;
+        }
+
+        return now.getTime() >= startDate.getTime() ? true : null;
+      };
+
+      const explicitActiveSources: Array<unknown> = [
+        semesterItem.isActive,
+        semesterItem.is_active,
+        semesterItem.aktif,
+        semesterItem.status,
+      ];
+
+      let resolvedIsActive: boolean | null = null;
+      for (const source of explicitActiveSources) {
+        const parsed = parseActiveFlag(source);
+        if (parsed !== null) {
+          resolvedIsActive = parsed;
+          break;
+        }
+      }
+
+      if (resolvedIsActive === null) {
+        resolvedIsActive = deriveIsActiveFromDates();
+      }
+
+      const normalizedIsActive =
+        resolvedIsActive !== null ? resolvedIsActive : false;
+
       return {
         id: semesterItem.id !== undefined && semesterItem.id !== null
           ? String(semesterItem.id)
@@ -74,8 +203,8 @@ export const useDashboardSemester = (
           semesterItem.year ??
           null,
         semesterNumber,
-        tanggalMulai: semesterItem.tanggalMulai ?? semesterItem.startDate ?? null,
-        tanggalSelesai: semesterItem.tanggalSelesai ?? semesterItem.endDate ?? null,
+        tanggalMulai: tanggalMulaiValue,
+        tanggalSelesai: tanggalSelesaiValue,
         jumlahHariBelajar:
           semesterItem.jumlahHariBelajar ??
           semesterItem.learningDays ??
@@ -87,7 +216,7 @@ export const useDashboardSemester = (
           semesterItem.notes ??
           semesterItem.keterangan ??
           "",
-        isActive: Boolean(semesterItem.isActive),
+        isActive: normalizedIsActive,
       };
     },
     []
