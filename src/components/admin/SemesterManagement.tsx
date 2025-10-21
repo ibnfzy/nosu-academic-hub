@@ -200,6 +200,21 @@ export default function SemesterManagement({
     }
   };
 
+  const normalizeYear = (value: string | number | null | undefined) =>
+    String(value ?? "").trim().toLowerCase();
+
+  const toDate = (value?: string | null) => {
+    if (!value) return null;
+    const date = new Date(value);
+    return Number.isNaN(date.getTime()) ? null : date;
+  };
+
+  const isSameRecord = (current: any) => {
+    if (!formState.id) return false;
+    if (current?.id === undefined || current?.id === null) return false;
+    return `${current.id}` === `${formState.id}`;
+  };
+
   const handleSubmit = async (event: React.FormEvent<HTMLFormElement>) => {
     event.preventDefault();
     setIsSubmitting(true);
@@ -217,6 +232,92 @@ export default function SemesterManagement({
           : null,
       catatan: formState.catatan.trim(),
     };
+
+    const localErrors: BackendErrors = {};
+
+    const tahunAjaranNormalized = normalizeYear(formState.tahunAjaran);
+    const semesterNumeric =
+      formState.semester !== "" ? Number(formState.semester) : null;
+    const semesterValue =
+      semesterNumeric !== null && !Number.isNaN(semesterNumeric)
+        ? String(semesterNumeric)
+        : "";
+
+    const duplicateSemester = semesters.find((item) => {
+      if (isSameRecord(item)) return false;
+      const itemYear = normalizeYear(
+        item.tahunAjaran || item.tahun || ""
+      );
+      const itemSemesterNumber =
+        item.semester !== undefined && item.semester !== null
+          ? Number(item.semester)
+          : null;
+      const itemSemester =
+        itemSemesterNumber !== null && !Number.isNaN(itemSemesterNumber)
+          ? String(itemSemesterNumber)
+          : "";
+
+      return (
+        itemYear !== "" &&
+        itemSemester !== "" &&
+        itemYear === tahunAjaranNormalized &&
+        itemSemester === semesterValue
+      );
+    });
+
+    if (duplicateSemester) {
+      localErrors.tahunAjaran =
+        "Kombinasi tahun ajaran dan semester tersebut sudah digunakan.";
+      localErrors.semester =
+        "Kombinasi tahun ajaran dan semester tersebut sudah digunakan.";
+    }
+
+    const startDate = toDate(formState.tanggalMulai);
+    const endDate = toDate(formState.tanggalSelesai);
+
+    if (startDate && endDate && startDate > endDate) {
+      localErrors.tanggalMulai =
+        "Tanggal mulai harus lebih awal dari tanggal selesai.";
+      localErrors.tanggalSelesai =
+        "Tanggal selesai harus lebih akhir dari tanggal mulai.";
+    }
+
+    if (startDate && endDate && !localErrors.tanggalMulai) {
+      const overlappingSemester = semesters.find((item) => {
+        if (isSameRecord(item)) return false;
+
+        const existingStart = toDate(item.tanggalMulai || item.startDate);
+        const existingEnd = toDate(item.tanggalSelesai || item.endDate);
+
+        if (!existingStart || !existingEnd) return false;
+
+        return startDate <= existingEnd && endDate >= existingStart;
+      });
+
+      if (overlappingSemester) {
+        const message =
+          "Rentang tanggal bertabrakan dengan semester lain yang sudah ada.";
+        localErrors.tanggalMulai = message;
+        localErrors.tanggalSelesai = message;
+      }
+    }
+
+    if (Object.keys(localErrors).length > 0) {
+      setFormErrors(localErrors);
+      toast({
+        title: "Validasi Gagal",
+        description:
+          localErrors.general ||
+          localErrors.tahunAjaran ||
+          localErrors.semester ||
+          localErrors.tanggalMulai ||
+          localErrors.tanggalSelesai ||
+          "Harap perbaiki data yang tidak valid sebelum menyimpan.",
+        variant: "destructive",
+      });
+      setIsSubmitting(false);
+      return;
+    }
 
     try {
       let result;
