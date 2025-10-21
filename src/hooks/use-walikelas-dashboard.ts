@@ -33,6 +33,44 @@ interface StudentFormState {
   email: string;
 }
 
+const normalizeGender = (value: unknown): string => {
+  if (!value) return "";
+
+  const normalized = String(value).toLowerCase().trim();
+
+  if (["l", "laki-laki", "laki laki", "male", "m"].includes(normalized)) {
+    return "L";
+  }
+
+  if (["p", "perempuan", "female", "f"].includes(normalized)) {
+    return "P";
+  }
+
+  return String(value).toUpperCase();
+};
+
+const normalizeDateValue = (value: unknown): string => {
+  if (!value) return "";
+
+  if (value instanceof Date && !isNaN(value.getTime())) {
+    return value.toISOString().split("T")[0] ?? "";
+  }
+
+  if (typeof value === "string") {
+    const trimmed = value.trim();
+    if (/^\d{4}-\d{2}-\d{2}$/.test(trimmed)) {
+      return trimmed;
+    }
+
+    const parsed = new Date(trimmed);
+    if (!isNaN(parsed.getTime())) {
+      return parsed.toISOString().split("T")[0] ?? "";
+    }
+  }
+
+  return "";
+};
+
 const createDefaultStudentForm = (): StudentFormState => ({
   id: "",
   userId: "",
@@ -369,9 +407,13 @@ const useWalikelasDashboard = (currentUser: CurrentUser | null) => {
               String(record?.userId ?? record?.id)
           );
 
-          normalizedStudentsMap.set(key, {
+          const mergedStudent = {
             ...(classStudent ?? {}),
             ...record,
+          };
+
+          normalizedStudentsMap.set(key, {
+            ...mergedStudent,
             id: record?.userId ?? record?.id ?? key,
             userId: record?.userId ?? record?.id ?? key,
             studentId:
@@ -379,18 +421,30 @@ const useWalikelasDashboard = (currentUser: CurrentUser | null) => {
               record?.studentId ??
               classStudent?.studentId ??
               null,
-            kelasId: classStudent?.kelasId ?? record?.kelasId ?? null,
+            kelasId:
+              classStudent?.kelasId ??
+              record?.kelasId ??
+              mergedStudent?.kelasId ??
+              null,
+            jenisKelamin: normalizeGender(mergedStudent?.jenisKelamin),
+            tanggalLahir: normalizeDateValue(mergedStudent?.tanggalLahir),
           });
         });
 
         classStudents.forEach((student, index) => {
           const key = String(student?.userId ?? student?.id ?? index);
           if (!normalizedStudentsMap.has(key)) {
-            normalizedStudentsMap.set(key, {
+            const fallbackStudent = {
               ...student,
               id: key,
               userId: key,
               studentId: student?.id ?? student?.studentId ?? null,
+            };
+
+            normalizedStudentsMap.set(key, {
+              ...fallbackStudent,
+              jenisKelamin: normalizeGender(fallbackStudent?.jenisKelamin),
+              tanggalLahir: normalizeDateValue(fallbackStudent?.tanggalLahir),
             });
           }
         });
