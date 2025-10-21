@@ -251,6 +251,20 @@ export function useTeacherDashboard(currentUser: TeacherDashboardUser | null) {
   const [editingAttendance, setEditingAttendance] = useState<
     AttendanceRecord | null
   >(null);
+  const [gradeContextLock, setGradeContextLock] = useState<
+    | {
+        subjectId?: string;
+        kelasId?: string;
+      }
+    | null
+  >(null);
+  const [attendanceContextLock, setAttendanceContextLock] = useState<
+    | {
+        subjectId?: string;
+        kelasId?: string;
+      }
+    | null
+  >(null);
   const { toast } = useToast();
   const [semesterWarning, setSemesterWarning] = useState<string>("");
   const [uploadBlockedReason, setUploadBlockedReason] = useState<string>("");
@@ -302,33 +316,31 @@ export function useTeacherDashboard(currentUser: TeacherDashboardUser | null) {
     []
   );
 
-  const resetGradeForm = useCallback(
-    () =>
-      setGradeForm({
-        studentId: "",
-        subjectId: "",
-        jenis: "",
-        nilai: "",
-        kelasId: "",
-        tanggal: new Date().toISOString().split("T")[0],
-        semesterId: selectedSemesterId || "",
-      }),
-    [selectedSemesterId]
-  );
+  const resetGradeForm = useCallback(() => {
+    setGradeForm({
+      studentId: "",
+      subjectId: "",
+      jenis: "",
+      nilai: "",
+      kelasId: "",
+      tanggal: new Date().toISOString().split("T")[0],
+      semesterId: selectedSemesterId || "",
+    });
+    setGradeContextLock(null);
+  }, [selectedSemesterId]);
 
-  const resetAttendanceForm = useCallback(
-    () =>
-      setAttendanceForm({
-        studentId: "",
-        subjectId: "",
-        status: "",
-        keterangan: "",
-        kelasId: "",
-        tanggal: new Date().toISOString().split("T")[0],
-        semesterId: selectedSemesterId || "",
-      }),
-    [selectedSemesterId]
-  );
+  const resetAttendanceForm = useCallback(() => {
+    setAttendanceForm({
+      studentId: "",
+      subjectId: "",
+      status: "",
+      keterangan: "",
+      kelasId: "",
+      tanggal: new Date().toISOString().split("T")[0],
+      semesterId: selectedSemesterId || "",
+    });
+    setAttendanceContextLock(null);
+  }, [selectedSemesterId]);
 
   const handleGradeDialogOpenChange = useCallback(
     (open: boolean) => {
@@ -1585,6 +1597,10 @@ export function useTeacherDashboard(currentUser: TeacherDashboardUser | null) {
     selectedSubjectForAttendance,
     semesterWarning,
     uploadBlockedReason,
+    gradeContextLock,
+    setGradeContextLock,
+    attendanceContextLock,
+    setAttendanceContextLock,
   };
 }
 

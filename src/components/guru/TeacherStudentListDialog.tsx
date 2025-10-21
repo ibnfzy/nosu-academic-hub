@@ -28,6 +28,8 @@ export function TeacherStudentListDialog({
     setAttendanceForm,
     setShowGradeDialog,
     setShowAttendanceDialog,
+    setGradeContextLock,
+    setAttendanceContextLock,
   } = dashboard;
 
   return (
@@ -63,34 +65,56 @@ export function TeacherStudentListDialog({
                   <Button
                     size="sm"
                     variant="outline"
-                  onClick={() => {
-                    setGradeForm((prev) => ({
-                      ...prev,
-                      studentId: String(student.id),
-                      subjectId: selectedSubjectId
+                    onClick={() => {
+                      const subjectId = selectedSubjectId
                         ? String(selectedSubjectId)
-                        : "",
-                    }));
-                    setShowStudentListDialog(false);
-                    setShowGradeDialog(true);
-                  }}
-                >
+                        : "";
+                      const kelasId = selectedSubjectKelasId
+                        ? String(selectedSubjectKelasId)
+                        : "";
+                      setGradeForm((prev) => ({
+                        ...prev,
+                        studentId: String(student.id),
+                        subjectId,
+                        kelasId,
+                      }));
+                      if (subjectId) {
+                        setGradeContextLock({
+                          subjectId,
+                          kelasId,
+                        });
+                      }
+                      setShowStudentListDialog(false);
+                      setShowGradeDialog(true);
+                    }}
+                  >
                     Input Nilai
                   </Button>
                   <Button
                     size="sm"
                     variant="outline"
-                  onClick={() => {
-                    setAttendanceForm((prev) => ({
-                      ...prev,
-                      studentId: String(student.id),
-                      subjectId: selectedSubjectId
+                    onClick={() => {
+                      const subjectId = selectedSubjectId
                         ? String(selectedSubjectId)
-                        : "",
-                    }));
-                    setShowStudentListDialog(false);
-                    setShowAttendanceDialog(true);
-                  }}
+                        : "";
+                      const kelasId = selectedSubjectKelasId
+                        ? String(selectedSubjectKelasId)
+                        : "";
+                      setAttendanceForm((prev) => ({
+                        ...prev,
+                        studentId: String(student.id),
+                        subjectId,
+                        kelasId,
+                      }));
+                      if (subjectId) {
+                        setAttendanceContextLock({
+                          subjectId,
+                          kelasId,
+                        });
+                      }
+                      setShowStudentListDialog(false);
+                      setShowAttendanceDialog(true);
+                    }}
                   >
                     Input Kehadiran
                   </Button>
