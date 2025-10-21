@@ -117,20 +117,21 @@ const GradesDialog = ({
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-w-3xl w-full">
-        <DialogHeader>
+      <DialogContent className="max-w-3xl w-full max-h-[85vh] flex flex-col overflow-hidden">
+        <DialogHeader className="flex-none">
           <DialogTitle>
             {selectedStudentName
               ? `Data Nilai ${selectedStudentName}`
               : "Data Nilai Siswa"}
           </DialogTitle>
         </DialogHeader>
-        <Card className="shadow-none border-none">
-          <CardHeader className="px-0 pt-0">
-            <div className="flex flex-col md:flex-row justify-between items-start md:items-center space-y-4 md:space-y-0">
-              <div>
-                <CardTitle className="text-lg">
-                  {selectedStudentName
+        <div className="flex-1 overflow-y-auto">
+          <Card className="shadow-none border-none flex flex-col h-full overflow-hidden">
+            <CardHeader className="px-0 pt-0">
+              <div className="flex flex-col md:flex-row justify-between items-start md:items-center space-y-4 md:space-y-0">
+                <div>
+                  <CardTitle className="text-lg">
+                    {selectedStudentName
                     ? `Daftar Nilai ${selectedStudentName}`
                     : "Daftar Nilai Siswa"}
                 </CardTitle>
@@ -178,16 +179,17 @@ const GradesDialog = ({
               </div>
             </div>
           </CardHeader>
-          <CardContent className="px-0">
-            <GradesList
-              loading={loading}
-              grades={filteredGrades}
-              students={students}
-              onVerifyGrade={onVerifyGrade}
-              emptyMessage={emptyMessage}
-            />
-          </CardContent>
-        </Card>
+            <CardContent className="px-0 flex-1 overflow-y-auto pr-1">
+              <GradesList
+                loading={loading}
+                grades={filteredGrades}
+                students={students}
+                onVerifyGrade={onVerifyGrade}
+                emptyMessage={emptyMessage}
+              />
+            </CardContent>
+          </Card>
+        </div>
       </DialogContent>
     </Dialog>
   );
