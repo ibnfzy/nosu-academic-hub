@@ -48,7 +48,7 @@ export function TeacherSemesterSelector({
                 </SelectItem>
               ))
             ) : (
-              <SelectItem value="" disabled>
+              <SelectItem value="no-semesters" disabled>
                 Data semester belum tersedia
               </SelectItem>
             )}
