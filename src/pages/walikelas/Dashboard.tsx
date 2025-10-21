@@ -90,6 +90,24 @@ const WalikelasaDashboard = ({ currentUser, onLogout }) => {
     setGradesDialogOpen(true);
   };
 
+  const handleShowStudentAttendance = (studentId: string) => {
+    setSelectedStudentId(studentId);
+    setAttendanceDialogOpen(true);
+  };
+
+  const handleShowStudentGrades = (studentId: string) => {
+    setSelectedStudentId(studentId);
+    setGradesDialogOpen(true);
+  };
+
+  const filteredAttendanceRecords = selectedStudentId
+    ? attendance.filter((record) => record.studentId === selectedStudentId)
+    : attendance;
+
+  const filteredGradeRecords = selectedStudentId
+    ? unverifiedGrades.filter((grade) => grade.studentId === selectedStudentId)
+    : unverifiedGrades;
+
   const handleAttendanceDialogChange = (open: boolean) => {
     setAttendanceDialogOpen(open);
     if (!open) {
@@ -148,7 +166,7 @@ const WalikelasaDashboard = ({ currentUser, onLogout }) => {
       <AttendanceDialog
         open={isAttendanceDialogOpen}
         onOpenChange={handleAttendanceDialogChange}
-        attendance={attendance}
+        attendance={filteredAttendanceRecords}
         students={students}
         selectedStudentName={selectedStudentName}
       />
@@ -157,7 +175,7 @@ const WalikelasaDashboard = ({ currentUser, onLogout }) => {
         open={isGradesDialogOpen}
         onOpenChange={handleGradesDialogChange}
         loading={loading}
-        grades={unverifiedGrades}
+        grades={filteredGradeRecords}
         students={students}
         onVerifyGrade={handleVerifyGrade}
         onVerifyAll={handleVerifyAll}
@@ -364,6 +382,8 @@ const WalikelasaDashboard = ({ currentUser, onLogout }) => {
               onAddStudent={startAddStudent}
               onEditStudent={editStudent}
               onDeleteStudent={handleDeleteStudent}
+              onShowAttendance={handleShowStudentAttendance}
+              onShowGrades={handleShowStudentGrades}
               isDialogOpen={showStudentDialog}
               onDialogOpenChange={handleStudentDialogChange}
               isEditing={Boolean(editingStudent)}
