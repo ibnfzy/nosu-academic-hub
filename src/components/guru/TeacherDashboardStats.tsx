@@ -13,9 +13,9 @@ export function TeacherDashboardStats({
 }: TeacherDashboardStatsProps) {
   return (
     <div className="mb-6">
-      <div className="flex flex-wrap items-center justify-between gap-6 rounded-xl border border-muted/40 bg-muted/30 px-4 py-4">
+      <div className="flex flex-wrap items-center justify-between gap-6 rounded-xl border border-primary/20 bg-primary/10 px-4 py-4">
         <div className="flex items-center gap-3">
-          <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-background shadow-sm">
+          <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-primary/20 shadow-sm">
             <BookOpen className="h-5 w-5 text-primary" />
           </div>
           <div className="leading-tight">
@@ -27,7 +27,7 @@ export function TeacherDashboardStats({
         </div>
 
         <div className="flex items-center gap-3">
-          <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-background shadow-sm">
+          <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-primary/20 shadow-sm">
             <Users className="h-5 w-5 text-accent" />
           </div>
           <div className="leading-tight">
@@ -39,7 +39,7 @@ export function TeacherDashboardStats({
         </div>
 
         <div className="flex items-center gap-3">
-          <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-background shadow-sm">
+          <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-primary/20 shadow-sm">
             <FileText className="h-5 w-5 text-success" />
           </div>
           <div className="leading-tight">

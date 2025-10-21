@@ -93,7 +93,7 @@ export function TeacherDashboardTabs({
                 <AccordionItem
                   key={subject.id}
                   value={`${subject.id}-${subject.kelasId}`}
-                  className="rounded-xl border border-border bg-card shadow-soft"
+                  className="rounded-xl border border-primary/20 bg-primary/5 shadow-soft"
                 >
                   <div className="px-4 pt-4">
                     <div className="flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
@@ -175,7 +175,7 @@ export function TeacherDashboardTabs({
                             {subjectGrades.slice(-3).map((grade) => (
                               <li
                                 key={grade.id}
-                                className="rounded-md border border-border/60 bg-background px-3 py-2 shadow-sm"
+                                className="rounded-md border border-primary/20 bg-primary/5 px-3 py-2 shadow-sm"
                               >
                                 <p className="font-medium text-foreground">
                                   {grade.studentName}
@@ -228,7 +228,7 @@ export function TeacherDashboardTabs({
                             {subjectAttendance.slice(-3).map((att) => (
                               <li
                                 key={att.id}
-                                className="rounded-md border border-border/60 bg-background px-3 py-2 shadow-sm"
+                                className="rounded-md border border-primary/20 bg-primary/5 px-3 py-2 shadow-sm"
                               >
                                 <p className="font-medium text-foreground">
                                   {att.studentName}
@@ -271,7 +271,7 @@ export function TeacherDashboardTabs({
                         )}
                       </div>
 
-                      <div className="rounded-lg border border-border/70 bg-background px-4 py-3 shadow-sm">
+                      <div className="rounded-lg bg-primary/5 px-4 py-3 shadow-sm">
                         <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
                           <div>
                             <p className="text-sm font-semibold text-foreground">
@@ -317,7 +317,7 @@ export function TeacherDashboardTabs({
                 {students.map((student) => (
                   <div
                     key={student.id}
-                    className="flex justify-between items-center p-4 border border-border rounded-lg"
+                    className="flex items-center justify-between rounded-lg bg-muted/20 p-4 shadow-sm"
                   >
                     <div className="flex items-center space-x-4">
                       <div className="p-2 bg-primary/10 rounded-lg">
