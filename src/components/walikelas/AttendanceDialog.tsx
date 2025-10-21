@@ -33,19 +33,21 @@ const AttendanceDialog = ({
 }: AttendanceDialogProps) => {
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-w-3xl w-full">
-        <DialogHeader>
+      <DialogContent className="max-w-3xl w-full max-h-[80vh] flex flex-col overflow-hidden">
+        <DialogHeader className="flex-none">
           <DialogTitle>
             {selectedStudentName
               ? `Detail Kehadiran ${selectedStudentName}`
               : "Detail Kehadiran Siswa"}
           </DialogTitle>
         </DialogHeader>
-        <Card className="shadow-none border-none">
-          <CardContent className="px-0">
-            <AttendanceList attendance={attendance} students={students} />
-          </CardContent>
-        </Card>
+        <div className="flex-1 overflow-y-auto">
+          <Card className="shadow-none border-none flex flex-col h-full overflow-hidden">
+            <CardContent className="px-0 flex-1 overflow-y-auto pr-1">
+              <AttendanceList attendance={attendance} students={students} />
+            </CardContent>
+          </Card>
+        </div>
       </DialogContent>
     </Dialog>
   );
