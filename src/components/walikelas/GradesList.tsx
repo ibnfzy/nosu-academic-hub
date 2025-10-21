@@ -23,6 +23,7 @@ interface GradesListProps {
   grades: GradeItem[];
   students: StudentSummary[];
   onVerifyGrade: (gradeId: string) => void;
+  emptyMessage?: string;
 }
 
 const GradesList = ({
@@ -30,6 +31,7 @@ const GradesList = ({
   grades,
   students,
   onVerifyGrade,
+  emptyMessage,
 }: GradesListProps) => {
   const findStudentName = (studentId: string) =>
     students.find((student) => student.id === studentId)?.nama || "Siswa";
@@ -47,7 +49,9 @@ const GradesList = ({
     return (
       <div className="text-center py-8">
         <CheckCircle className="h-12 w-12 mx-auto mb-4 text-muted-foreground" />
-        <p className="text-muted-foreground">Semua nilai sudah diverifikasi</p>
+        <p className="text-muted-foreground">
+          {emptyMessage || "Belum ada data nilai."}
+        </p>
       </div>
     );
   }
@@ -75,21 +79,36 @@ const GradesList = ({
               </span>
             </div>
           </div>
-          <div className="flex items-center space-x-4">
-            <div className="text-right">
-              <p className={`text-xl font-bold ${getGradeColor(grade.nilai)}`}>
-                {grade.nilai}
-              </p>
+          <div className="flex flex-col items-stretch md:items-end gap-3">
+            <div className="flex items-center gap-3 md:justify-end">
+              <div className="text-right">
+                <p className={`text-xl font-bold ${getGradeColor(grade.nilai)}`}>
+                  {grade.nilai}
+                </p>
+              </div>
+              <Badge
+                variant="outline"
+                className={
+                  grade.verified
+                    ? "border-success/40 text-success"
+                    : "border-warning/40 text-warning"
+                }
+              >
+                {grade.verified ? "Sudah Terverifikasi" : "Belum Terverifikasi"}
+              </Badge>
             </div>
-            <Button
-              size="sm"
-              onClick={() => onVerifyGrade(grade.id)}
-              className="bg-success text-success-foreground"
-              aria-label={`Verifikasi nilai ${findStudentName(grade.studentId)}`}
-            >
-              <CheckCircle className="h-4 w-4 mr-2" />
-              Verifikasi
-            </Button>
+            {!grade.verified && (
+              <Button
+                size="sm"
+                onClick={() => onVerifyGrade(grade.id)}
+                className="bg-success text-success-foreground"
+                aria-label={`Verifikasi nilai ${findStudentName(grade.studentId)}`}
+                disabled={loading}
+              >
+                <CheckCircle className="h-4 w-4 mr-2" />
+                Verifikasi
+              </Button>
+            )}
           </div>
         </div>
       ))}

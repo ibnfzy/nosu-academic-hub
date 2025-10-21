@@ -105,8 +105,8 @@ const WalikelasaDashboard = ({ currentUser, onLogout }) => {
     : attendance;
 
   const filteredGradeRecords = selectedStudentId
-    ? unverifiedGrades.filter((grade) => grade.studentId === selectedStudentId)
-    : unverifiedGrades;
+    ? grades.filter((grade) => grade.studentId === selectedStudentId)
+    : grades;
 
   const handleAttendanceDialogChange = (open: boolean) => {
     setAttendanceDialogOpen(open);
