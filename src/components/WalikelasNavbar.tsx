@@ -33,12 +33,16 @@ interface WalikelasNavbarProps {
   activeSection: string;
   setActiveSection: (section: string) => void;
   onLogout: () => void;
+  onOpenAttendanceDialog: () => void;
+  onOpenGradesDialog: () => void;
 }
 
 const WalikelasNavbar = ({
   activeSection,
   setActiveSection,
   onLogout,
+  onOpenAttendanceDialog,
+  onOpenGradesDialog,
 }: WalikelasNavbarProps) => {
   const activeItem = menuItems.find((item) => item.id === activeSection);
 
@@ -56,15 +60,37 @@ const WalikelasNavbar = ({
                 {activeItem?.description || "Kelola kelas Anda"}
               </p>
             </div>
-            <Button
-              variant="outline"
-              size="sm"
-              onClick={onLogout}
-              className="text-destructive hover:text-destructive-foreground hover:bg-destructive"
-            >
-              <LogOut className="h-4 w-4 mr-2" />
-              Logout
-            </Button>
+            <div className="flex items-center gap-2">
+              <Button
+                variant="ghost"
+                size="sm"
+                onClick={onOpenAttendanceDialog}
+                className="text-muted-foreground hover:text-foreground"
+                aria-label="Buka dialog kehadiran"
+              >
+                <Calendar className="h-4 w-4" />
+                <span className="hidden md:inline ml-2">Kehadiran</span>
+              </Button>
+              <Button
+                variant="ghost"
+                size="sm"
+                onClick={onOpenGradesDialog}
+                className="text-muted-foreground hover:text-foreground"
+                aria-label="Buka dialog nilai"
+              >
+                <CheckCircle className="h-4 w-4" />
+                <span className="hidden md:inline ml-2">Nilai</span>
+              </Button>
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={onLogout}
+                className="text-destructive hover:text-destructive-foreground hover:bg-destructive"
+              >
+                <LogOut className="h-4 w-4 mr-2" />
+                Logout
+              </Button>
+            </div>
           </div>
 
           {/* Navigation Menu */}

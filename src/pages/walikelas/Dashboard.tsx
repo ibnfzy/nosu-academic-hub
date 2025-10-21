@@ -1,3 +1,4 @@
+import { useState } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import {
   Select,
@@ -19,6 +20,8 @@ import StudentsSection from "@/components/walikelas/StudentsSection";
 import GradesSection from "@/components/walikelas/GradesSection";
 import AttendanceSection from "@/components/walikelas/AttendanceSection";
 import ReportsSection from "@/components/walikelas/ReportsSection";
+import AttendanceDialog from "@/components/walikelas/AttendanceDialog";
+import GradesDialog from "@/components/walikelas/GradesDialog";
 import { useDashboardSemester } from "@/hooks/use-dashboard-semester";
 import useWalikelasDashboard from "@/hooks/use-walikelas-dashboard";
 
@@ -69,6 +72,38 @@ const WalikelasaDashboard = ({ currentUser, onLogout }) => {
     selectedSemesterMetadata
   );
 
+  const [isAttendanceDialogOpen, setAttendanceDialogOpen] = useState(false);
+  const [isGradesDialogOpen, setGradesDialogOpen] = useState(false);
+  const [selectedStudentId, setSelectedStudentId] = useState<string | null>(null);
+
+  const selectedStudentName = selectedStudentId
+    ? students.find((student) => student.id === selectedStudentId)?.nama || null
+    : null;
+
+  const openAttendanceDialog = () => {
+    setSelectedStudentId(null);
+    setAttendanceDialogOpen(true);
+  };
+
+  const openGradesDialog = () => {
+    setSelectedStudentId(null);
+    setGradesDialogOpen(true);
+  };
+
+  const handleAttendanceDialogChange = (open: boolean) => {
+    setAttendanceDialogOpen(open);
+    if (!open) {
+      setSelectedStudentId(null);
+    }
+  };
+
+  const handleGradesDialogChange = (open: boolean) => {
+    setGradesDialogOpen(open);
+    if (!open) {
+      setSelectedStudentId(null);
+    }
+  };
+
   return (
     <div className="min-h-screen bg-background">
       <div className="bg-gradient-to-r from-green-600 to-teal-600 text-white py-6 md:py-8">
@@ -106,6 +141,27 @@ const WalikelasaDashboard = ({ currentUser, onLogout }) => {
         activeSection={activeSection}
         setActiveSection={setActiveSection}
         onLogout={onLogout}
+        onOpenAttendanceDialog={openAttendanceDialog}
+        onOpenGradesDialog={openGradesDialog}
+      />
+
+      <AttendanceDialog
+        open={isAttendanceDialogOpen}
+        onOpenChange={handleAttendanceDialogChange}
+        attendance={attendance}
+        students={students}
+        selectedStudentName={selectedStudentName}
+      />
+
+      <GradesDialog
+        open={isGradesDialogOpen}
+        onOpenChange={handleGradesDialogChange}
+        loading={loading}
+        grades={unverifiedGrades}
+        students={students}
+        onVerifyGrade={handleVerifyGrade}
+        onVerifyAll={handleVerifyAll}
+        selectedStudentName={selectedStudentName}
       />
 
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6 md:py-8">
