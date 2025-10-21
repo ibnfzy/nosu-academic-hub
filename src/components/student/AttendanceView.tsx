@@ -9,7 +9,13 @@ interface AttendanceViewProps {
 }
 
 export default function AttendanceView({ attendance, loading }: AttendanceViewProps) {
-  const attendanceStats = calculateAttendanceStats(attendance);
+  const derivedSemesterInfo = Array.isArray(attendance)
+    ? attendance.find((record) => record?.semesterInfo)?.semesterInfo ?? null
+    : null;
+
+  const attendanceStats = calculateAttendanceStats(attendance, {
+    semesterInfo: derivedSemesterInfo,
+  });
 
   return (
     <Card className="shadow-soft">
