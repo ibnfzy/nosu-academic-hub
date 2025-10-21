@@ -51,6 +51,8 @@ export function TeacherDashboardTabs({
     setShowGradeDialog,
     setAttendanceForm,
     setShowAttendanceDialog,
+    setGradeContextLock,
+    setAttendanceContextLock,
   } = dashboard;
 
   return (
@@ -118,10 +120,19 @@ export function TeacherDashboardTabs({
                           <DropdownMenuSeparator />
                           <DropdownMenuItem
                             onSelect={() => {
+                              const subjectId = String(subject.id);
+                              const kelasId = subject.kelasId
+                                ? String(subject.kelasId)
+                                : "";
                               setGradeForm((prev) => ({
                                 ...prev,
-                                subjectId: String(subject.id),
+                                subjectId,
+                                kelasId,
                               }));
+                              setGradeContextLock({
+                                subjectId,
+                                kelasId,
+                              });
                               setShowGradeDialog(true);
                             }}
                             className="gap-2"
@@ -130,11 +141,19 @@ export function TeacherDashboardTabs({
                           </DropdownMenuItem>
                           <DropdownMenuItem
                             onSelect={() => {
+                              const subjectId = String(subject.id);
+                              const kelasId = subject.kelasId
+                                ? String(subject.kelasId)
+                                : "";
                               setAttendanceForm((prev) => ({
                                 ...prev,
-                                subjectId: String(subject.id),
-                                kelasId: subject.kelasId ? String(subject.kelasId) : "",
+                                subjectId,
+                                kelasId,
                               }));
+                              setAttendanceContextLock({
+                                subjectId,
+                                kelasId,
+                              });
                               setShowAttendanceDialog(true);
                             }}
                             className="gap-2"
