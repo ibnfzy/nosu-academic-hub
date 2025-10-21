@@ -11,7 +11,7 @@ import {
   TableRow,
 } from "@/components/ui/table";
 import { Badge } from "@/components/ui/badge";
-import { Search, UserPlus, Edit, Trash2 } from "lucide-react";
+import { Search, UserPlus, Edit, Trash2, Calendar, BarChart3 } from "lucide-react";
 import { useIsMobile } from "@/hooks/use-mobile";
 import StudentFormDialog from "./StudentFormDialog";
 
@@ -33,6 +33,8 @@ interface StudentsSectionProps {
   onAddStudent: () => void;
   onEditStudent: (student: Student) => void;
   onDeleteStudent: (studentId: string) => void;
+  onShowAttendance: (studentId: string) => void;
+  onShowGrades: (studentId: string) => void;
   isDialogOpen: boolean;
   onDialogOpenChange: (open: boolean) => void;
   isEditing: boolean;
@@ -50,6 +52,8 @@ const StudentsSection = ({
   onAddStudent,
   onEditStudent,
   onDeleteStudent,
+  onShowAttendance,
+  onShowGrades,
   isDialogOpen,
   onDialogOpenChange,
   isEditing,
@@ -142,7 +146,23 @@ const StudentsSection = ({
                     </TableCell>
                   )}
                   <TableCell className="text-right">
-                    <div className="flex justify-end space-x-2">
+                    <div className="flex flex-wrap justify-end gap-2">
+                      <Button
+                        size="sm"
+                        variant="outline"
+                        onClick={() => onShowAttendance(student.id)}
+                        aria-label={`Lihat kehadiran ${student.nama}`}
+                      >
+                        <Calendar className="h-3 w-3" />
+                      </Button>
+                      <Button
+                        size="sm"
+                        variant="outline"
+                        onClick={() => onShowGrades(student.id)}
+                        aria-label={`Lihat nilai ${student.nama}`}
+                      >
+                        <BarChart3 className="h-3 w-3" />
+                      </Button>
                       <Button
                         size="sm"
                         variant="outline"
