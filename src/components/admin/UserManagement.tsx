@@ -451,7 +451,7 @@ export default function UserManagement({
       namaOrangTua: user.namaOrangTua || "",
       pekerjaanOrangTua: user.pekerjaanOrangTua || "",
       kelasId: user.kelasId ? String(user.kelasId) : "", // tambahkan ini
-      password: user.password, // kosongkan password saat edit
+      password: user.password,
     };
 
     setUserForm(formData);
