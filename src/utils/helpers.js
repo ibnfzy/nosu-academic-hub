@@ -75,9 +75,7 @@ const parseLearningDays = (value) => {
     const trimmed = value.trim();
     if (!trimmed) return null;
 
-    const numericPortion = trimmed
-      .replace(/[^0-9.,-]/g, "")
-      .replace(/,/g, ".");
+    const numericPortion = trimmed.replace(/[^0-9.,-]/g, "").replace(/,/g, ".");
 
     if (!numericPortion) return null;
 
@@ -97,10 +95,7 @@ const parseLearningDays = (value) => {
  * @param {Object|null} [options.semesterInfo] - Informasi semester alternatif
  * @returns {Object} - Statistik kehadiran
  */
-export const calculateAttendanceStats = (
-  attendance,
-  options = {}
-) => {
+export const calculateAttendanceStats = (attendance, options = {}) => {
   const attendanceArray = Array.isArray(attendance) ? attendance : [];
 
   if (attendanceArray.length === 0) {
@@ -622,71 +617,90 @@ export const generateReportHTML = (reportData) => {
       <title>Raport ${student.nama} - ${formattedSemesterPeriod}</title>
       <style>
         @page { size: A4; margin: 20mm; }
-        body { 
-          font-family: 'Times New Roman', serif; 
-          font-size: 12pt; 
-          line-height: 1.4;
-          margin: 0;
-          padding: 0;
-        }
-        .header {
-          text-align: center;
-          border-bottom: 2px solid #000;
-          padding-bottom: 10px;
-          margin-bottom: 20px;
-        }
-        .header h1 { margin: 5px 0; font-size: 18pt; }
-        .header h2 { margin: 5px 0; font-size: 16pt; }
-        .header p { margin: 2px 0; font-size: 12pt; }
-        .student-info {
-          margin-bottom: 20px;
-        }
-        .student-info table {
-          width: 100%;
-          border-collapse: collapse;
-        }
-        .student-info td {
-          padding: 4px 8px;
-          border: 1px solid #333;
-        }
-        .grades-table {
-          width: 100%;
-          border-collapse: collapse;
-          margin-bottom: 20px;
-        }
-        .grades-table th,
-        .grades-table td {
-          border: 1px solid #333;
-          padding: 8px 4px;
-          text-align: center;
-        }
-        .grades-table th {
-          background-color: #f0f0f0;
-          font-weight: bold;
-        }
-        .footer {
-          margin-top: 30px;
-          display: flex;
-          justify-content: space-between;
-        }
-        .footer div {
-          text-align: center;
-          width: 30%;
-        }
-        .signature-space {
-          height: 60px;
-          border-bottom: 1px solid #333;
-          margin: 10px auto;
-          width: 90%;
-        }
-        .signature-block {
-          display: flex;
-          flex-direction: column;
-          align-items: center;
-        }
-        .text-white {
-          color: white;
-        }
+    body { 
+      font-family: 'Times New Roman', serif; 
+      font-size: 12pt; 
+      line-height: 1.4;
+      margin: 0;
+      padding: 0;
+    }
+    .header {
+      text-align: center;
+      border-bottom: 2px solid #000;
+      padding-bottom: 10px;
+      margin-bottom: 20px;
+    }
+    .header h1 { margin: 5px 0; font-size: 18pt; }
+    .header h2 { margin: 5px 0; font-size: 16pt; }
+    .header p { margin: 2px 0; font-size: 12pt; }
+
+    .student-info {
+      margin-bottom: 20px;
+    }
+    .student-info table {
+      width: 100%;
+      border-collapse: collapse;
+    }
+    .student-info td {
+      padding: 4px 8px;
+      border: 1px solid #333;
+    }
+
+    .grades-table {
+      width: 100%;
+      border-collapse: collapse;
+      margin-bottom: 20px;
+    }
+    .grades-table th,
+    .grades-table td {
+      border: 1px solid #333;
+      padding: 8px 4px;
+      text-align: center;
+    }
+    .grades-table th {
+      background-color: #f0f0f0;
+      font-weight: bold;
+    }
+
+    /* Flexbox section for nilai rata-rata + periode akademik */
+    .summary-section {
+      display: flex;
+      justify-content: space-between;
+      align-items: flex-start;
+      gap: 20px;
+      margin-bottom: 20px;
+    }
+
+    .summary-left {
+      flex: 1;
+    }
+    .summary-right {
+      flex: 1;
+    }
+    .summary-right p {
+      margin: 4px 0;
+    }
+
+    .footer {
+      margin-top: 30px;
+      display: flex;
+      justify-content: space-between;
+    }
+    .footer div {
+      text-align: center;
+      width: 30%;
+    }
+    .signature-space {
+      height: 60px;
+      border-bottom: 1px solid #333;
+      margin: 10px auto;
+      width: 90%;
+    }
+    .signature-block {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+    }
       </style>
     </head>
     <body>
@@ -697,12 +711,12 @@ export const generateReportHTML = (reportData) => {
         <p>Telepon: ${profileSchool?.telepon} | Email: ${
     profileSchool?.email
   }</p>
-        <p><strong>Periode Akademik:</strong> ${formattedSemesterPeriod}</p>
-        ${formattedSemesterDateRange
-          ? `<p><strong>Rentang Semester:</strong> ${formattedSemesterDateRange}</p>`
-          : ""}
-        <p><strong>Jumlah Hari Belajar:</strong> ${formattedLearningDays}</p>
-        <p><strong>Catatan Semester:</strong> ${formattedSemesterNotes}</p>
+        <p>${formattedSemesterPeriod}</p>
+        ${
+          formattedSemesterDateRange
+            ? `<p>${formattedSemesterDateRange}</p>`
+            : ""
+        }
       </div>
       
       <div class="student-info">
@@ -779,19 +793,24 @@ export const generateReportHTML = (reportData) => {
         </tbody>
       </table>
       
-      <div style="margin-bottom: 20px;">
-        <p><strong>Nilai Rata-rata:</strong> ${getFinalGrade(
-          finalGradeArr
-        )} (${getGradePredicate(getFinalGrade(finalGradeArr))})</p>
-        <p><strong>Kehadiran:</strong> Hadir: ${
-          attendanceStats.hadir
-        }, Sakit: ${attendanceStats.sakit}, Alfa: ${
-    attendanceStats.alfa
-  }, Izin: ${attendanceStats.izin}</p>
-        <p><strong>Persentase Kehadiran:</strong> ${
-          attendanceStats.persentase
-        }%</p>
-      </div>
+       <div class="summary-section">
+    <div class="summary-left">
+      <p><strong>Nilai Rata-rata:</strong> ${getFinalGrade(
+        finalGradeArr
+      )} (${getGradePredicate(getFinalGrade(finalGradeArr))})</p>
+      <p><strong>Kehadiran:</strong> Hadir: ${attendanceStats.hadir}, Sakit: ${
+    attendanceStats.sakit
+  }, Alfa: ${attendanceStats.alfa}, Izin: ${attendanceStats.izin}</p>
+      <p><strong>Persentase Kehadiran:</strong> ${
+        attendanceStats.persentase
+      }%</p>
+    </div>
+
+    <div class="summary-right">
+      <p><strong>Jumlah Hari Belajar:</strong> ${formattedLearningDays}</p>
+      <p><strong>Catatan Semester:</strong> ${formattedSemesterNotes}</p>
+    </div>
+  </div>
       
       <div class="footer">
         <div class="signature-block">
