@@ -52,6 +52,7 @@ export function TeacherGradeTableDialog({
                 <TableHead>Jenis Penilaian</TableHead>
                 <TableHead>Nilai</TableHead>
                 <TableHead>Tanggal</TableHead>
+                <TableHead>Hari Ke-</TableHead>
                 <TableHead>Semester</TableHead>
                 <TableHead>Status</TableHead>
                 <TableHead>Aksi</TableHead>
@@ -85,6 +86,11 @@ export function TeacherGradeTableDialog({
                       </TableCell>
                       <TableCell className="text-muted-foreground">
                         {formatDate(grade.tanggal)}
+                      </TableCell>
+                      <TableCell>
+                        {grade.studyDayNumber != null
+                          ? `Hari ke-${grade.studyDayNumber}`
+                          : "-"}
                       </TableCell>
                       <TableCell>{grade.semesterLabel || "-"}</TableCell>
                       <TableCell>

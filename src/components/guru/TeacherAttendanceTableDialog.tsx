@@ -55,6 +55,7 @@ export function TeacherAttendanceTableDialog({
                 <TableHead>NISN</TableHead>
                 <TableHead>Status Kehadiran</TableHead>
                 <TableHead>Tanggal</TableHead>
+                <TableHead>Hari Ke-</TableHead>
                 <TableHead>Semester</TableHead>
                 <TableHead>Keterangan</TableHead>
                 <TableHead>Aksi</TableHead>
@@ -100,6 +101,11 @@ export function TeacherAttendanceTableDialog({
                       </TableCell>
                       <TableCell className="text-muted-foreground">
                         {formatDate(att.tanggal)}
+                      </TableCell>
+                      <TableCell>
+                        {att.studyDayNumber != null
+                          ? `Hari ke-${att.studyDayNumber}`
+                          : "-"}
                       </TableCell>
                       <TableCell>{att.semesterLabel || "-"}</TableCell>
                       <TableCell className="text-muted-foreground">

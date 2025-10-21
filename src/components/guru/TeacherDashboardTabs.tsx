@@ -156,6 +156,11 @@ export function TeacherDashboardTabs({
                               >
                                 <span className="text-sm">{grade.studentName}</span>
                                 <div className="flex items-center justify-end gap-2 flex-wrap">
+                                  {grade.studyDayNumber != null && (
+                                    <Badge variant="outline" className="text-xs">
+                                      Hari ke-{grade.studyDayNumber}
+                                    </Badge>
+                                  )}
                                   {grade.semesterLabel && (
                                     <Badge variant="outline" className="text-xs">
                                       {grade.semesterLabel}
@@ -214,6 +219,11 @@ export function TeacherDashboardTabs({
                               >
                                 <span className="text-sm">{att.studentName}</span>
                                 <div className="flex items-center justify-end gap-2 flex-wrap">
+                                  {att.studyDayNumber != null && (
+                                    <Badge variant="outline" className="text-xs">
+                                      Hari ke-{att.studyDayNumber}
+                                    </Badge>
+                                  )}
                                   {att.semesterLabel && (
                                     <Badge variant="outline" className="text-xs">
                                       {att.semesterLabel}

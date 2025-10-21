@@ -10,6 +10,7 @@ import { useToast } from "@/hooks/use-toast";
 import { useDashboardSemester } from "@/hooks/use-dashboard-semester";
 import { useSemesterEnforcement } from "@/hooks/use-semester-enforcement";
 import apiService from "@/services/apiService";
+import { getStudyDayNumber } from "@/utils/helpers";
 
 type Identifier = string | number;
 type UnknownRecord = Record<string, unknown>;
@@ -69,6 +70,7 @@ export type GradeRecord = UnknownRecord & {
   semester?: number;
   studentName?: string;
   semesterLabel?: string;
+  studyDayNumber?: number | null;
 };
 
 export type AttendanceRecord = UnknownRecord & {
@@ -87,6 +89,7 @@ export type AttendanceRecord = UnknownRecord & {
   studentName?: string;
   semesterLabel?: string;
   keterangan?: string;
+  studyDayNumber?: number | null;
 };
 
 type GradeFormState = {
@@ -560,6 +563,10 @@ export function useTeacherDashboard(currentUser: TeacherDashboardUser | null) {
             grade.semesterId,
             grade.semesterInfo
           );
+          const semesterMetadata = resolveSemesterMetadata(
+            grade.semesterId ?? null,
+            semesterDetails || grade.semesterInfo
+          );
           const semesterLabel = getSemesterLabelById(
             grade.semesterId,
             semesterDetails || grade.semesterInfo
@@ -572,6 +579,10 @@ export function useTeacherDashboard(currentUser: TeacherDashboardUser | null) {
             null;
           const semesterNumberValue =
             semesterDetails?.semester ?? grade.semester ?? null;
+          const studyDayNumber = getStudyDayNumber(grade.tanggal, {
+            semesterMetadata,
+            semesterInfo: semesterDetails || grade.semesterInfo,
+          });
           return {
             ...grade,
             studentName: student?.nama || "Unknown Student",
@@ -581,6 +592,7 @@ export function useTeacherDashboard(currentUser: TeacherDashboardUser | null) {
               semesterNumberValue === undefined || semesterNumberValue === null
                 ? grade.semester
                 : semesterNumberValue,
+            studyDayNumber,
           };
         });
 
@@ -715,6 +727,10 @@ export function useTeacherDashboard(currentUser: TeacherDashboardUser | null) {
             att.semesterId,
             att.semesterInfo
           );
+          const semesterMetadata = resolveSemesterMetadata(
+            att.semesterId ?? null,
+            semesterDetails || att.semesterInfo
+          );
           const semesterLabel = getSemesterLabelById(
             att.semesterId,
             semesterDetails || att.semesterInfo
@@ -727,6 +743,10 @@ export function useTeacherDashboard(currentUser: TeacherDashboardUser | null) {
             null;
           const semesterNumberValue =
             semesterDetails?.semester ?? att.semester ?? null;
+          const studyDayNumber = getStudyDayNumber(att.tanggal, {
+            semesterMetadata,
+            semesterInfo: semesterDetails || att.semesterInfo,
+          });
           return {
             ...att,
             studentName: student?.nama || "Unknown Student",
@@ -736,6 +756,7 @@ export function useTeacherDashboard(currentUser: TeacherDashboardUser | null) {
               semesterNumberValue === undefined || semesterNumberValue === null
                 ? att.semester
                 : semesterNumberValue,
+            studyDayNumber,
           };
         });
 
