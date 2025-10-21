@@ -60,6 +60,13 @@ export function TeacherDashboardHeader({
                   {teachingDayMessage ?? "Data hari mengajar belum tersedia."}
                 </p>
               </div>
+              <div className="mt-3 flex items-start gap-3 rounded-lg border border-destructive/20 bg-destructive/5 px-4 py-3 text-sm text-destructive">
+                <HelpCircle className="mt-0.5 h-4 w-4" />
+                <p>
+                  Sistem akan otomatis menandai <span className="font-semibold">ALFA</span>{" "}
+                  untuk semua siswa yang belum diabsen hari ini pada pukul 17.00.
+                </p>
+              </div>
             </div>
           </div>
 
