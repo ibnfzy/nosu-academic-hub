@@ -23,6 +23,8 @@ interface Student {
   email?: string;
   nomorHP?: string;
   namaOrangTua?: string;
+  tanggalLahir?: string;
+  mergedUserData?: any;
 }
 
 interface StudentsSectionProps {

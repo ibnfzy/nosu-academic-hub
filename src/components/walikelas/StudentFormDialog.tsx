@@ -145,7 +145,7 @@ const StudentFormDialog = ({
               <Label>Tanggal Lahir</Label>
               <Input
                 type="date"
-                value={studentForm.tanggalLahir}
+                value={studentForm.tanggalLahir ?? ""}
                 onChange={(e) => onFieldChange("tanggalLahir", e.target.value)}
               />
             </div>

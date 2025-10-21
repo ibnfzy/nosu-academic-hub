@@ -143,7 +143,8 @@ const useWalikelasDashboard = (currentUser: CurrentUser | null) => {
   const updateStudentForm = useCallback((field: string, value: string) => {
     setStudentForm((prev) => ({
       ...prev,
-      [field]: value,
+      [field]:
+        field === "tanggalLahir" ? normalizeDateValue(value) : value,
     }));
   }, []);
 
@@ -153,9 +154,16 @@ const useWalikelasDashboard = (currentUser: CurrentUser | null) => {
   }, [clearStudentForm]);
 
   const editStudent = useCallback((student: any) => {
+    const mergedRecord = student?.mergedUserData ?? null;
+    const resolvedTanggalLahir = normalizeDateValue(
+      mergedRecord?.tanggalLahir ?? student?.tanggalLahir
+    );
+
     setStudentForm({
       ...createDefaultStudentForm(),
+      ...(mergedRecord ?? {}),
       ...student,
+      tanggalLahir: resolvedTanggalLahir,
     });
     setEditingStudent(student);
     setShowStudentDialog(true);
@@ -412,6 +420,12 @@ const useWalikelasDashboard = (currentUser: CurrentUser | null) => {
             ...record,
           };
 
+          const resolvedTanggalLahir = normalizeDateValue(
+            record?.tanggalLahir ??
+              classStudent?.tanggalLahir ??
+              mergedStudent?.tanggalLahir
+          );
+
           normalizedStudentsMap.set(key, {
             ...mergedStudent,
             id: record?.userId ?? record?.id ?? key,
@@ -427,7 +441,8 @@ const useWalikelasDashboard = (currentUser: CurrentUser | null) => {
               mergedStudent?.kelasId ??
               null,
             jenisKelamin: normalizeGender(mergedStudent?.jenisKelamin),
-            tanggalLahir: normalizeDateValue(mergedStudent?.tanggalLahir),
+            tanggalLahir: resolvedTanggalLahir,
+            mergedUserData: record,
           });
         });
 
@@ -445,6 +460,7 @@ const useWalikelasDashboard = (currentUser: CurrentUser | null) => {
               ...fallbackStudent,
               jenisKelamin: normalizeGender(fallbackStudent?.jenisKelamin),
               tanggalLahir: normalizeDateValue(fallbackStudent?.tanggalLahir),
+              mergedUserData: null,
             });
           }
         });
