@@ -28,12 +28,12 @@ export function TeacherDashboardHeader({
   onLogout,
 }: TeacherDashboardHeaderProps) {
   return (
-    <Card className="border border-muted/40 bg-background">
+    <Card className="border-none bg-gradient-to-r from-primary/20 via-primary/10 to-background">
       <CardContent className="max-w-7xl mx-auto flex flex-col gap-6 px-6 py-6 sm:px-8">
         <div className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
           <div className="flex items-start gap-4">
-            <div className="flex h-12 w-12 items-center justify-center rounded-xl bg-muted">
-              <GraduationCap className="h-6 w-6 text-primary" />
+            <div className="flex h-12 w-12 items-center justify-center rounded-xl bg-primary text-primary-foreground">
+              <GraduationCap className="h-6 w-6 text-primary-foreground" />
             </div>
             <div>
               <h1 className="text-2xl font-semibold text-foreground">
@@ -48,11 +48,15 @@ export function TeacherDashboardHeader({
 
           <div className="flex items-center gap-3">
             <div className="flex items-center gap-2">
-              <Button variant="secondary" size="sm" className="gap-2">
+              <Button variant="default" size="sm" className="gap-2">
                 <HelpCircle className="h-4 w-4" />
                 Panduan singkat
               </Button>
-              <Button variant="outline" size="sm" className="gap-2">
+              <Button
+                variant="outline"
+                size="sm"
+                className="gap-2 border-primary/30 bg-background/80 text-foreground hover:bg-background"
+              >
                 <PlayCircle className="h-4 w-4" />
                 Video
               </Button>
