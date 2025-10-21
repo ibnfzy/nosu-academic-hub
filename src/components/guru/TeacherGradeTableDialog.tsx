@@ -8,6 +8,13 @@ import {
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 
 import { UseTeacherDashboardReturn } from "@/hooks/use-teacher-dashboard";
 import { formatDate, getGradeColor } from "@/utils/helpers";
@@ -29,11 +36,20 @@ export function TeacherGradeTableDialog({
     getSubjectName,
     handleEditGrade,
     handleDeleteGrade,
+    gradeTypes,
+    selectedGradeTypeFilter,
+    setSelectedGradeTypeFilter,
   } = dashboard;
 
-  const hasGrades =
-    grades.filter((grade) => grade.subjectId === selectedSubjectForGrades).length >
-    0;
+  const filteredGrades = grades.filter(
+    (grade) =>
+      grade.subjectId === selectedSubjectForGrades &&
+      grade.kelasId === selectedSubjectKelasId &&
+      (selectedGradeTypeFilter === "all" ||
+        grade.jenis === selectedGradeTypeFilter)
+  );
+
+  const hasGrades = filteredGrades.length > 0;
 
   return (
     <Dialog open={showGradeTableDialog} onOpenChange={setShowGradeTableDialog}>
@@ -43,29 +59,43 @@ export function TeacherGradeTableDialog({
             Daftar Semua Nilai - {getSubjectName(selectedSubjectForGrades)}
           </DialogTitle>
         </DialogHeader>
-        <div className="overflow-auto max-h-[60vh]">
-          <Table>
-            <TableHeader>
-              <TableRow>
-                <TableHead>Nama Siswa</TableHead>
-                <TableHead>NISN</TableHead>
-                <TableHead>Jenis Penilaian</TableHead>
-                <TableHead>Nilai</TableHead>
-                <TableHead>Tanggal</TableHead>
-                <TableHead>Hari Ke-</TableHead>
-                <TableHead>Semester</TableHead>
-                <TableHead>Status</TableHead>
-                <TableHead>Aksi</TableHead>
-              </TableRow>
-            </TableHeader>
-            <TableBody>
-              {grades
-                .filter(
-                  (grade) =>
-                    grade.subjectId === selectedSubjectForGrades &&
-                    grade.kelasId === selectedSubjectKelasId
-                )
-                .map((grade) => {
+        <div className="flex flex-col gap-4">
+          <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2">
+            <div className="text-sm font-medium">Filter Jenis Penilaian</div>
+            <Select
+              value={selectedGradeTypeFilter}
+              onValueChange={setSelectedGradeTypeFilter}
+            >
+              <SelectTrigger className="w-full sm:w-64">
+                <SelectValue placeholder="Pilih jenis penilaian" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="all">Semua</SelectItem>
+                {gradeTypes.map((type) => (
+                  <SelectItem key={type} value={type}>
+                    {type}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </div>
+          <div className="overflow-auto max-h-[60vh]">
+            <Table>
+              <TableHeader>
+                <TableRow>
+                  <TableHead>Nama Siswa</TableHead>
+                  <TableHead>NISN</TableHead>
+                  <TableHead>Jenis Penilaian</TableHead>
+                  <TableHead>Nilai</TableHead>
+                  <TableHead>Tanggal</TableHead>
+                  <TableHead>Hari Ke-</TableHead>
+                  <TableHead>Semester</TableHead>
+                  <TableHead>Status</TableHead>
+                  <TableHead>Aksi</TableHead>
+                </TableRow>
+              </TableHeader>
+              <TableBody>
+                {filteredGrades.map((grade) => {
                   const student = students.find((s) => s.id === grade.studentId);
                   return (
                     <TableRow key={grade.id}>
@@ -120,16 +150,17 @@ export function TeacherGradeTableDialog({
                     </TableRow>
                   );
                 })}
-            </TableBody>
-          </Table>
-          {!hasGrades && (
-            <div className="text-center py-8">
-              <FileText className="h-12 w-12 mx-auto mb-4 text-muted-foreground" />
-              <p className="text-muted-foreground">
-                Belum ada nilai yang diinput untuk mata pelajaran ini
-              </p>
-            </div>
-          )}
+              </TableBody>
+            </Table>
+            {!hasGrades && (
+              <div className="text-center py-8">
+                <FileText className="h-12 w-12 mx-auto mb-4 text-muted-foreground" />
+                <p className="text-muted-foreground">
+                  Belum ada nilai yang diinput untuk mata pelajaran ini
+                </p>
+              </div>
+            )}
+          </div>
         </div>
       </DialogContent>
     </Dialog>

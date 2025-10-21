@@ -232,6 +232,8 @@ export function useTeacherDashboard(currentUser: TeacherDashboardUser | null) {
   const [showAttendanceDialog, setShowAttendanceDialog] = useState(false);
   const [showStudentListDialog, setShowStudentListDialog] = useState(false);
   const [showGradeTableDialog, setShowGradeTableDialog] = useState(false);
+  const [selectedGradeTypeFilter, setSelectedGradeTypeFilter] =
+    useState<string>("all");
   const [showAttendanceTableDialog, setShowAttendanceTableDialog] =
     useState(false);
   const [selectedSubjectId, setSelectedSubjectId] = useState<Identifier | "">(
@@ -305,6 +307,12 @@ export function useTeacherDashboard(currentUser: TeacherDashboardUser | null) {
     () => ["Ulangan Harian", "UTS", "UAS", "Kuis", "Tugas"],
     []
   );
+
+  useEffect(() => {
+    if (!showGradeTableDialog) {
+      setSelectedGradeTypeFilter("all");
+    }
+  }, [showGradeTableDialog]);
 
   const attendanceStatuses = useMemo<AttendanceStatusOption[]>(
     () => [
@@ -1563,6 +1571,8 @@ export function useTeacherDashboard(currentUser: TeacherDashboardUser | null) {
     attendanceForm,
     setAttendanceForm,
     gradeTypes,
+    selectedGradeTypeFilter,
+    setSelectedGradeTypeFilter,
     attendanceStatuses,
     showGradeDialog,
     setShowGradeDialog,
