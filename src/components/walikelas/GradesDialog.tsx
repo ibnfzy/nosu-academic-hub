@@ -118,13 +118,7 @@ const GradesDialog = ({
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="max-w-3xl w-full max-h-[85vh] flex flex-col overflow-hidden">
-        <DialogHeader className="flex-none">
-          <DialogTitle>
-            {selectedStudentName
-              ? `Data Nilai ${selectedStudentName}`
-              : "Data Nilai Siswa"}
-          </DialogTitle>
-        </DialogHeader>
+        <DialogHeader className="flex-none"></DialogHeader>
         <div className="flex-1 overflow-y-auto">
           <Card className="shadow-none border-none flex flex-col h-full overflow-hidden">
             <CardHeader className="px-0 pt-0">
@@ -132,53 +126,55 @@ const GradesDialog = ({
                 <div>
                   <CardTitle className="text-lg">
                     {selectedStudentName
-                    ? `Daftar Nilai ${selectedStudentName}`
-                    : "Daftar Nilai Siswa"}
-                </CardTitle>
-                <p className="text-sm text-muted-foreground">
-                  {filteredGrades.length} nilai ditampilkan
-                  {verificationFilter !== "all"
-                    ? ` • Filter: ${
-                        verificationFilter === "verified"
-                          ? "Sudah Terverifikasi"
-                          : "Belum Terverifikasi"
-                      }`
-                    : ""}
-                </p>
-              </div>
-              <div className="flex flex-col md:flex-row gap-3 w-full md:w-auto">
-                <Select
-                  value={verificationFilter}
-                  onValueChange={(value) =>
-                    setVerificationFilter(
-                      value as "all" | "verified" | "unverified"
-                    )
-                  }
-                >
-                  <SelectTrigger className="w-full md:w-[220px]">
-                    <SelectValue placeholder="Filter verifikasi" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="all">Semua Nilai</SelectItem>
-                    <SelectItem value="unverified">
-                      Belum Terverifikasi
-                    </SelectItem>
-                    <SelectItem value="verified">Sudah Terverifikasi</SelectItem>
-                  </SelectContent>
-                </Select>
-                {canVerifyAll && (
-                  <Button
-                    onClick={onVerifyAll}
-                    disabled={loading}
-                    className="bg-success text-success-foreground w-full md:w-auto"
+                      ? `Daftar Nilai ${selectedStudentName}`
+                      : "Daftar Nilai Siswa"}
+                  </CardTitle>
+                  <p className="text-sm text-muted-foreground">
+                    {filteredGrades.length} nilai ditampilkan
+                    {verificationFilter !== "all"
+                      ? ` • Filter: ${
+                          verificationFilter === "verified"
+                            ? "Sudah Terverifikasi"
+                            : "Belum Terverifikasi"
+                        }`
+                      : ""}
+                  </p>
+                </div>
+                <div className="flex flex-col md:flex-row gap-3 w-full md:w-auto">
+                  <Select
+                    value={verificationFilter}
+                    onValueChange={(value) =>
+                      setVerificationFilter(
+                        value as "all" | "verified" | "unverified"
+                      )
+                    }
                   >
-                    <CheckSquare className="h-4 w-4 mr-2" />
-                    Verifikasi Semua ({unverifiedCount})
-                  </Button>
-                )}
+                    <SelectTrigger className="w-full md:w-[220px]">
+                      <SelectValue placeholder="Filter verifikasi" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="all">Semua Nilai</SelectItem>
+                      <SelectItem value="unverified">
+                        Belum Terverifikasi
+                      </SelectItem>
+                      <SelectItem value="verified">
+                        Sudah Terverifikasi
+                      </SelectItem>
+                    </SelectContent>
+                  </Select>
+                  {canVerifyAll && (
+                    <Button
+                      onClick={onVerifyAll}
+                      disabled={loading}
+                      className="bg-success text-success-foreground w-full md:w-auto"
+                    >
+                      <CheckSquare className="h-4 w-4 mr-2" />
+                      Verifikasi Semua ({unverifiedCount})
+                    </Button>
+                  )}
+                </div>
               </div>
-            </div>
-          </CardHeader>
+            </CardHeader>
             <CardContent className="px-0 flex-1 overflow-y-auto pr-1">
               <GradesList
                 loading={loading}
