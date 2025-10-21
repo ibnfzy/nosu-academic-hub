@@ -98,6 +98,7 @@ export const useStudentDashboard = ({
     isRelaxedMode,
     activeSemesterMetadata: enforcedActiveSemester,
     hasActiveSemester: hasEnforcedActiveSemester,
+    loading: enforcementLoading,
     shouldAttachSemesterId,
     isSemesterExpired,
   } = useSemesterEnforcement();
@@ -195,6 +196,10 @@ export const useStudentDashboard = ({
   const loadStudentData = useCallback(
     async (semesterIdParam?: string | null) => {
       if (!userId) return;
+
+      if (enforcementLoading) {
+        return;
+      }
 
       const hasSemesters = semesters.length > 0;
       const effectiveSemesterId = hasSemesters
@@ -378,6 +383,7 @@ export const useStudentDashboard = ({
       }
     },
     [
+      enforcementLoading,
       enforcedActiveSemester,
       getEffectiveSemesterId,
       hasEnforcedActiveSemester,
@@ -523,12 +529,16 @@ export const useStudentDashboard = ({
   }, [loadStudentData, selectedSemesterId, semesters.length, userId]);
 
   useEffect(() => {
+    if (enforcementLoading) {
+      return;
+    }
+
     let warningMessage = "";
 
     if (isRelaxedMode) {
       if (enforcedActiveSemester && isSemesterExpired(enforcedActiveSemester)) {
         warningMessage =
-          "Semester aktif sebelumnya telah berakhir. Anda dapat memilih semester secara manual atau hubungi admin untuk memperbarui semester aktif.";
+          "Semester aktif sebelumnya telah berakhir. Anda dapat memilih semester secara manual atau hubungi admin untuk memperbarui semester aktif. Catatan: semester aktif sebelumnya tidak lagi berlaku.";
       } else if (!hasEnforcedActiveSemester) {
         warningMessage =
           "Belum ada semester aktif yang ditetapkan. Silakan pilih semester secara manual atau hubungi admin untuk bantuan lebih lanjut.";
@@ -549,6 +559,7 @@ export const useStudentDashboard = ({
       semesterWarningRef.current = null;
     }
   }, [
+    enforcementLoading,
     enforcedActiveSemester,
     hasEnforcedActiveSemester,
     isRelaxedMode,
@@ -558,8 +569,11 @@ export const useStudentDashboard = ({
 
   const averageGrade = useMemo(() => calculateAverage(grades), [grades]);
   const attendanceStats = useMemo<AttendanceStats>(
-    () => calculateAttendanceStats(attendance) as AttendanceStats,
-    [attendance]
+    () =>
+      calculateAttendanceStats(attendance, {
+        semesterMetadata: selectedSemesterMetadata,
+      }) as AttendanceStats,
+    [attendance, selectedSemesterMetadata]
   );
 
   const subjectGrades = useMemo<SubjectGradeGroup[]>(() => {

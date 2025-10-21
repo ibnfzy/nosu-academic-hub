@@ -61,28 +61,113 @@ export const calculateAverage = (grades) => {
 };
 
 /**
+ * Parse jumlah hari belajar menjadi angka.
+ * @param {number|string|null|undefined} value
+ * @returns {number|null}
+ */
+const parseLearningDays = (value) => {
+  if (value === null || value === undefined) return null;
+  if (typeof value === "number") {
+    return Number.isFinite(value) && value > 0 ? value : null;
+  }
+
+  if (typeof value === "string") {
+    const trimmed = value.trim();
+    if (!trimmed) return null;
+
+    const numericPortion = trimmed
+      .replace(/[^0-9.,-]/g, "")
+      .replace(/,/g, ".");
+
+    if (!numericPortion) return null;
+
+    const parsed = Number(numericPortion);
+    return Number.isFinite(parsed) && parsed > 0 ? parsed : null;
+  }
+
+  return null;
+};
+
+/**
  * Menghitung statistik kehadiran
  * @param {Array} attendance - Array kehadiran
+ * @param {Object} [options] - Opsi tambahan untuk perhitungan
+ * @param {number|string|null} [options.totalSchoolDays] - Jumlah hari belajar
+ * @param {Object|null} [options.semesterMetadata] - Metadata semester yang memuat jumlah hari belajar
+ * @param {Object|null} [options.semesterInfo] - Informasi semester alternatif
  * @returns {Object} - Statistik kehadiran
  */
-export const calculateAttendanceStats = (attendance) => {
-  if (!attendance || attendance.length === 0) {
+export const calculateAttendanceStats = (
+  attendance,
+  options = {}
+) => {
+  const attendanceArray = Array.isArray(attendance) ? attendance : [];
+
+  if (attendanceArray.length === 0) {
     return { hadir: 0, sakit: 0, alfa: 0, izin: 0, total: 0, persentase: 0 };
   }
 
-  const stats = attendance.reduce(
+  const stats = attendanceArray.reduce(
     (acc, curr) => {
-      acc[curr.status] = (acc[curr.status] || 0) + 1;
+      if (curr && typeof curr === "object" && curr.status) {
+        acc[curr.status] = (acc[curr.status] || 0) + 1;
+      }
       acc.total++;
       return acc;
     },
     { hadir: 0, sakit: 0, alfa: 0, izin: 0, total: 0 }
   );
 
-  stats.persentase =
-    stats.total > 0 ? Math.round((stats.hadir / stats.total) * 100) : 0;
+  const {
+    totalSchoolDays,
+    semesterMetadata = null,
+    semesterInfo = null,
+  } = options || {};
 
-  return stats;
+  const resolvedTotalSchoolDays = (() => {
+    const directValue =
+      parseLearningDays(totalSchoolDays) ??
+      parseLearningDays(semesterMetadata?.jumlahHariBelajar) ??
+      parseLearningDays(semesterInfo?.jumlahHariBelajar);
+    if (directValue) {
+      return directValue;
+    }
+
+    for (const record of attendanceArray) {
+      if (!record || typeof record !== "object") continue;
+      const candidate =
+        record.jumlahHariBelajar ??
+        record.totalSchoolDays ??
+        record.hariBelajar ??
+        record.semesterJumlahHariBelajar ??
+        record?.semesterInfo?.jumlahHariBelajar ??
+        record?.semesterInfo?.totalSchoolDays;
+
+      const parsedCandidate = parseLearningDays(candidate);
+      if (parsedCandidate) {
+        return parsedCandidate;
+      }
+    }
+
+    return null;
+  })();
+
+  const ratio = (() => {
+    if (resolvedTotalSchoolDays && resolvedTotalSchoolDays > 0) {
+      return stats.hadir / resolvedTotalSchoolDays;
+    }
+    if (stats.total > 0) {
+      return stats.hadir / stats.total;
+    }
+    return 0;
+  })();
+
+  const percentage = Math.round(Math.max(0, Math.min(1, ratio)) * 100);
+
+  return {
+    ...stats,
+    persentase: Number.isFinite(percentage) ? percentage : 0,
+  };
 };
 
 /**
@@ -452,7 +537,10 @@ export const generateReportHTML = (reportData) => {
 
   const groupedGrades = groupGradesBySubject(gradesArray);
   const averageGrade = calculateAverage(normalizedGrades);
-  const attendanceStats = calculateAttendanceStats(attendance);
+  const attendanceStats = calculateAttendanceStats(attendance, {
+    totalSchoolDays: semesterLearningDays,
+    semesterMetadata: resolvedSemesterInfo,
+  });
   const finalGradeArr = [];
 
   const resolvedSemesterInfo = (() => {
