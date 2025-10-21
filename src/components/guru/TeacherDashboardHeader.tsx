@@ -21,11 +21,15 @@ import type { TeacherDashboardUser } from "@/hooks/use-teacher-dashboard";
 type TeacherDashboardHeaderProps = {
   currentUser: TeacherDashboardUser | null;
   onLogout: () => void;
+  teachingDayMessage?: string | null;
+  teachingDayDateLabel?: string | null;
 };
 
 export function TeacherDashboardHeader({
   currentUser,
   onLogout,
+  teachingDayMessage,
+  teachingDayDateLabel,
 }: TeacherDashboardHeaderProps) {
   return (
     <Card className="border-none bg-gradient-to-r from-primary/20 via-primary/10 to-background">
@@ -43,6 +47,19 @@ export function TeacherDashboardHeader({
                 Senang kamu di sini lagi. Yuk, kita rapikan info kelas dan tugas
                 hari ini bareng-bareng.
               </p>
+              <div className="mt-4 rounded-lg border border-primary/10 bg-background/70 px-4 py-3 shadow-sm">
+                <p className="text-xs font-semibold uppercase tracking-wide text-primary">
+                  Kalender Mengajar
+                </p>
+                {teachingDayDateLabel ? (
+                  <p className="mt-1 text-sm font-medium text-foreground">
+                    {teachingDayDateLabel}
+                  </p>
+                ) : null}
+                <p className="mt-1 text-sm text-muted-foreground">
+                  {teachingDayMessage ?? "Data hari mengajar belum tersedia."}
+                </p>
+              </div>
             </div>
           </div>
 
