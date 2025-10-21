@@ -535,14 +535,6 @@ export const generateReportHTML = (reportData) => {
     nilai: g.nilai !== undefined ? parseFloat(g.nilai) : null,
   }));
 
-  const groupedGrades = groupGradesBySubject(gradesArray);
-  const averageGrade = calculateAverage(normalizedGrades);
-  const attendanceStats = calculateAttendanceStats(attendance, {
-    totalSchoolDays: semesterLearningDays,
-    semesterMetadata: resolvedSemesterInfo,
-  });
-  const finalGradeArr = [];
-
   const resolvedSemesterInfo = (() => {
     if (semesterInfo && typeof semesterInfo === "object") {
       return semesterInfo;
@@ -550,6 +542,22 @@ export const generateReportHTML = (reportData) => {
 
     return null;
   })();
+
+  const semesterLearningDays =
+    semesterJumlahHariBelajar ??
+    resolvedSemesterInfo?.jumlahHariBelajar ??
+    resolvedSemesterInfo?.learningDays ??
+    resolvedSemesterInfo?.totalSchoolDays ??
+    resolvedSemesterInfo?.hariEfektif ??
+    null;
+
+  const groupedGrades = groupGradesBySubject(gradesArray);
+  const averageGrade = calculateAverage(normalizedGrades);
+  const attendanceStats = calculateAttendanceStats(attendance, {
+    totalSchoolDays: semesterLearningDays,
+    semesterMetadata: resolvedSemesterInfo,
+  });
+  const finalGradeArr = [];
 
   const semesterStartDate =
     resolvedSemesterInfo?.tanggalMulai ||
@@ -565,14 +573,6 @@ export const generateReportHTML = (reportData) => {
     semesterTanggalSelesai ||
     resolvedSemesterInfo?.periodeSelesai ||
     resolvedSemesterInfo?.selesai ||
-    null;
-
-  const semesterLearningDays =
-    semesterJumlahHariBelajar ??
-    resolvedSemesterInfo?.jumlahHariBelajar ??
-    resolvedSemesterInfo?.learningDays ??
-    resolvedSemesterInfo?.totalSchoolDays ??
-    resolvedSemesterInfo?.hariEfektif ??
     null;
 
   const semesterNotes =
