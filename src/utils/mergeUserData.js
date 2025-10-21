@@ -16,7 +16,8 @@ export function mergeUserData(users = [], students = [], teachers = []) {
 
   return users.map((user) => {
     const userId = user?.id;
-    const userIdKey = userId !== undefined && userId !== null ? String(userId) : null;
+    const userIdKey =
+      userId !== undefined && userId !== null ? String(userId) : null;
     const student = userIdKey ? studentMap.get(userIdKey) : undefined;
     const teacher = userIdKey ? teacherMap.get(userIdKey) : undefined;
 
@@ -25,7 +26,7 @@ export function mergeUserData(users = [], students = [], teachers = []) {
       id: userId,
       userId: userId,
       username: user?.username ?? "",
-      password: "",
+      password: user?.password ?? "",
       email: user?.email ?? "",
       role: teacher?.role ?? student?.role ?? user?.role ?? "",
       nama: user?.nama ?? student?.nama ?? teacher?.nama ?? "",
@@ -33,7 +34,10 @@ export function mergeUserData(users = [], students = [], teachers = []) {
       nip: teacher?.nip ?? user?.nip ?? "",
       kelasId: student?.kelasId ?? teacher?.kelasId ?? user?.kelasId ?? "",
       jenisKelamin:
-        user?.jenisKelamin ?? student?.jenisKelamin ?? teacher?.jenisKelamin ?? "",
+        user?.jenisKelamin ??
+        student?.jenisKelamin ??
+        teacher?.jenisKelamin ??
+        "",
       tanggalLahir: student?.tanggalLahir ?? teacher?.tanggalLahir ?? "",
       alamat: student?.alamat ?? teacher?.alamat ?? user?.alamat ?? "",
       nomorHP: student?.nomorHP ?? teacher?.nomorHP ?? user?.nomorHP ?? "",

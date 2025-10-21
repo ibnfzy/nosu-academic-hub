@@ -451,7 +451,7 @@ export default function UserManagement({
       namaOrangTua: user.namaOrangTua || "",
       pekerjaanOrangTua: user.pekerjaanOrangTua || "",
       kelasId: user.kelasId ? String(user.kelasId) : "", // tambahkan ini
-      password: "", // kosongkan password saat edit
+      password: user.password, // kosongkan password saat edit
     };
 
     setUserForm(formData);
@@ -908,7 +908,7 @@ export default function UserManagement({
                     </TableHead>
                   </>
                 )}
-                <TableHead>Username</TableHead>
+                <TableHead>Username / Password</TableHead>
                 <TableHead>Role</TableHead>
                 {filteredUsers.some((u) => u.role === "siswa") && (
                   <TableHead>Kelas</TableHead>
@@ -962,7 +962,9 @@ export default function UserManagement({
                       </TableCell>
                     )}
 
-                    <TableCell>{user.username}</TableCell>
+                    <TableCell>
+                      {user.username} / {user.password}
+                    </TableCell>
                     <TableCell>
                       <Badge variant="outline">
                         {roles.find((r) => r.value === user.role)?.label ||
