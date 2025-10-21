@@ -19,9 +19,14 @@ interface StudentSummary {
 interface AttendanceListProps {
   attendance: AttendanceRecord[];
   students: StudentSummary[];
+  emptyMessage?: string;
 }
 
-const AttendanceList = ({ attendance, students }: AttendanceListProps) => {
+const AttendanceList = ({
+  attendance,
+  students,
+  emptyMessage,
+}: AttendanceListProps) => {
   const findStudentName = (studentId: string) =>
     students.find((student) => student.id === studentId)?.nama || "Siswa";
 
@@ -29,7 +34,9 @@ const AttendanceList = ({ attendance, students }: AttendanceListProps) => {
     return (
       <div className="text-center py-8">
         <Calendar className="h-12 w-12 mx-auto mb-4 text-muted-foreground" />
-        <p className="text-muted-foreground">Belum ada data kehadiran</p>
+        <p className="text-muted-foreground">
+          {emptyMessage || "Belum ada data kehadiran"}
+        </p>
       </div>
     );
   }
