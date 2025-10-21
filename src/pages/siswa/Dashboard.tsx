@@ -89,20 +89,27 @@ const StudentDashboard = ({ currentUser, onLogout }: StudentDashboardProps) => {
                 </SelectTrigger>
                 <SelectContent>
                   {semesters.length > 0 ? (
-                    semesters.map((semester) => {
+                    semesters.map((semester, index) => {
                       const metadata = normalizeSemesterMetadata(semester);
+                      const hasValidId =
+                        semester.id !== null &&
+                        semester.id !== undefined &&
+                        semester.id !== "";
+                      const itemValue = hasValidId
+                        ? String(semester.id)
+                        : `missing-semester-${index}`;
                       return (
                         <SelectItem
-                          key={semester.id}
-                          value={semester.id ? String(semester.id) : ""}
-                          disabled={!semester.id}
+                          key={itemValue}
+                          value={itemValue}
+                          disabled={!hasValidId}
                         >
                           {buildSemesterTitle(metadata, true)}
                         </SelectItem>
                       );
                     })
                   ) : (
-                    <SelectItem value="" disabled>
+                    <SelectItem value="no-semester-data" disabled>
                       Data semester belum tersedia
                     </SelectItem>
                   )}
