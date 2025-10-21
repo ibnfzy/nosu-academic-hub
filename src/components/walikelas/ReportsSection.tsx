@@ -21,7 +21,7 @@ interface ReportsSectionProps {
   selectedSemesterPeriodLabel: string;
   selectedSemesterDateRange: string | null;
   selectedSemesterMetadata?: {
-    jumlahHariBelajar?: number | null;
+    jumlahHariBelajar?: number | string | null;
     catatan?: string | null;
   } | null;
   onPrintReport: (student: StudentReportCandidate) => void;
