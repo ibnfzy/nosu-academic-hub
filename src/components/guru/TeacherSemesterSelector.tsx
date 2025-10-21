@@ -1,4 +1,12 @@
+import {
+  Card,
+  CardContent,
+  CardDescription,
+  CardHeader,
+  CardTitle,
+} from "@/components/ui/card";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { ListChecks } from "lucide-react";
 
 import type { Semester } from "@/hooks/use-teacher-dashboard";
 
@@ -18,43 +26,52 @@ export function TeacherSemesterSelector({
   buildSemesterLabel,
 }: TeacherSemesterSelectorProps) {
   return (
-    <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4 mb-6">
-      <div>
-        <h2 className="text-lg font-semibold text-foreground">Periode Akademik</h2>
-        <p className="text-sm text-muted-foreground">
+    <Card className="mb-6">
+      <CardHeader>
+        <div className="flex items-center gap-2">
+          <ListChecks className="h-5 w-5 text-primary" aria-hidden="true" />
+          <CardTitle className="text-xl">Langkah 1: Pilih Periode</CardTitle>
+        </div>
+        <CardDescription>
           {selectedSemesterId
             ? `Menampilkan data untuk ${getSemesterLabelById(selectedSemesterId)}`
             : semesters.length > 0
             ? "Silakan pilih semester untuk menampilkan data."
-            : "Data semester belum tersedia."}
-        </p>
-      </div>
-      <div className="w-full md:w-64">
-        <Select value={selectedSemesterId || ""} onValueChange={onSelect}>
-          <SelectTrigger>
-            <SelectValue placeholder="Pilih semester">
-              {selectedSemesterId
-                ? getSemesterLabelById(selectedSemesterId)
-                : semesters.length > 0
-                ? "Pilih semester"
-                : "Semester belum tersedia"}
-            </SelectValue>
-          </SelectTrigger>
-          <SelectContent>
-            {semesters.length > 0 ? (
-              semesters.map((semester) => (
-                <SelectItem key={semester.id} value={String(semester.id)}>
-                  {buildSemesterLabel(semester) || `Semester ${semester.semester}`}
+            : "Belum ada semester — hubungi admin."}
+        </CardDescription>
+      </CardHeader>
+      <CardContent className="space-y-4">
+        <ol className="list-decimal list-inside text-sm text-muted-foreground space-y-1">
+          <li>Tentukan semester</li>
+          <li>Lihat data otomatis</li>
+        </ol>
+        <div className="w-full md:w-64">
+          <Select value={selectedSemesterId || ""} onValueChange={onSelect}>
+            <SelectTrigger>
+              <SelectValue placeholder="Pilih semester">
+                {selectedSemesterId
+                  ? getSemesterLabelById(selectedSemesterId)
+                  : semesters.length > 0
+                  ? "Pilih semester"
+                  : "Belum ada semester — hubungi admin"}
+              </SelectValue>
+            </SelectTrigger>
+            <SelectContent>
+              {semesters.length > 0 ? (
+                semesters.map((semester) => (
+                  <SelectItem key={semester.id} value={String(semester.id)}>
+                    {buildSemesterLabel(semester) || `Semester ${semester.semester}`}
+                  </SelectItem>
+                ))
+              ) : (
+                <SelectItem value="no-semesters" disabled>
+                  Belum ada semester — hubungi admin
                 </SelectItem>
-              ))
-            ) : (
-              <SelectItem value="no-semesters" disabled>
-                Data semester belum tersedia
-              </SelectItem>
-            )}
-          </SelectContent>
-        </Select>
-      </div>
-    </div>
+              )}
+            </SelectContent>
+          </Select>
+        </div>
+      </CardContent>
+    </Card>
   );
 }
