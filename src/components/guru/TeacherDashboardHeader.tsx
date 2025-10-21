@@ -64,7 +64,7 @@ export function TeacherDashboardHeader({
           </div>
 
           <div className="flex items-center gap-3">
-            <div className="flex items-center gap-2">
+            {/* <div className="flex items-center gap-2">
               <Button variant="default" size="sm" className="gap-2">
                 <HelpCircle className="h-4 w-4" />
                 Panduan singkat
@@ -77,18 +77,20 @@ export function TeacherDashboardHeader({
                 <PlayCircle className="h-4 w-4" />
                 Video
               </Button>
-            </div>
+            </div> */}
 
             <DropdownMenu>
               <DropdownMenuTrigger asChild>
-                <Button variant="ghost" size="icon" className="text-muted-foreground">
+                <Button
+                  variant="ghost"
+                  size="icon"
+                  className="text-muted-foreground"
+                >
                   <MoreVertical className="h-5 w-5" />
                   <span className="sr-only">Menu lainnya</span>
                 </Button>
               </DropdownMenuTrigger>
               <DropdownMenuContent align="end">
-                <DropdownMenuLabel>Akun</DropdownMenuLabel>
-                <DropdownMenuSeparator />
                 <DropdownMenuItem onSelect={() => onLogout()} className="gap-2">
                   <LogOut className="h-4 w-4" />
                   Logout
