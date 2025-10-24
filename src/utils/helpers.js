@@ -247,8 +247,7 @@ export const getGradePredicate = (nilai) => {
   if (nilai >= 90) return "A (Sangat Baik)";
   if (nilai >= 80) return "B (Baik)";
   if (nilai >= 70) return "C (Cukup)";
-  if (nilai >= 60) return "D (Kurang)";
-  return "E (Sangat Kurang)";
+  return "D (Kurang)";
 };
 
 /**
@@ -722,6 +721,15 @@ export const generateReportHTML = (reportData) => {
       font-weight: bold;
     }
 
+    .grade-info {
+      margin-bottom: 20px;
+      font-size: 11pt;
+    }
+
+    .grade-info p {
+      margin: 2px 0;
+    }
+
     /* Flexbox section for nilai rata-rata + periode akademik */
     .summary-section {
       display: flex;
@@ -852,25 +860,33 @@ export const generateReportHTML = (reportData) => {
             .join("")}
         </tbody>
       </table>
-      
-       <div class="summary-section">
-    <div class="summary-left">
-      <p><strong>Nilai Rata-rata:</strong> ${getFinalGrade(
-        finalGradeArr
-      )} (${getGradePredicate(getFinalGrade(finalGradeArr))})</p>
-      <p><strong>Kehadiran:</strong> Hadir: ${attendanceStats.hadir}, Sakit: ${
-    attendanceStats.sakit
-  }, Alfa: ${attendanceStats.alfa}, Izin: ${attendanceStats.izin}</p>
-      <p><strong>Persentase Kehadiran:</strong> ${
-        attendanceStats.persentase
-      }%</p>
-    </div>
 
-    <div class="summary-right">
-      <p><strong>Jumlah Hari Belajar:</strong> ${formattedLearningDays}</p>
-      <p><strong>Catatan Semester:</strong> ${formattedSemesterNotes}</p>
-    </div>
-  </div>
+      <div class="grade-info">
+        <p><strong>Keterangan Predikat:</strong></p>
+        <p>A (Sangat Baik) = 90 - 100</p>
+        <p>B (Baik) = 80 - 89</p>
+        <p>C (Cukup) = 70 - 79</p>
+        <p>D (Kurang) = 0 - 69</p>
+      </div>
+
+      <div class="summary-section">
+        <div class="summary-left">
+          <p><strong>Nilai Rata-rata:</strong> ${getFinalGrade(
+            finalGradeArr
+          )} (${getGradePredicate(getFinalGrade(finalGradeArr))})</p>
+          <p><strong>Kehadiran:</strong> Hadir: ${attendanceStats.hadir}, Sakit: ${
+            attendanceStats.sakit
+          }, Alfa: ${attendanceStats.alfa}, Izin: ${attendanceStats.izin}</p>
+          <p><strong>Persentase Kehadiran:</strong> ${
+            attendanceStats.persentase
+          }%</p>
+        </div>
+
+        <div class="summary-right">
+          <p><strong>Jumlah Hari Belajar:</strong> ${formattedLearningDays}</p>
+          <p><strong>Catatan Semester:</strong> ${formattedSemesterNotes}</p>
+        </div>
+      </div>
       
       <div class="footer">
         <div class="signature-block">
