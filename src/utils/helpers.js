@@ -571,7 +571,6 @@ export const generateReportHTML = (reportData) => {
     semesterTanggalMulai,
     semesterTanggalSelesai,
     semesterJumlahHariBelajar,
-    semesterCatatan,
     walikelas,
     profileSchool,
   } = reportData;
@@ -629,13 +628,6 @@ export const generateReportHTML = (reportData) => {
     resolvedSemesterInfo?.selesai ||
     null;
 
-  const semesterNotes =
-    semesterCatatan ??
-    resolvedSemesterInfo?.catatan ??
-    resolvedSemesterInfo?.notes ??
-    resolvedSemesterInfo?.keterangan ??
-    "";
-
   const formattedSemesterPeriod = formatAcademicPeriod(
     tahunAjaran,
     semester,
@@ -663,11 +655,6 @@ export const generateReportHTML = (reportData) => {
 
     return `${semesterLearningDays}`;
   })();
-
-  const formattedSemesterNotes =
-    typeof semesterNotes === "string" && semesterNotes.trim()
-      ? semesterNotes
-      : "-";
 
   return `
     <!DOCTYPE html>
@@ -861,14 +848,6 @@ export const generateReportHTML = (reportData) => {
         </tbody>
       </table>
 
-      <div class="grade-info">
-        <p><strong>Keterangan Predikat:</strong></p>
-        <p>A (Sangat Baik) = 90 - 100</p>
-        <p>B (Baik) = 80 - 89</p>
-        <p>C (Cukup) = 70 - 79</p>
-        <p>D (Kurang) = 0 - 69</p>
-      </div>
-
       <div class="summary-section">
         <div class="summary-left">
           <p><strong>Nilai Rata-rata:</strong> ${getFinalGrade(
@@ -884,7 +863,13 @@ export const generateReportHTML = (reportData) => {
 
         <div class="summary-right">
           <p><strong>Jumlah Hari Belajar:</strong> ${formattedLearningDays}</p>
-          <p><strong>Catatan Semester:</strong> ${formattedSemesterNotes}</p>
+          <div class="grade-info">
+            <p><strong>Keterangan Predikat:</strong></p>
+            <p>A (Sangat Baik) = 90 - 100</p>
+            <p>B (Baik) = 80 - 89</p>
+            <p>C (Cukup) = 70 - 79</p>
+            <p>D (Kurang) = 0 - 69</p>
+          </div>
         </div>
       </div>
       
