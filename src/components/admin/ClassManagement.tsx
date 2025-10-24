@@ -29,6 +29,7 @@ import {
 import { Plus, Edit, Trash2, School, Eye } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import apiService from "@/services/apiService";
+import { mergeUserData } from "@/utils/mergeUserData";
 
 interface ClassManagementProps {
   onDataChange: () => void;
@@ -60,12 +61,22 @@ export default function ClassManagement({
   // Load data from apiService
   const loadData = useCallback(async () => {
     try {
-      const [classesData, usersData] = await Promise.all([
-        apiService.getClasses(),
-        apiService.getUsers(),
-      ]);
-      setClasses(classesData);
-      setUsers(usersData);
+      const [classesData, usersData, studentsData, teachersData] =
+        await Promise.all([
+          apiService.getClasses(),
+          apiService.getUsers(),
+          apiService.getStudents ? apiService.getStudents() : Promise.resolve([]),
+          apiService.getTeachers ? apiService.getTeachers() : Promise.resolve([]),
+        ]);
+
+      const mergedUsers = mergeUserData(
+        usersData ?? [],
+        studentsData ?? [],
+        teachersData ?? []
+      );
+
+      setClasses(classesData || []);
+      setUsers(mergedUsers);
     } catch (error) {
       console.error("Error loading data:", error);
       toast({
@@ -169,7 +180,7 @@ export default function ClassManagement({
     if (userId === "unassigned" || userId === "0" || !userId) {
       return "Belum ditentukan";
     }
-    const walikelas = users.find((u) => u.id === userId);
+    const walikelas = users.find((u) => String(u.id) === String(userId));
     return walikelas ? walikelas.nama : "Belum ditentukan";
   };
 
