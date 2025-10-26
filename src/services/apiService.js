@@ -1386,10 +1386,10 @@ const apiService = {
   },
 
   // ============= WALIKELAS METHODS =============
-  async getClassStudents(classId) {
+  async getClassStudents(walikelasId) {
     if (USE_API) {
       const response = await this.authFetch(
-        `${API_BASE_URL}/walikelas/${classId}/kelas/siswa`
+        `${API_BASE_URL}/walikelas/${walikelasId}/kelas/siswa`
       );
       return normalizeData(response.data);
     } else {

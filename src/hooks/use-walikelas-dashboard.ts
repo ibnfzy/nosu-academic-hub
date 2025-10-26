@@ -317,6 +317,20 @@ const useWalikelasDashboard = (currentUser: CurrentUser | null) => {
           return;
         }
 
+        const walikelasId = currentUser?.id ?? currentUser?.walikelasId;
+
+        if (!walikelasId) {
+          console.warn(
+            "Walikelas ID tidak ditemukan pada data pengguna saat memuat dashboard wali kelas"
+          );
+          setClassInfo(null);
+          setStudents([]);
+          setGrades([]);
+          setAttendance([]);
+          setLoading(false);
+          return;
+        }
+
         const [
           classesData,
           studentsData,
@@ -327,15 +341,15 @@ const useWalikelasDashboard = (currentUser: CurrentUser | null) => {
           teachersResponse,
         ] = await Promise.all([
           apiService.getClasses(),
-          apiService.getClassStudents(currentUser.kelasId),
+          apiService.getClassStudents(walikelasId),
           apiService.getClassGrades(
-            currentUser.kelasId,
+            walikelasId,
             null,
             null,
             requestSemesterId
           ),
           apiService.getClassAttendance(
-            currentUser.kelasId,
+            walikelasId,
             null,
             null,
             requestSemesterId
@@ -375,7 +389,27 @@ const useWalikelasDashboard = (currentUser: CurrentUser | null) => {
         });
 
         const currentClass = Array.isArray(classesData)
-          ? classesData.find((cls) => cls.walikelas === currentUser.id)
+          ? classesData.find((cls) => {
+              const candidateWalikelasId =
+                cls?.walikelasId ??
+                (typeof cls?.walikelas === "object"
+                  ? cls?.walikelas?.id
+                  : cls?.walikelas);
+
+              if (
+                candidateWalikelasId !== undefined &&
+                candidateWalikelasId !== null &&
+                walikelasId
+              ) {
+                return String(candidateWalikelasId) === String(walikelasId);
+              }
+              return false;
+            }) ??
+            (currentUser?.kelasId
+              ? classesData.find((cls) =>
+                  String(cls?.id) === String(currentUser.kelasId)
+                )
+              : null)
           : null;
 
         setClassInfo(currentClass);
