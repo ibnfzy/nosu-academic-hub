@@ -65,8 +65,12 @@ export default function ClassManagement({
         await Promise.all([
           apiService.getClasses(),
           apiService.getUsers(),
-          apiService.getStudents ? apiService.getStudents() : Promise.resolve([]),
-          apiService.getTeachers ? apiService.getTeachers() : Promise.resolve([]),
+          apiService.getStudents
+            ? apiService.getStudents()
+            : Promise.resolve([]),
+          apiService.getTeachers
+            ? apiService.getTeachers()
+            : Promise.resolve([]),
         ]);
 
       const mergedUsers = mergeUserData(
@@ -191,7 +195,7 @@ export default function ClassManagement({
 
   const availableWalikelas = users.filter(
     (user) =>
-      (user.role === "walikelas" || user.role === "guru") &&
+      user.role === "walikelas" &&
       !classes.some(
         (cls) => cls.walikelasId === user.id && cls.id !== editingItem?.id
       )
