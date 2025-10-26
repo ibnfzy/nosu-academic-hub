@@ -47,7 +47,7 @@ export default function ClassManagement({
   const [classForm, setClassForm] = useState({
     nama: "",
     tingkat: "",
-    walikelasId: "",
+    walikelasId: "unassigned",
     jurusan: "",
   });
 
@@ -108,8 +108,22 @@ export default function ClassManagement({
     }
 
     try {
+      const { walikelasId, ...restClassForm } = classForm;
+      const walikelasTeacherId =
+        walikelasId && walikelasId !== "unassigned" ? walikelasId : null;
+      const walikelasUser = walikelasTeacherId
+        ? users.find(
+            (u) =>
+              u.role === "walikelas" &&
+              String(u.teacherId ?? u.id) === String(walikelasTeacherId)
+          )
+        : null;
+      const walikelasUserId = walikelasUser ? walikelasUser.id : null;
+
       const classData = {
-        ...classForm,
+        ...restClassForm,
+        walikelasId: walikelasUserId,
+        walikelasTeacherId,
         ...(editingItem?.id && { id: editingItem.id }),
       };
 
@@ -175,31 +189,91 @@ export default function ClassManagement({
   };
 
   const editClass = (kelas: any) => {
-    setClassForm(kelas);
+    const walikelasReferenceId =
+      kelas?.walikelasTeacherId ??
+      kelas?.walikelasId ??
+      kelas?.walikelasUserId ??
+      null;
+    setClassForm({
+      nama: kelas?.nama ?? "",
+      tingkat: kelas?.tingkat ? String(kelas.tingkat) : "",
+      walikelasId:
+        walikelasReferenceId === null || walikelasReferenceId === undefined
+          ? "unassigned"
+          : String(walikelasReferenceId),
+      jurusan: kelas?.jurusan ?? "unassigned",
+    });
     setEditingItem(kelas);
     setShowClassDialog(true);
   };
 
-  const getWalikelasName = (userId: string) => {
-    if (userId === "unassigned" || userId === "0" || !userId) {
+  const findWalikelasByTeacherId = (
+    teacherId: string | number | null | undefined
+  ) => {
+    if (teacherId === null || teacherId === undefined) {
+      return undefined;
+    }
+
+    return (
+      users.find(
+        (u) =>
+          String(u.teacherId ?? u.id) === String(teacherId) &&
+          u.role === "walikelas"
+      ) ||
+      users.find((u) => String(u.id) === String(teacherId))
+    );
+  };
+
+  const getWalikelasName = (teacherId: string | number | null | undefined) => {
+    if (teacherId === "unassigned" || teacherId === "0" || !teacherId) {
       return "Belum ditentukan";
     }
-    const walikelas = users.find((u) => String(u.id) === String(userId));
+    const walikelas = findWalikelasByTeacherId(teacherId);
     return walikelas ? walikelas.nama : "Belum ditentukan";
   };
 
-  const getSeleectWalikelasName = (userId) => {
-    const wk = users.find((u) => String(u.id) === String(userId));
+  const getSeleectWalikelasName = (
+    teacherId: string | number | null | undefined
+  ) => {
+    if (!teacherId || teacherId === "unassigned") {
+      return "Pilih Walikelas";
+    }
+    const wk = findWalikelasByTeacherId(teacherId);
     return wk ? wk.nama : "Pilih Walikelas";
   };
 
-  const availableWalikelas = users.filter(
-    (user) =>
-      user.role === "walikelas" &&
-      !classes.some(
-        (cls) => cls.walikelasId === user.id && cls.id !== editingItem?.id
-      )
-  );
+  const availableWalikelas = users.filter((user) => {
+    if (user.role !== "walikelas") {
+      return false;
+    }
+
+    const teacherIdentifier = user.teacherId ?? user.id;
+    if (teacherIdentifier === null || teacherIdentifier === undefined) {
+      return false;
+    }
+
+    return !classes.some((cls) => {
+      if (cls.id === editingItem?.id) {
+        return false;
+      }
+
+      const assignedIdentifiers = [
+        cls.walikelasTeacherId,
+        cls.walikelasId,
+        cls.walikelasUserId,
+      ]
+        .filter(
+          (id) =>
+            id !== null &&
+            id !== undefined &&
+            id !== "" &&
+            id !== "unassigned"
+        )
+        .map((id) => String(id));
+
+      return assignedIdentifiers.includes(String(teacherIdentifier));
+    });
+  });
 
   return (
     <Card className="shadow-soft">
@@ -295,11 +369,19 @@ export default function ClassManagement({
                       <SelectItem value="unassigned">
                         Belum ditentukan
                       </SelectItem>
-                      {availableWalikelas.map((teacher) => (
-                        <SelectItem key={teacher.id} value={teacher.id}>
-                          {teacher.nama} - {teacher.nip || "Tanpa NIP"}
-                        </SelectItem>
-                      ))}
+                      {availableWalikelas.map((teacher) => {
+                        const teacherIdentifier = String(
+                          teacher.teacherId ?? teacher.id
+                        );
+                        return (
+                          <SelectItem
+                            key={`${teacher.id}-${teacherIdentifier}`}
+                            value={teacherIdentifier}
+                          >
+                            {teacher.nama} - {teacher.nip || "Tanpa NIP"}
+                          </SelectItem>
+                        );
+                      })}
                     </SelectContent>
                   </Select>
                 </div>
@@ -342,7 +424,13 @@ export default function ClassManagement({
                     <TableCell className="font-medium">{kelas.nama}</TableCell>
                     <TableCell>{kelas.jurusan}</TableCell>
                     <TableCell>Kelas {kelas.tingkat}</TableCell>
-                    <TableCell>{getWalikelasName(kelas.walikelasId)}</TableCell>
+                    <TableCell>
+                      {getWalikelasName(
+                        kelas.walikelasTeacherId ??
+                          kelas.walikelasId ??
+                          kelas.walikelasUserId
+                      )}
+                    </TableCell>
                     <TableCell className="text-right">
                       <div className="flex justify-end space-x-2">
                         <Button
