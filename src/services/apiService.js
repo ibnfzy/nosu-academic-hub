@@ -1322,8 +1322,23 @@ const apiService = {
       const classes = JSON.parse(
         localStorage.getItem(STORAGE_KEYS.CLASSES) || "[]"
       );
+      const {
+        walikelasTeacherId = null,
+        walikelasId: walikelasUserId = null,
+        ...restClassData
+      } = classData || {};
+      const walikelasReferenceId =
+        walikelasTeacherId !== undefined && walikelasTeacherId !== null
+          ? walikelasTeacherId
+          : walikelasUserId;
+
       const newClass = {
-        ...classData,
+        ...restClassData,
+        walikelasId:
+          walikelasReferenceId !== undefined ? walikelasReferenceId : null,
+        walikelasTeacherId:
+          walikelasTeacherId !== undefined ? walikelasTeacherId : null,
+        walikelasUserId,
         id: Date.now().toString(),
         createdAt: new Date().toISOString(),
       };
@@ -1351,9 +1366,24 @@ const apiService = {
       const classIndex = classes.findIndex((c) => c.id === classId);
 
       if (classIndex !== -1) {
+        const {
+          walikelasTeacherId = null,
+          walikelasId: walikelasUserId = null,
+          ...restClassData
+        } = classData || {};
+        const walikelasReferenceId =
+          walikelasTeacherId !== undefined && walikelasTeacherId !== null
+            ? walikelasTeacherId
+            : walikelasUserId;
+
         classes[classIndex] = {
           ...classes[classIndex],
-          ...classData,
+          ...restClassData,
+          walikelasId:
+            walikelasReferenceId !== undefined ? walikelasReferenceId : null,
+          walikelasTeacherId:
+            walikelasTeacherId !== undefined ? walikelasTeacherId : null,
+          walikelasUserId,
           updatedAt: new Date().toISOString(),
         };
         localStorage.setItem(STORAGE_KEYS.CLASSES, JSON.stringify(classes));
