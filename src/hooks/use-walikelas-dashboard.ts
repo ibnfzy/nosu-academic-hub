@@ -317,7 +317,8 @@ const useWalikelasDashboard = (currentUser: CurrentUser | null) => {
           return;
         }
 
-        const walikelasId = currentUser?.id ?? currentUser?.walikelasId;
+        const walikelasId =
+          currentUser?.teacherId ?? currentUser?.walikelasId ?? currentUser?.id;
 
         if (!walikelasId) {
           console.warn(
