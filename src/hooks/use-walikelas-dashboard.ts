@@ -1,3 +1,4 @@
+/* eslint-disable @typescript-eslint/no-explicit-any */
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import {
   useDashboardSemester,
@@ -14,6 +15,7 @@ interface CurrentUser {
   id: string;
   nama?: string;
   kelasId?: string;
+  teacherId?: string;
 }
 
 interface StudentFormState {
@@ -143,8 +145,7 @@ const useWalikelasDashboard = (currentUser: CurrentUser | null) => {
   const updateStudentForm = useCallback((field: string, value: string) => {
     setStudentForm((prev) => ({
       ...prev,
-      [field]:
-        field === "tanggalLahir" ? normalizeDateValue(value) : value,
+      [field]: field === "tanggalLahir" ? normalizeDateValue(value) : value,
     }));
   }, []);
 
@@ -215,7 +216,6 @@ const useWalikelasDashboard = (currentUser: CurrentUser | null) => {
     semesters,
   ]);
 
-
   const loadSemesters = useCallback(async () => {
     try {
       const semestersData = await apiService.getSemesters();
@@ -236,8 +236,11 @@ const useWalikelasDashboard = (currentUser: CurrentUser | null) => {
           setSelectedSemesterId(enforcedId);
         }
       } else if (normalizedSemesters.length > 0) {
-        const activeSemester = normalizedSemesters.find((item) => item?.isActive);
-        const initialSemesterId = activeSemester?.id ?? normalizedSemesters[0]?.id;
+        const activeSemester = normalizedSemesters.find(
+          (item) => item?.isActive
+        );
+        const initialSemesterId =
+          activeSemester?.id ?? normalizedSemesters[0]?.id;
 
         if (initialSemesterId && !selectedSemesterId) {
           setSelectedSemesterId(String(initialSemesterId));
@@ -317,8 +320,7 @@ const useWalikelasDashboard = (currentUser: CurrentUser | null) => {
           return;
         }
 
-        const walikelasId =
-          currentUser?.teacherId ?? currentUser?.walikelasId ?? currentUser?.id;
+        const walikelasId = currentUser?.teacherId ?? currentUser?.id;
 
         if (!walikelasId) {
           console.warn(
@@ -343,12 +345,7 @@ const useWalikelasDashboard = (currentUser: CurrentUser | null) => {
         ] = await Promise.all([
           apiService.getClasses(),
           apiService.getClassStudents(walikelasId),
-          apiService.getClassGrades(
-            walikelasId,
-            null,
-            null,
-            requestSemesterId
-          ),
+          apiService.getClassGrades(walikelasId, null, null, requestSemesterId),
           apiService.getClassAttendance(
             walikelasId,
             null,
@@ -407,20 +404,16 @@ const useWalikelasDashboard = (currentUser: CurrentUser | null) => {
               return false;
             }) ??
             (currentUser?.kelasId
-              ? classesData.find((cls) =>
-                  String(cls?.id) === String(currentUser.kelasId)
+              ? classesData.find(
+                  (cls) => String(cls?.id) === String(currentUser.kelasId)
                 )
               : null)
           : null;
 
         setClassInfo(currentClass);
 
-        const classStudents = Array.isArray(studentsData)
-          ? studentsData
-          : [];
-        const usersArray = Array.isArray(usersResponse)
-          ? usersResponse
-          : [];
+        const classStudents = Array.isArray(studentsData) ? studentsData : [];
+        const usersArray = Array.isArray(usersResponse) ? usersResponse : [];
         const studentsArray = Array.isArray(allStudentsResponse)
           ? allStudentsResponse
           : [];
@@ -429,8 +422,9 @@ const useWalikelasDashboard = (currentUser: CurrentUser | null) => {
           : [];
 
         const relevantUsers = usersArray.filter((user) =>
-          classStudents.some((student) =>
-            String(student?.userId ?? student?.id) === String(user?.id)
+          classStudents.some(
+            (student) =>
+              String(student?.userId ?? student?.id) === String(user?.id)
           )
         );
 
@@ -531,7 +525,11 @@ const useWalikelasDashboard = (currentUser: CurrentUser | null) => {
           variant: "destructive",
         });
 
-        if (isSemesterNotFound || errorCode === "SEMESTER_NOT_ACTIVE" || errorCode === "ACTIVE_SEMESTER_NOT_FOUND") {
+        if (
+          isSemesterNotFound ||
+          errorCode === "SEMESTER_NOT_ACTIVE" ||
+          errorCode === "ACTIVE_SEMESTER_NOT_FOUND"
+        ) {
           setGrades([]);
           setAttendance([]);
         }
@@ -698,7 +696,8 @@ const useWalikelasDashboard = (currentUser: CurrentUser | null) => {
         (s) => s.nisn === studentForm.nisn && s.id !== editingStudent?.id
       );
       const usernameExists = students.some(
-        (s) => s.username === studentForm.username && s.id !== editingStudent?.id
+        (s) =>
+          s.username === studentForm.username && s.id !== editingStudent?.id
       );
 
       if (nisnExists) {
@@ -753,7 +752,10 @@ const useWalikelasDashboard = (currentUser: CurrentUser | null) => {
             studentData
           );
         } else {
-          result = await apiService.addClassStudent(currentUser?.id, studentData);
+          result = await apiService.addClassStudent(
+            currentUser?.id,
+            studentData
+          );
         }
 
         if (result.success) {
@@ -998,7 +1000,8 @@ const useWalikelasDashboard = (currentUser: CurrentUser | null) => {
           variant: "destructive",
         });
       }
-    }, [
+    },
+    [
       currentUser,
       enforcedActiveSemester,
       getEffectiveSemesterId,
@@ -1008,7 +1011,8 @@ const useWalikelasDashboard = (currentUser: CurrentUser | null) => {
       resolveSemesterMetadata,
       shouldAttachSemesterId,
       toast,
-    ]);
+    ]
+  );
 
   const handleSemesterChange = useCallback((value: string) => {
     setSelectedSemesterId(String(value));

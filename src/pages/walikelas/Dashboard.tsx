@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import {
   Select,
@@ -59,6 +59,12 @@ const WalikelasaDashboard = ({ currentUser, onLogout }) => {
     editStudent,
   } = useWalikelasDashboard(currentUser);
 
+  const test = () => {
+    console.log("Current User ", currentUser);
+  };
+
+  useEffect(() => test());
+
   const {
     getSemesterOptionLabel,
     buildSemesterPeriodLabel,
@@ -74,7 +80,9 @@ const WalikelasaDashboard = ({ currentUser, onLogout }) => {
 
   const [isAttendanceDialogOpen, setAttendanceDialogOpen] = useState(false);
   const [isGradesDialogOpen, setGradesDialogOpen] = useState(false);
-  const [selectedStudentId, setSelectedStudentId] = useState<string | null>(null);
+  const [selectedStudentId, setSelectedStudentId] = useState<string | null>(
+    null
+  );
 
   const selectedStudentName = selectedStudentId
     ? students.find((student) => student.id === selectedStudentId)?.nama || null
@@ -132,7 +140,9 @@ const WalikelasaDashboard = ({ currentUser, onLogout }) => {
                 <GraduationCap className="h-6 w-6 md:h-8 md:w-8" />
               </div>
               <div>
-                <h1 className="text-xl md:text-2xl font-bold">Dashboard Wali Kelas</h1>
+                <h1 className="text-xl md:text-2xl font-bold">
+                  Dashboard Wali Kelas
+                </h1>
                 <p className="opacity-90 text-sm md:text-base">
                   Selamat datang, {currentUser?.nama}
                 </p>
@@ -187,21 +197,27 @@ const WalikelasaDashboard = ({ currentUser, onLogout }) => {
           <CardContent className="p-4">
             <div className="flex flex-col md:flex-row justify-between items-start md:items-center space-y-4 md:space-y-0">
               <div>
-                <h3 className="font-semibold text-foreground">Filter Periode Akademik</h3>
+                <h3 className="font-semibold text-foreground">
+                  Filter Periode Akademik
+                </h3>
                 <p className="text-sm text-muted-foreground">
                   Pilih tahun ajaran dan semester yang ingin dilihat
                 </p>
                 {selectedSemesterPeriodLabel !== "-" && (
                   <p className="text-xs text-muted-foreground mt-1">
                     Saat ini: {selectedSemesterPeriodLabel}
-                    {selectedSemesterDateRange ? ` • ${selectedSemesterDateRange}` : ""}
+                    {selectedSemesterDateRange
+                      ? ` • ${selectedSemesterDateRange}`
+                      : ""}
                   </p>
                 )}
               </div>
               <Select
                 value={
                   selectedSemesterId ||
-                  (semesters.length === 1 ? String(semesters[0]?.id) : undefined)
+                  (semesters.length === 1
+                    ? String(semesters[0]?.id)
+                    : undefined)
                 }
                 onValueChange={handleSemesterChange}
                 disabled={semesters.length === 0}
@@ -238,7 +254,9 @@ const WalikelasaDashboard = ({ currentUser, onLogout }) => {
                   <Calendar className="h-5 w-5 text-primary" />
                 </div>
                 <div>
-                  <h3 className="font-semibold text-foreground">Informasi Semester</h3>
+                  <h3 className="font-semibold text-foreground">
+                    Informasi Semester
+                  </h3>
                   <p className="text-sm text-muted-foreground">
                     {selectedSemesterPeriodLabel}
                   </p>
@@ -281,7 +299,9 @@ const WalikelasaDashboard = ({ currentUser, onLogout }) => {
               </div>
               {selectedSemesterMetadata.catatan && (
                 <div className="border border-border bg-muted/30 rounded-lg p-3 text-sm">
-                  <p className="font-medium text-foreground mb-1">Catatan Semester</p>
+                  <p className="font-medium text-foreground mb-1">
+                    Catatan Semester
+                  </p>
                   <p className="text-muted-foreground whitespace-pre-line">
                     {selectedSemesterMetadata.catatan}
                   </p>
