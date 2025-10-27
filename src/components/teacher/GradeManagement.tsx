@@ -89,11 +89,20 @@ export default function GradeManagement({ grades, students, subjects, currentUse
     }
 
     try {
+      if (!currentUser?.teacherId) {
+        toast({
+          title: "Error",
+          description: "ID guru tidak ditemukan. Harap hubungi administrator.",
+          variant: "destructive"
+        });
+        return;
+      }
+
       const studentData = students.find(s => s.id === gradeForm.studentId);
       const gradeData = {
         id: editingGrade ? editingGrade.id : Date.now().toString(),
         ...gradeForm,
-        teacherId: currentUser.id,
+        teacherId: currentUser.teacherId,
         kelasId: studentData?.kelasId || '1',
         tahunAjaran: '2024/2025',
         semester: 1,
@@ -114,7 +123,7 @@ export default function GradeManagement({ grades, students, subjects, currentUse
           result = { success: false, message: "Grade not found" };
         }
       } else {
-        result = await apiService.addGrade(currentUser.id, gradeData);
+        result = await apiService.addGrade(currentUser.teacherId, gradeData);
       }
       
       if (result.success) {
