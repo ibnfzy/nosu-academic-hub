@@ -50,6 +50,17 @@ export default function StudentManagement({ students, currentUser, onDataChange 
     }
 
     try {
+      const teacherId = currentUser?.teacherId;
+      if (!teacherId) {
+        toast({
+          title: "Data Wali Kelas",
+          description:
+            "ID wali kelas tidak ditemukan pada akun Anda. Hubungi admin untuk bantuan lebih lanjut.",
+          variant: "destructive",
+        });
+        return;
+      }
+
       const studentData = {
         ...studentForm,
         id: editingStudent ? editingStudent.id : Date.now().toString(),
@@ -60,12 +71,12 @@ export default function StudentManagement({ students, currentUser, onDataChange 
       let result;
       if (editingStudent) {
         result = await apiService.updateClassStudent(
-          currentUser.id,
+          teacherId,
           studentData.id,
           studentData
         );
       } else {
-        result = await apiService.addClassStudent(currentUser.id, studentData);
+        result = await apiService.addClassStudent(teacherId, studentData);
       }
 
       if (result.success) {
@@ -93,8 +104,19 @@ export default function StudentManagement({ students, currentUser, onDataChange 
   const handleDeleteStudent = async (studentId: string) => {
     if (window.confirm("Apakah Anda yakin ingin menghapus siswa ini?")) {
       try {
+        const teacherId = currentUser?.teacherId;
+        if (!teacherId) {
+          toast({
+            title: "Data Wali Kelas",
+            description:
+              "ID wali kelas tidak ditemukan pada akun Anda. Hubungi admin untuk bantuan lebih lanjut.",
+            variant: "destructive",
+          });
+          return;
+        }
+
         const result = await apiService.deleteClassStudent(
-          currentUser.id,
+          teacherId,
           studentId
         );
         if (result.success) {

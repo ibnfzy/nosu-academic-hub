@@ -111,6 +111,15 @@ const useWalikelasDashboard = (currentUser: CurrentUser | null) => {
   const [uploadBlockedReason, setUploadBlockedReason] = useState<string>("");
   const semesterWarningRef = useRef<string | null>(null);
 
+  const notifyMissingTeacherId = useCallback(() => {
+    toast({
+      title: "Data Wali Kelas",
+      description:
+        "ID wali kelas tidak ditemukan pada akun Anda. Hubungi admin untuk bantuan lebih lanjut.",
+      variant: "destructive",
+    });
+  }, [toast]);
+
   const {
     mode: enforcementMode,
     isStrictMode,
@@ -320,7 +329,7 @@ const useWalikelasDashboard = (currentUser: CurrentUser | null) => {
           return;
         }
 
-        const walikelasId = currentUser?.teacherId ?? currentUser?.id;
+        const walikelasId = currentUser?.teacherId;
 
         if (!walikelasId) {
           console.warn(
@@ -330,7 +339,7 @@ const useWalikelasDashboard = (currentUser: CurrentUser | null) => {
           setStudents([]);
           setGrades([]);
           setAttendance([]);
-          setLoading(false);
+          notifyMissingTeacherId();
           return;
         }
 
@@ -545,6 +554,7 @@ const useWalikelasDashboard = (currentUser: CurrentUser | null) => {
       hasEnforcedActiveSemester,
       isSemesterExpired,
       isStrictModeActive,
+      notifyMissingTeacherId,
       resolveSemesterMetadata,
       shouldAttachSemesterId,
       toast,
@@ -722,6 +732,12 @@ const useWalikelasDashboard = (currentUser: CurrentUser | null) => {
         const targetStudentId =
           editingStudent?.studentId ?? editingStudent?.id ?? null;
 
+        const walikelasId = currentUser?.teacherId;
+        if (!walikelasId) {
+          notifyMissingTeacherId();
+          return;
+        }
+
         const studentData = {
           users: {
             username: studentForm.nisn,
@@ -747,15 +763,12 @@ const useWalikelasDashboard = (currentUser: CurrentUser | null) => {
         let result;
         if (editingStudent && targetStudentId) {
           result = await apiService.updateClassStudent(
-            currentUser?.id,
+            walikelasId,
             targetStudentId,
             studentData
           );
         } else {
-          result = await apiService.addClassStudent(
-            currentUser?.id,
-            studentData
-          );
+          result = await apiService.addClassStudent(walikelasId, studentData);
         }
 
         if (result.success) {
@@ -783,6 +796,7 @@ const useWalikelasDashboard = (currentUser: CurrentUser | null) => {
       currentUser,
       editingStudent,
       loadWalikelasData,
+      notifyMissingTeacherId,
       resetStudentForm,
       studentForm,
       students,
@@ -806,8 +820,14 @@ const useWalikelasDashboard = (currentUser: CurrentUser | null) => {
             return candidate?.studentId ?? studentId;
           })();
 
+          const walikelasId = currentUser?.teacherId;
+          if (!walikelasId) {
+            notifyMissingTeacherId();
+            return;
+          }
+
           const result = await apiService.deleteClassStudent(
-            currentUser?.id,
+            walikelasId,
             targetStudentId
           );
           if (result.success) {
@@ -826,13 +846,19 @@ const useWalikelasDashboard = (currentUser: CurrentUser | null) => {
         }
       }
     },
-    [currentUser, loadWalikelasData, students, toast]
+    [currentUser, loadWalikelasData, notifyMissingTeacherId, students, toast]
   );
 
   const handleVerifyGrade = useCallback(
     async (gradeId: string) => {
       try {
-        const result = await apiService.verifyGrade(currentUser?.id, gradeId);
+        const walikelasId = currentUser?.teacherId;
+        if (!walikelasId) {
+          notifyMissingTeacherId();
+          return;
+        }
+
+        const result = await apiService.verifyGrade(walikelasId, gradeId);
         if (result.success) {
           toast({
             title: "Berhasil",
@@ -848,11 +874,11 @@ const useWalikelasDashboard = (currentUser: CurrentUser | null) => {
         });
       }
     },
-    [currentUser, loadWalikelasData, toast]
+    [currentUser, loadWalikelasData, notifyMissingTeacherId, toast]
   );
 
   const handleVerifyAll = useCallback(async () => {
-    if (unverifiedGrades.length === 0 || !currentUser?.id) return;
+    if (unverifiedGrades.length === 0) return;
 
     if (
       window.confirm(
@@ -861,8 +887,14 @@ const useWalikelasDashboard = (currentUser: CurrentUser | null) => {
     ) {
       setLoading(true);
       try {
+        const walikelasId = currentUser?.teacherId;
+        if (!walikelasId) {
+          notifyMissingTeacherId();
+          return;
+        }
+
         const verifyPromises = unverifiedGrades.map((grade) =>
-          apiService.verifyGrade(currentUser.id, grade.id)
+          apiService.verifyGrade(walikelasId, grade.id)
         );
 
         await Promise.all(verifyPromises);
@@ -883,7 +915,13 @@ const useWalikelasDashboard = (currentUser: CurrentUser | null) => {
         setLoading(false);
       }
     }
-  }, [currentUser, loadWalikelasData, toast, unverifiedGrades]);
+  }, [
+    currentUser,
+    loadWalikelasData,
+    notifyMissingTeacherId,
+    toast,
+    unverifiedGrades,
+  ]);
 
   const handlePrintReport = useCallback(
     async (student: any) => {
@@ -932,8 +970,14 @@ const useWalikelasDashboard = (currentUser: CurrentUser | null) => {
           return;
         }
 
+        const walikelasId = currentUser?.teacherId;
+        if (!walikelasId) {
+          notifyMissingTeacherId();
+          return;
+        }
+
         const reportData = await apiService.getClassStudentReport(
-          currentUser?.id,
+          walikelasId,
           student.id,
           null,
           null,
@@ -1008,6 +1052,7 @@ const useWalikelasDashboard = (currentUser: CurrentUser | null) => {
       hasEnforcedActiveSemester,
       isSemesterExpired,
       isStrictModeActive,
+      notifyMissingTeacherId,
       resolveSemesterMetadata,
       shouldAttachSemesterId,
       toast,
