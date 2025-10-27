@@ -21,7 +21,18 @@ export default function GradeVerification({ grades, students, currentUser, onDat
 
   const handleVerifyGrade = async (gradeId: string) => {
     try {
-      const result = await apiService.verifyGrade(currentUser.id, gradeId);
+      const teacherId = currentUser?.teacherId;
+      if (!teacherId) {
+        toast({
+          title: "Data Wali Kelas",
+          description:
+            "ID wali kelas tidak ditemukan pada akun Anda. Hubungi admin untuk bantuan lebih lanjut.",
+          variant: "destructive",
+        });
+        return;
+      }
+
+      const result = await apiService.verifyGrade(teacherId, gradeId);
       if (result.success) {
         toast({
           title: "Berhasil",
@@ -50,9 +61,20 @@ export default function GradeVerification({ grades, students, currentUser, onDat
     ) {
       setLoading(true);
       try {
+        const teacherId = currentUser?.teacherId;
+        if (!teacherId) {
+          toast({
+            title: "Data Wali Kelas",
+            description:
+              "ID wali kelas tidak ditemukan pada akun Anda. Hubungi admin untuk bantuan lebih lanjut.",
+            variant: "destructive",
+          });
+          return;
+        }
+
         // Verify all unverified grades
         const verifyPromises = unverifiedGrades.map((grade) =>
-          apiService.verifyGrade(currentUser.id, grade.id)
+          apiService.verifyGrade(teacherId, grade.id)
         );
 
         await Promise.all(verifyPromises);
