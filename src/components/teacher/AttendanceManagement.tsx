@@ -67,11 +67,20 @@ export default function AttendanceManagement({ attendance, students, subjects, c
     }
 
     try {
+      if (!currentUser?.teacherId) {
+        toast({
+          title: "Error",
+          description: "ID guru tidak ditemukan. Harap hubungi administrator.",
+          variant: "destructive"
+        });
+        return;
+      }
+
       const studentData = students.find(s => s.id === attendanceForm.studentId);
       const attendanceData = {
         id: editingAttendance ? editingAttendance.id : Date.now().toString(),
         ...attendanceForm,
-        teacherId: currentUser.id,
+        teacherId: currentUser.teacherId,
         kelasId: studentData?.kelasId || '1',
         tahunAjaran: '2024/2025',
         semester: 1
@@ -90,7 +99,7 @@ export default function AttendanceManagement({ attendance, students, subjects, c
           result = { success: false, message: "Attendance not found" };
         }
       } else {
-        result = await apiService.addAttendance(currentUser.id, attendanceData);
+        result = await apiService.addAttendance(currentUser.teacherId, attendanceData);
       }
       
       if (result.success) {
