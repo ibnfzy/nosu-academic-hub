@@ -11,6 +11,7 @@ interface GradeItem {
   nilai: string | number;
   tanggal: string;
   verified?: boolean;
+  studentName?: string;
 }
 
 interface StudentSummary {
@@ -65,7 +66,7 @@ const GradesList = ({
         >
           <div className="flex-1">
             <h4 className="font-medium text-foreground">
-              {findStudentName(grade.studentId)}
+              {grade.studentName ?? "Siswa"}
             </h4>
             <div className="flex flex-wrap items-center gap-2 mt-1">
               <Badge variant="outline" className="text-xs">
@@ -82,7 +83,9 @@ const GradesList = ({
           <div className="flex flex-col items-stretch md:items-end gap-3">
             <div className="flex items-center gap-3 md:justify-end">
               <div className="text-right">
-                <p className={`text-xl font-bold ${getGradeColor(grade.nilai)}`}>
+                <p
+                  className={`text-xl font-bold ${getGradeColor(grade.nilai)}`}
+                >
                   {grade.nilai}
                 </p>
               </div>
@@ -102,7 +105,9 @@ const GradesList = ({
                 size="sm"
                 onClick={() => onVerifyGrade(grade.id)}
                 className="bg-success text-success-foreground"
-                aria-label={`Verifikasi nilai ${findStudentName(grade.studentId)}`}
+                aria-label={`Verifikasi nilai ${findStudentName(
+                  grade.studentId
+                )}`}
                 disabled={loading}
               >
                 <CheckCircle className="h-4 w-4 mr-2" />
