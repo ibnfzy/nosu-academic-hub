@@ -111,19 +111,10 @@ export default function ClassManagement({
       const { walikelasId, ...restClassForm } = classForm;
       const walikelasTeacherId =
         walikelasId && walikelasId !== "unassigned" ? walikelasId : null;
-      const walikelasUser = walikelasTeacherId
-        ? users.find(
-            (u) =>
-              u.role === "walikelas" &&
-              String(u.teacherId ?? u.id) === String(walikelasTeacherId)
-          )
-        : null;
-      const walikelasUserId = walikelasUser ? walikelasUser.id : null;
 
       const classData = {
         ...restClassForm,
-        walikelasId: walikelasUserId,
-        walikelasTeacherId,
+        walikelasId: walikelasTeacherId,
         ...(editingItem?.id && { id: editingItem.id }),
       };
 
@@ -219,8 +210,7 @@ export default function ClassManagement({
         (u) =>
           String(u.teacherId ?? u.id) === String(teacherId) &&
           u.role === "walikelas"
-      ) ||
-      users.find((u) => String(u.id) === String(teacherId))
+      ) || users.find((u) => String(u.id) === String(teacherId))
     );
   };
 
@@ -264,10 +254,7 @@ export default function ClassManagement({
       ]
         .filter(
           (id) =>
-            id !== null &&
-            id !== undefined &&
-            id !== "" &&
-            id !== "unassigned"
+            id !== null && id !== undefined && id !== "" && id !== "unassigned"
         )
         .map((id) => String(id));
 
