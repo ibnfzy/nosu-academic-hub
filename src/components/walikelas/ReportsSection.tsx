@@ -7,6 +7,8 @@ interface StudentReportCandidate {
   id: string;
   nama: string;
   nisn: string;
+  studentId?: string | number | null;
+  userId?: string | number | null;
 }
 
 interface GradeItem {
@@ -36,9 +38,25 @@ const ReportsSection = ({
   onPrintReport,
 }: ReportsSectionProps) => {
   const renderStudentCard = (student: StudentReportCandidate) => {
-    const studentGrades = grades.filter(
-      (grade) => grade.studentId === student.id && grade.verified
-    );
+    const matchGradeToStudent = (grade: GradeItem) => {
+      if (grade.studentId === undefined || grade.studentId === null) {
+        return false;
+      }
+
+      const targetId = String(grade.studentId);
+      const candidateIds = [
+        student.studentId ?? student.id ?? student.userId,
+        student.studentId,
+        student.id,
+        student.userId,
+      ]
+        .filter((value) => value !== undefined && value !== null)
+        .map((value) => String(value));
+
+      return grade.verified && candidateIds.includes(targetId);
+    };
+
+    const studentGrades = grades.filter(matchGradeToStudent);
     const verifiedSubjects = studentGrades.length;
     const averageGrade =
       studentGrades.length > 0

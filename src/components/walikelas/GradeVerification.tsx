@@ -97,8 +97,33 @@ export default function GradeVerification({ grades, students, currentUser, onDat
     }
   };
 
-  const getStudentName = (studentId: string) => {
-    const student = students.find(s => s.id === studentId);
+  const matchStudentById = (
+    studentId: string | number | null | undefined
+  ) => {
+    if (studentId === undefined || studentId === null) {
+      return undefined;
+    }
+
+    const targetId = String(studentId);
+
+    return students.find((student) => {
+      const candidateIds = [
+        student?.studentId ?? student?.id ?? student?.userId,
+        student?.studentId,
+        student?.id,
+        student?.userId,
+      ]
+        .filter((value) => value !== undefined && value !== null)
+        .map((value) => String(value));
+
+      return candidateIds.includes(targetId);
+    });
+  };
+
+  const getStudentName = (
+    studentId: string | number | null | undefined
+  ) => {
+    const student = matchStudentById(studentId);
     return student?.nama || 'Unknown Student';
   };
 
