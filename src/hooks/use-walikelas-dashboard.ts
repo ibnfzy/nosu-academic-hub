@@ -976,9 +976,22 @@ const useWalikelasDashboard = (currentUser: CurrentUser | null) => {
           return;
         }
 
+        const normalizedStudentId = String(
+          student?.studentId ?? student?.id ?? student?.userId ?? ""
+        ).trim();
+
+        if (!normalizedStudentId) {
+          toast({
+            title: "Error",
+            description: "ID siswa tidak ditemukan",
+            variant: "destructive",
+          });
+          return;
+        }
+
         const reportData = await apiService.getClassStudentReport(
           walikelasId,
-          student.id,
+          normalizedStudentId,
           null,
           null,
           requestSemesterId
