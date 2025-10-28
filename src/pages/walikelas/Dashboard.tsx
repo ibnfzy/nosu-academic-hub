@@ -84,8 +84,30 @@ const WalikelasaDashboard = ({ currentUser, onLogout }) => {
     null
   );
 
+  const findStudentByIdentifier = (
+    identifier: string | number | null
+  ): (typeof students)[number] | null => {
+    if (identifier === null || identifier === undefined) {
+      return null;
+    }
+
+    const normalizedIdentifier = String(identifier);
+
+    return (
+      students.find((student) => {
+        const identifiers = [student?.studentId, student?.userId, student?.id].filter(
+          (value) => value !== undefined && value !== null
+        );
+
+        return identifiers.some(
+          (value) => String(value) === normalizedIdentifier
+        );
+      }) ?? null
+    );
+  };
+
   const selectedStudentName = selectedStudentId
-    ? students.find((student) => student.id === selectedStudentId)?.nama || null
+    ? findStudentByIdentifier(selectedStudentId)?.nama ?? null
     : null;
 
   const openAttendanceDialog = () => {
@@ -99,21 +121,43 @@ const WalikelasaDashboard = ({ currentUser, onLogout }) => {
   };
 
   const handleShowStudentAttendance = (studentId: string) => {
-    setSelectedStudentId(studentId);
+    const matchedStudent = findStudentByIdentifier(studentId);
+    const normalizedStudentId =
+      matchedStudent?.studentId !== undefined && matchedStudent?.studentId !== null
+        ? String(matchedStudent.studentId)
+        : String(studentId);
+
+    setSelectedStudentId(normalizedStudentId);
     setAttendanceDialogOpen(true);
   };
 
   const handleShowStudentGrades = (studentId: string) => {
-    setSelectedStudentId(studentId);
+    const matchedStudent = findStudentByIdentifier(studentId);
+    const normalizedStudentId =
+      matchedStudent?.studentId !== undefined && matchedStudent?.studentId !== null
+        ? String(matchedStudent.studentId)
+        : String(studentId);
+
+    setSelectedStudentId(normalizedStudentId);
     setGradesDialogOpen(true);
   };
 
   const filteredAttendanceRecords = selectedStudentId
-    ? attendance.filter((record) => record.studentId === selectedStudentId)
+    ? attendance.filter(
+        (record) =>
+          record?.studentId !== undefined &&
+          record?.studentId !== null &&
+          String(record.studentId) === String(selectedStudentId)
+      )
     : attendance;
 
   const filteredGradeRecords = selectedStudentId
-    ? grades.filter((grade) => grade.studentId === selectedStudentId)
+    ? grades.filter(
+        (grade) =>
+          grade?.studentId !== undefined &&
+          grade?.studentId !== null &&
+          String(grade.studentId) === String(selectedStudentId)
+      )
     : grades;
 
   const handleAttendanceDialogChange = (open: boolean) => {
