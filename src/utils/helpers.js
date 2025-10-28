@@ -813,7 +813,8 @@ export const generateReportHTML = (reportData) => {
           ${Object.values(groupedGrades)
             .map((subject, index) => {
               const finalGrade = (() => {
-                const nilaiHarian = parseFloat(subject.nilaiHarian) || 0;
+                console.log("Subject :", subject);
+                const nilaiHarian = parseFloat(subject.rataUlangan) || 0;
                 const uts = parseFloat(subject.uts?.nilai) || 0;
                 const uas = parseFloat(subject.uas?.nilai) || 0;
 
@@ -853,9 +854,11 @@ export const generateReportHTML = (reportData) => {
           <p><strong>Nilai Rata-rata:</strong> ${getFinalGrade(
             finalGradeArr
           )} (${getGradePredicate(getFinalGrade(finalGradeArr))})</p>
-          <p><strong>Kehadiran:</strong> Hadir: ${attendanceStats.hadir}, Sakit: ${
-            attendanceStats.sakit
-          }, Alfa: ${attendanceStats.alfa}, Izin: ${attendanceStats.izin}</p>
+          <p><strong>Kehadiran:</strong> Hadir: ${
+            attendanceStats.hadir
+          }, Sakit: ${attendanceStats.sakit}, Alfa: ${
+    attendanceStats.alfa
+  }, Izin: ${attendanceStats.izin}</p>
           <p><strong>Persentase Kehadiran:</strong> ${
             attendanceStats.persentase
           }%</p>

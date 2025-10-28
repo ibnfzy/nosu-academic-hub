@@ -62,19 +62,23 @@ const ReportsSection = ({
             </div>
             <div>
               <h4 className="font-medium text-foreground">{student.nama}</h4>
-              <p className="text-sm text-muted-foreground">NISN: {student.nisn}</p>
+              <p className="text-sm text-muted-foreground">
+                NISN: {student.nisn}
+              </p>
             </div>
           </div>
           <div className="flex flex-wrap items-center gap-2 mt-2 ml-11">
             <Badge variant="secondary" className="text-xs">
-              {verifiedSubjects} Mata Pelajaran
+              {verifiedSubjects} Jumlah Nilai
             </Badge>
             <Badge variant="outline" className="text-xs">
               Rata-rata: {averageGrade}
             </Badge>
             <span className="text-xs text-muted-foreground">
               Periode: {selectedSemesterPeriodLabel}
-              {selectedSemesterDateRange ? ` • ${selectedSemesterDateRange}` : ""}
+              {selectedSemesterDateRange
+                ? ` • ${selectedSemesterDateRange}`
+                : ""}
             </span>
           </div>
         </div>
@@ -104,14 +108,18 @@ const ReportsSection = ({
               <div className="mt-1 text-xs text-muted-foreground space-y-1">
                 <p>
                   Periode: {selectedSemesterPeriodLabel}
-                  {selectedSemesterDateRange ? ` • ${selectedSemesterDateRange}` : ""}
+                  {selectedSemesterDateRange
+                    ? ` • ${selectedSemesterDateRange}`
+                    : ""}
                 </p>
                 {selectedSemesterMetadata ? (
                   <div className="flex flex-col md:flex-row md:items-center md:space-x-4 space-y-1 md:space-y-0">
                     {selectedSemesterMetadata.jumlahHariBelajar !== null &&
-                      selectedSemesterMetadata.jumlahHariBelajar !== undefined && (
+                      selectedSemesterMetadata.jumlahHariBelajar !==
+                        undefined && (
                         <span>
-                          Hari belajar: {selectedSemesterMetadata.jumlahHariBelajar}
+                          Hari belajar:{" "}
+                          {selectedSemesterMetadata.jumlahHariBelajar}
                         </span>
                       )}
                     {selectedSemesterMetadata.catatan && (
@@ -125,7 +133,8 @@ const ReportsSection = ({
             )}
           </div>
           <div className="text-sm text-muted-foreground">
-            <span className="font-medium">{students.length}</span> siswa siap cetak raport
+            <span className="font-medium">{students.length}</span> siswa siap
+            cetak raport
           </div>
         </div>
       </CardHeader>
