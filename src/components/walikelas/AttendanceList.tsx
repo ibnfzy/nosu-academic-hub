@@ -14,6 +14,8 @@ interface AttendanceRecord {
 interface StudentSummary {
   id: string;
   nama: string;
+  studentId?: string | number | null;
+  userId?: string | number | null;
 }
 
 interface AttendanceListProps {
@@ -27,8 +29,40 @@ const AttendanceList = ({
   students,
   emptyMessage,
 }: AttendanceListProps) => {
-  const findStudentName = (studentId: string) =>
-    students.find((student) => student.id === studentId)?.nama || "Siswa";
+  const matchStudentById = (
+    studentId: string | number | null | undefined
+  ) => {
+    if (studentId === undefined || studentId === null) {
+      return undefined;
+    }
+
+    const targetId = String(studentId);
+
+    return students.find((student) => {
+      const candidateIds = [
+        student.studentId ?? student.id ?? student.userId,
+        student.studentId,
+        student.id,
+        student.userId,
+      ]
+        .filter((value) => value !== undefined && value !== null)
+        .map((value) => String(value));
+
+      return candidateIds.includes(targetId);
+    });
+  };
+
+  const getNormalizedStudentId = (studentId: string | number) => {
+    const student = matchStudentById(studentId);
+    const normalizedId = student?.studentId ?? student?.id ?? student?.userId;
+
+    return normalizedId !== undefined && normalizedId !== null
+      ? String(normalizedId)
+      : studentId;
+  };
+
+  const findStudentName = (studentId: string | number | null | undefined) =>
+    matchStudentById(studentId)?.nama || "Siswa";
 
   if (attendance.length === 0) {
     return (
@@ -44,6 +78,7 @@ const AttendanceList = ({
   return (
     <div className="space-y-4">
       {attendance.map((record) => {
+        const normalizedStudentId = getNormalizedStudentId(record.studentId);
         const status = getAttendanceStatus(record.status);
 
         return (
@@ -53,7 +88,7 @@ const AttendanceList = ({
           >
             <div className="flex-1">
               <h4 className="font-medium text-foreground">
-                {findStudentName(record.studentId)}
+                {findStudentName(normalizedStudentId)}
               </h4>
               <div className="flex flex-wrap items-center gap-2 mt-1">
                 <Badge variant="outline" className="text-xs">
