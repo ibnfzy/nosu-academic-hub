@@ -15,6 +15,7 @@ import {
 
 export interface StudentUser {
   id: number | string;
+  studentId?: number | string | null;
   nama?: string;
   [key: string]: unknown;
 }
@@ -71,7 +72,7 @@ export const useStudentDashboard = ({
   currentUser,
 }: UseStudentDashboardParams) => {
   const { toast } = useToast();
-  const userId = currentUser?.id ?? null;
+  const studentId = currentUser?.studentId ?? currentUser?.id ?? null;
 
   const [grades, setGrades] = useState<StudentGrade[]>([]);
   const [attendance, setAttendance] = useState<StudentAttendanceRecord[]>([]);
@@ -139,7 +140,7 @@ export const useStudentDashboard = ({
   );
 
   const loadSemesters = useCallback(async () => {
-    if (!userId) return;
+    if (!studentId) return;
 
     try {
       const semestersResponse = await apiService.getSemesters();
@@ -190,12 +191,12 @@ export const useStudentDashboard = ({
     normalizeSemesterMetadata,
     selectedSemesterId,
     toast,
-    userId,
+    studentId,
   ]);
 
   const loadStudentData = useCallback(
     async (semesterIdParam?: string | null) => {
-      if (!userId) return;
+      if (!studentId) return;
 
       if (enforcementLoading) {
         return;
@@ -279,13 +280,13 @@ export const useStudentDashboard = ({
 
         const [gradesResponse, attendanceResponse] = await Promise.all([
           apiService.getStudentGrades(
-            userId,
+            studentId,
             tahunParam,
             semesterNumberParam,
             requestSemesterId
           ),
           apiService.getStudentAttendance(
-            userId,
+            studentId,
             tahunParam,
             semesterNumberParam,
             requestSemesterId
@@ -393,12 +394,12 @@ export const useStudentDashboard = ({
       semesters,
       shouldAttachSemesterId,
       toast,
-      userId,
+      studentId,
     ]
   );
 
   const handlePrintReport = useCallback(async () => {
-    if (!userId) return;
+    if (!studentId) return;
 
     const hasSemesters = semesters.length > 0;
     const effectiveSemesterId = hasSemesters
@@ -422,7 +423,7 @@ export const useStudentDashboard = ({
         : null;
 
       const reportData = await apiService.getStudentReport(
-        userId,
+        studentId,
         metadata?.tahunAjaran ?? null,
         metadata?.semesterNumber ?? null,
         effectiveSemesterId || null
@@ -503,7 +504,13 @@ export const useStudentDashboard = ({
         variant: "destructive",
       });
     }
-  }, [getEffectiveSemesterId, resolveSemesterMetadata, semesters, toast, userId]);
+  }, [
+    getEffectiveSemesterId,
+    resolveSemesterMetadata,
+    semesters,
+    toast,
+    studentId,
+  ]);
 
   const handleSemesterChange = useCallback(
     (semesterId: string) => {
@@ -516,17 +523,17 @@ export const useStudentDashboard = ({
   );
 
   useEffect(() => {
-    if (!userId) return;
+    if (!studentId) return;
     loadSemesters();
-  }, [loadSemesters, userId]);
+  }, [loadSemesters, studentId]);
 
   useEffect(() => {
-    if (!userId) return;
+    if (!studentId) return;
     const shouldLoadWithoutSemester = semesters.length === 0;
     if (shouldLoadWithoutSemester || selectedSemesterId) {
       loadStudentData();
     }
-  }, [loadStudentData, selectedSemesterId, semesters.length, userId]);
+  }, [loadStudentData, selectedSemesterId, semesters.length, studentId]);
 
   useEffect(() => {
     if (enforcementLoading) {
