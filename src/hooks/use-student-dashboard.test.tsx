@@ -48,10 +48,12 @@ const relaxedSettings = {
   activeSemester: mockSemesters[0],
 };
 
+const baseCurrentUser = { id: 1, studentId: 42, nama: "Budi" } as const;
+
 const mockGrades = [
   {
     id: 1,
-    studentId: 1,
+    studentId: 42,
     kelasId: 1,
     subjectId: 10,
     teacherId: 99,
@@ -88,7 +90,7 @@ describe("useStudentDashboard", () => {
     vi.mocked(apiService.getStudentAttendance).mockResolvedValue(mockAttendance);
 
     const { result } = renderHook(() =>
-      useStudentDashboard({ currentUser: { id: 1, nama: "Budi" } })
+      useStudentDashboard({ currentUser: baseCurrentUser })
     );
 
     await waitFor(() => expect(result.current.grades).toHaveLength(1));
@@ -96,6 +98,37 @@ describe("useStudentDashboard", () => {
     expect(result.current.selectedSemesterId).toBe("1");
     expect(result.current.averageGrade).toBe(90);
     expect(result.current.attendanceStats.hadir).toBe(1);
+  });
+
+  it("uses studentId from the authenticated user when fetching data", async () => {
+    vi.mocked(apiService.getSemesters).mockResolvedValue(mockSemesters);
+    vi.mocked(apiService.getStudentGrades).mockResolvedValue(mockGrades);
+    vi.mocked(apiService.getStudentAttendance).mockResolvedValue(mockAttendance);
+
+    renderHook(() => useStudentDashboard({ currentUser: baseCurrentUser }));
+
+    await waitFor(() =>
+      expect(apiService.getStudentGrades).toHaveBeenCalledTimes(1)
+    );
+
+    const [calledStudentId] = vi.mocked(apiService.getStudentGrades).mock.calls[0];
+    expect(calledStudentId).toBe(baseCurrentUser.studentId);
+  });
+
+  it("falls back to user id when studentId is unavailable", async () => {
+    const fallbackUser = { id: 7, nama: "Budi" } as const;
+    vi.mocked(apiService.getSemesters).mockResolvedValue(mockSemesters);
+    vi.mocked(apiService.getStudentGrades).mockResolvedValue(mockGrades);
+    vi.mocked(apiService.getStudentAttendance).mockResolvedValue(mockAttendance);
+
+    renderHook(() => useStudentDashboard({ currentUser: fallbackUser }));
+
+    await waitFor(() =>
+      expect(apiService.getStudentGrades).toHaveBeenCalledTimes(1)
+    );
+
+    const [calledStudentId] = vi.mocked(apiService.getStudentGrades).mock.calls[0];
+    expect(calledStudentId).toBe(fallbackUser.id);
   });
 
   it("mengirim semesterId hanya ketika mode strict aktif", async () => {
@@ -116,9 +149,7 @@ describe("useStudentDashboard", () => {
     vi.mocked(apiService.getStudentGrades).mockResolvedValue(mockGrades);
     vi.mocked(apiService.getStudentAttendance).mockResolvedValue(mockAttendance);
 
-    renderHook(() =>
-      useStudentDashboard({ currentUser: { id: 1, nama: "Budi" } })
-    );
+    renderHook(() => useStudentDashboard({ currentUser: baseCurrentUser }));
 
     await waitFor(() =>
       expect(apiService.getStudentGrades).toHaveBeenCalledTimes(1)
@@ -136,9 +167,7 @@ describe("useStudentDashboard", () => {
     vi.mocked(apiService.getStudentGrades).mockClear();
     vi.mocked(apiService.getStudentAttendance).mockClear();
 
-    renderHook(() =>
-      useStudentDashboard({ currentUser: { id: 1, nama: "Budi" } })
-    );
+    renderHook(() => useStudentDashboard({ currentUser: baseCurrentUser }));
 
     await waitFor(() =>
       expect(apiService.getStudentGrades).toHaveBeenCalledTimes(1)
@@ -166,7 +195,7 @@ describe("useStudentDashboard", () => {
     vi.mocked(apiService.getStudentAttendance).mockResolvedValue(mockAttendance);
 
     const { result } = renderHook(() =>
-      useStudentDashboard({ currentUser: { id: 1, nama: "Budi" } })
+      useStudentDashboard({ currentUser: baseCurrentUser })
     );
 
     await waitFor(() => expect(result.current.semesterWarning).not.toBe(""));
@@ -193,7 +222,7 @@ describe("useStudentDashboard", () => {
     });
 
     const { result } = renderHook(() =>
-      useStudentDashboard({ currentUser: { id: 1, nama: "Budi" } })
+      useStudentDashboard({ currentUser: baseCurrentUser })
     );
 
     await waitFor(() => expect(result.current.selectedSemesterId).toBe("1"));
@@ -217,7 +246,7 @@ describe("useStudentDashboard", () => {
     vi.mocked(apiService.getStudentAttendance).mockResolvedValue(mockAttendance);
 
     const { result } = renderHook(() =>
-      useStudentDashboard({ currentUser: { id: 1, nama: "Budi" } })
+      useStudentDashboard({ currentUser: baseCurrentUser })
     );
 
     await waitFor(() =>
@@ -243,7 +272,7 @@ describe("useStudentDashboard", () => {
     vi.mocked(apiService.getStudentAttendance).mockResolvedValue(mockAttendance);
 
     const { result } = renderHook(() =>
-      useStudentDashboard({ currentUser: { id: 1, nama: "Budi" } })
+      useStudentDashboard({ currentUser: baseCurrentUser })
     );
 
     await waitFor(() =>
@@ -270,7 +299,7 @@ describe("useStudentDashboard", () => {
     vi.mocked(apiService.getStudentReport).mockRejectedValue(error);
 
     const { result } = renderHook(() =>
-      useStudentDashboard({ currentUser: { id: 1, nama: "Budi" } })
+      useStudentDashboard({ currentUser: baseCurrentUser })
     );
 
     await waitFor(() => expect(result.current.selectedSemesterId).toBe("1"));
