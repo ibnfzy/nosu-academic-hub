@@ -42,6 +42,7 @@ import {
 } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import apiService from "@/services/apiService";
+import { SubjectCombobox } from "@/components/ui/subject-combobox";
 
 interface AdminScheduleManagementProps {
   onDataChange?: () => void;
@@ -969,27 +970,14 @@ export default function AdminScheduleManagement({
               </div>
               <div>
                 <Label className="mb-1 block">Mata Pelajaran</Label>
-                <Select
+                <SubjectCombobox
+                  subjects={subjects}
                   value={scheduleForm.subjectId}
                   onValueChange={(value) =>
                     setScheduleForm((prev) => ({ ...prev, subjectId: value }))
                   }
                   disabled={isSaving || isFormDataLoading}
-                >
-                  <SelectTrigger>
-                    <SelectValue placeholder="Pilih mata pelajaran" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {subjects.map((subject) => (
-                      <SelectItem
-                        key={subject.id}
-                        value={toStringOrEmpty(subject.id)}
-                      >
-                        {subject.nama || subject.name}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
+                />
               </div>
               <div>
                 <Label className="mb-1 block">Guru Pengampu</Label>
