@@ -161,6 +161,7 @@ const useWalikelasDashboard = (currentUser: CurrentUser | null) => {
   const [showStudentDialog, setShowStudentDialog] = useState(false);
   const [editingStudent, setEditingStudent] = useState<any>(null);
   const [searchTerm, setSearchTerm] = useState("");
+  const [reportSearchTerm, setReportSearchTerm] = useState("");
   const [activeSection, setActiveSection] = useState("students");
   const [semesters, setSemesters] = useState<DashboardSemesterRecord[]>([]);
   const [selectedSemesterId, setSelectedSemesterId] = useState<string>("");
@@ -1120,6 +1121,26 @@ const useWalikelasDashboard = (currentUser: CurrentUser | null) => {
     [grades, students]
   );
 
+  const filteredReportStudents = useMemo(() => {
+    const normalizedSearch = reportSearchTerm.trim().toLowerCase();
+
+    if (!normalizedSearch) {
+      return studentsWithVerifiedGrades;
+    }
+
+    return studentsWithVerifiedGrades.filter((student) => {
+      const name = (student.nama ?? "").toLowerCase();
+      const nis = (student.nis ?? "").toLowerCase();
+      const nisn = (student.nisn ?? "").toLowerCase();
+
+      return (
+        name.includes(normalizedSearch) ||
+        nis.includes(normalizedSearch) ||
+        nisn.includes(normalizedSearch)
+      );
+    });
+  }, [reportSearchTerm, studentsWithVerifiedGrades]);
+
   const handleStudentSubmit = useCallback(
     async (event: React.FormEvent<HTMLFormElement>) => {
       event.preventDefault();
@@ -1600,6 +1621,9 @@ const useWalikelasDashboard = (currentUser: CurrentUser | null) => {
     handleVerifyAll,
     attendancePercentage,
     studentsWithVerifiedGrades,
+    filteredReportStudents,
+    reportSearchTerm,
+    setReportSearchTerm,
     handlePrintReport,
     resetStudentForm,
     editStudent,
