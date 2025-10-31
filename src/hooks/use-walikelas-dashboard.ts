@@ -35,6 +35,64 @@ interface StudentFormState {
   email: string;
 }
 
+type UnknownRecord = Record<string, unknown>;
+
+interface ScheduleConflictDetail extends UnknownRecord {
+  hari: string | null;
+  jamMulai: string | null;
+  jamSelesai: string | null;
+  kelasNama: string | null;
+  teacherNama: string | null;
+  subjectNama: string | null;
+}
+
+interface ScheduleConflictInfo {
+  conflictScope?: string | null;
+  conflicts: ScheduleConflictDetail[];
+}
+
+interface WalikelasScheduleFilters {
+  kelasId: string;
+  hari: string;
+}
+
+const isRecord = (value: unknown): value is UnknownRecord => {
+  return typeof value === "object" && value !== null && !Array.isArray(value);
+};
+
+const toScheduleConflictDetail = (
+  value: unknown
+): ScheduleConflictDetail | null => {
+  if (!isRecord(value)) {
+    return null;
+  }
+
+  const record = value as UnknownRecord;
+  const normalizeStringOrNull = (candidate: unknown) => {
+    if (candidate === null || candidate === undefined) {
+      return null;
+    }
+    if (typeof candidate === "string") {
+      const trimmed = candidate.trim();
+      return trimmed === "" ? null : trimmed;
+    }
+    if (typeof candidate === "number") {
+      return String(candidate);
+    }
+    return null;
+  };
+
+  return {
+    ...record,
+    hari: normalizeStringOrNull(record.hari),
+    jamMulai: normalizeStringOrNull(record.jamMulai),
+    jamSelesai: normalizeStringOrNull(record.jamSelesai),
+    kelasNama: normalizeStringOrNull(record.kelasNama),
+    teacherNama: normalizeStringOrNull(record.teacherNama),
+    subjectNama: normalizeStringOrNull(record.subjectNama),
+  } as ScheduleConflictDetail;
+};
+
 const normalizeGender = (value: unknown): string => {
   if (!value) return "";
 
@@ -104,6 +162,20 @@ const useWalikelasDashboard = (currentUser: CurrentUser | null) => {
   const [activeSection, setActiveSection] = useState("students");
   const [semesters, setSemesters] = useState<DashboardSemesterRecord[]>([]);
   const [selectedSemesterId, setSelectedSemesterId] = useState<string>("");
+  const [walikelasSchedules, setWalikelasSchedules] = useState<any[]>([]);
+  const [walikelasScheduleMetadata, setWalikelasScheduleMetadata] =
+    useState<UnknownRecord | null>(null);
+  const [walikelasScheduleError, setWalikelasScheduleError] =
+    useState<string | null>(null);
+  const [walikelasScheduleConflicts, setWalikelasScheduleConflicts] =
+    useState<ScheduleConflictInfo | null>(null);
+  const [walikelasScheduleFilters, setWalikelasScheduleFilters] =
+    useState<WalikelasScheduleFilters>(() => ({
+      kelasId: currentUser?.kelasId ? String(currentUser.kelasId) : "",
+      hari: "",
+    }));
+  const [isWalikelasScheduleLoading, setIsWalikelasScheduleLoading] =
+    useState(false);
   const [studentForm, setStudentForm] = useState<StudentFormState>(
     createDefaultStudentForm
   );
@@ -163,6 +235,16 @@ const useWalikelasDashboard = (currentUser: CurrentUser | null) => {
     setShowStudentDialog(false);
   }, [clearStudentForm]);
 
+  const updateWalikelasScheduleFilters = useCallback(
+    (updates: Partial<WalikelasScheduleFilters>) => {
+      setWalikelasScheduleFilters((prev) => ({
+        ...prev,
+        ...updates,
+      }));
+    },
+    []
+  );
+
   const editStudent = useCallback((student: any) => {
     const mergedRecord = student?.mergedUserData ?? null;
     const resolvedTanggalLahir = normalizeDateValue(
@@ -205,6 +287,78 @@ const useWalikelasDashboard = (currentUser: CurrentUser | null) => {
     ]
   );
 
+  const buildSemesterRequestPayload = useCallback(
+    (semesterIdParam?: string | number | null) => {
+      const effectiveSemesterId = getEffectiveSemesterId(semesterIdParam);
+      const enforcedId =
+        enforcedActiveSemester?.id !== undefined &&
+        enforcedActiveSemester?.id !== null
+          ? String(enforcedActiveSemester.id)
+          : null;
+
+      const normalizedEffectiveId =
+        effectiveSemesterId && effectiveSemesterId !== ""
+          ? effectiveSemesterId
+          : null;
+
+      const candidateSemesterId =
+        normalizedEffectiveId !== null ? normalizedEffectiveId : enforcedId;
+
+      const shouldUseSemesterId = shouldAttachSemesterId(candidateSemesterId);
+      const semesterIdForRequest =
+        shouldUseSemesterId && candidateSemesterId ? candidateSemesterId : null;
+
+      const tryResolveMetadata = (
+        candidate: string | number | null | undefined
+      ): DashboardSemesterMetadata | null => {
+        if (candidate === undefined || candidate === null) {
+          return null;
+        }
+        return resolveSemesterMetadata(String(candidate));
+      };
+
+      let resolvedMetadata: DashboardSemesterMetadata | null =
+        tryResolveMetadata(semesterIdForRequest) ??
+        tryResolveMetadata(candidateSemesterId) ??
+        tryResolveMetadata(normalizedEffectiveId);
+
+      if (!resolvedMetadata) {
+        resolvedMetadata =
+          selectedSemesterMetadata ??
+          (isStrictModeActive ? enforcedActiveSemester ?? null : null) ??
+          (semesters.length === 1
+            ? normalizeSemesterMetadata(semesters[0])
+            : null);
+      }
+
+      return {
+        semesterId: semesterIdForRequest,
+        tahunAjaran:
+          resolvedMetadata?.tahunAjaran !== undefined &&
+          resolvedMetadata?.tahunAjaran !== null
+            ? resolvedMetadata.tahunAjaran
+            : null,
+        semester:
+          resolvedMetadata?.semesterNumber !== undefined &&
+          resolvedMetadata?.semesterNumber !== null
+            ? resolvedMetadata.semesterNumber
+            : null,
+        metadata: resolvedMetadata,
+        candidateSemesterId,
+      };
+    },
+    [
+      enforcedActiveSemester,
+      getEffectiveSemesterId,
+      isStrictModeActive,
+      normalizeSemesterMetadata,
+      resolveSemesterMetadata,
+      selectedSemesterMetadata,
+      semesters,
+      shouldAttachSemesterId,
+    ]
+  );
+
   const selectedSemesterMetadata = useMemo(() => {
     if (selectedSemesterId) {
       return resolveSemesterMetadata(selectedSemesterId);
@@ -224,6 +378,22 @@ const useWalikelasDashboard = (currentUser: CurrentUser | null) => {
     selectedSemesterId,
     semesters,
   ]);
+
+  useEffect(() => {
+    if (!currentUser?.kelasId) {
+      return;
+    }
+
+    setWalikelasScheduleFilters((prev) => {
+      if (prev.kelasId && prev.kelasId !== "") {
+        return prev;
+      }
+      return {
+        ...prev,
+        kelasId: String(currentUser.kelasId),
+      };
+    });
+  }, [currentUser?.kelasId]);
 
   const loadSemesters = useCallback(async () => {
     try {
@@ -271,23 +441,20 @@ const useWalikelasDashboard = (currentUser: CurrentUser | null) => {
 
       setLoading(true);
       try {
-        const effectiveSemesterId = getEffectiveSemesterId(semesterIdParam);
-        const enforcedId =
-          enforcedActiveSemester?.id !== undefined &&
-          enforcedActiveSemester?.id !== null
-            ? String(enforcedActiveSemester.id)
-            : null;
-        const candidateSemesterId =
-          (effectiveSemesterId && effectiveSemesterId !== ""
-            ? effectiveSemesterId
-            : null) ?? enforcedId;
+        const {
+          semesterId: requestSemesterId,
+          tahunAjaran: requestAcademicYear,
+          semester: requestSemesterNumber,
+          metadata: semesterMetadata,
+        } = buildSemesterRequestPayload(semesterIdParam);
 
-        const shouldUseSemesterId = shouldAttachSemesterId(candidateSemesterId);
-        const requestSemesterId = shouldUseSemesterId
-          ? candidateSemesterId
-          : null;
+        const hasValidSemesterCombination = Boolean(requestSemesterId) ||
+          (requestAcademicYear &&
+            requestAcademicYear !== "" &&
+            requestSemesterNumber !== null &&
+            requestSemesterNumber !== undefined);
 
-        if (isStrictModeActive && !requestSemesterId) {
+        if (isStrictModeActive && !hasValidSemesterCombination) {
           const message = hasEnforcedActiveSemester
             ? "Penegakan semester aktif membutuhkan semester aktif yang valid. Hubungi admin untuk memperbarui daftar semester."
             : "Penegakan semester aktif sedang berjalan. Hubungi admin untuk menetapkan semester aktif sebelum melanjutkan.";
@@ -305,9 +472,7 @@ const useWalikelasDashboard = (currentUser: CurrentUser | null) => {
         }
 
         const metadataForCheck =
-          (requestSemesterId
-            ? resolveSemesterMetadata(requestSemesterId)
-            : null) ?? enforcedActiveSemester;
+          semesterMetadata ?? enforcedActiveSemester ?? null;
 
         if (
           isStrictModeActive &&
@@ -354,11 +519,16 @@ const useWalikelasDashboard = (currentUser: CurrentUser | null) => {
         ] = await Promise.all([
           apiService.getClasses(),
           apiService.getClassStudents(walikelasId),
-          apiService.getClassGrades(walikelasId, null, null, requestSemesterId),
+          apiService.getClassGrades(
+            walikelasId,
+            requestAcademicYear,
+            requestSemesterNumber,
+            requestSemesterId
+          ),
           apiService.getClassAttendance(
             walikelasId,
-            null,
-            null,
+            requestAcademicYear,
+            requestSemesterNumber,
             requestSemesterId
           ),
           apiService.getUsers(),
@@ -550,14 +720,248 @@ const useWalikelasDashboard = (currentUser: CurrentUser | null) => {
       buildSemesterTitle,
       currentUser,
       enforcedActiveSemester,
-      getEffectiveSemesterId,
+      buildSemesterRequestPayload,
       hasEnforcedActiveSemester,
       isSemesterExpired,
       isStrictModeActive,
       notifyMissingTeacherId,
       resolveSemesterMetadata,
-      shouldAttachSemesterId,
       toast,
+    ]
+  );
+
+  const loadWalikelasSchedules = useCallback(
+    async (semesterIdParam?: string | number | null) => {
+      if (!currentUser?.teacherId) {
+        setWalikelasSchedules([]);
+        setWalikelasScheduleMetadata(null);
+        setWalikelasScheduleError(null);
+        setWalikelasScheduleConflicts(null);
+        setIsWalikelasScheduleLoading(false);
+        return;
+      }
+
+      setIsWalikelasScheduleLoading(true);
+      setWalikelasScheduleError(null);
+      setWalikelasScheduleConflicts(null);
+
+      try {
+        const {
+          semesterId: requestSemesterId,
+          tahunAjaran: requestAcademicYear,
+          semester: requestSemesterNumber,
+          metadata: semesterMetadata,
+        } = buildSemesterRequestPayload(semesterIdParam);
+
+        const hasValidSemesterCombination = Boolean(requestSemesterId) ||
+          (requestAcademicYear &&
+            requestAcademicYear !== "" &&
+            requestSemesterNumber !== null &&
+            requestSemesterNumber !== undefined);
+
+        if (isStrictModeActive && !hasValidSemesterCombination) {
+          const message = hasEnforcedActiveSemester
+            ? "Penegakan semester aktif membutuhkan semester aktif yang valid. Hubungi admin untuk memperbarui daftar semester."
+            : "Penegakan semester aktif sedang berjalan. Hubungi admin untuk menetapkan semester aktif sebelum melanjutkan.";
+          setWalikelasSchedules([]);
+          setWalikelasScheduleMetadata(null);
+          setWalikelasScheduleError(message);
+          setIsWalikelasScheduleLoading(false);
+          return;
+        }
+
+        if (!hasValidSemesterCombination) {
+          setWalikelasSchedules([]);
+          setWalikelasScheduleMetadata(null);
+          setWalikelasScheduleError(null);
+          setIsWalikelasScheduleLoading(false);
+          return;
+        }
+
+        const response = await apiService.getWalikelasSchedules(
+          currentUser.teacherId,
+          {
+            semesterId: requestSemesterId ?? undefined,
+            tahun: requestAcademicYear ?? undefined,
+            semester:
+              requestSemesterNumber !== null &&
+              requestSemesterNumber !== undefined &&
+              requestSemesterNumber !== ""
+                ? requestSemesterNumber
+                : undefined,
+            kelasId:
+              walikelasScheduleFilters.kelasId &&
+              walikelasScheduleFilters.kelasId !== ""
+                ? walikelasScheduleFilters.kelasId
+                : undefined,
+            hari:
+              walikelasScheduleFilters.hari &&
+              walikelasScheduleFilters.hari !== ""
+                ? walikelasScheduleFilters.hari
+                : undefined,
+          }
+        );
+
+        const normalizeSchedules = (items: unknown): any[] => {
+          if (!Array.isArray(items)) return [];
+          return items.filter((item) => item !== null && item !== undefined);
+        };
+
+        let schedules: any[] = [];
+        let metadata: UnknownRecord | null = null;
+
+        if (Array.isArray(response)) {
+          schedules = normalizeSchedules(response);
+        } else if (isRecord(response)) {
+          const record = response as UnknownRecord;
+          const metadataCandidate = isRecord(record.metadata)
+            ? (record.metadata as UnknownRecord)
+            : isRecord(record.meta)
+            ? (record.meta as UnknownRecord)
+            : null;
+
+          if (metadataCandidate) {
+            metadata = metadataCandidate;
+          } else {
+            const fallbackMetadata: UnknownRecord = {};
+            Object.entries(record).forEach(([key, value]) => {
+              if (
+                ["items", "data", "schedules", "records", "result"].includes(key)
+              ) {
+                return;
+              }
+              if (
+                typeof value === "string" ||
+                typeof value === "number" ||
+                typeof value === "boolean" ||
+                value === null
+              ) {
+                fallbackMetadata[key] = value;
+              }
+            });
+            metadata =
+              Object.keys(fallbackMetadata).length > 0 ? fallbackMetadata : null;
+          }
+
+          const potentialKeys = [
+            "items",
+            "data",
+            "schedules",
+            "records",
+            "result",
+          ] as const;
+
+          let schedulesAssigned = false;
+          for (const key of potentialKeys) {
+            const candidate = record[key];
+            if (Array.isArray(candidate)) {
+              schedules = normalizeSchedules(candidate);
+              schedulesAssigned = true;
+              break;
+            }
+          }
+
+          if (!schedulesAssigned) {
+            const normalized = normalizeSchedules([record]);
+            schedules = normalized;
+          }
+        }
+
+        if (metadata && semesterMetadata) {
+          metadata = {
+            ...metadata,
+            semesterLabel:
+              (typeof metadata.semesterLabel === "string" &&
+              metadata.semesterLabel !== ""
+                ? metadata.semesterLabel
+                : buildSemesterTitle(semesterMetadata)) ?? undefined,
+            semesterTahunAjaran:
+              metadata.semesterTahunAjaran ??
+              metadata.tahunAjaran ??
+              semesterMetadata.tahunAjaran ??
+              null,
+          } as UnknownRecord;
+        }
+
+        const combinedMetadata =
+          metadata ??
+          (semesterMetadata
+            ? {
+                semesterId: semesterMetadata.id,
+                semesterNama: buildSemesterTitle(semesterMetadata),
+                semesterTahunAjaran: semesterMetadata.tahunAjaran,
+                semesterLabel: buildSemesterTitle(semesterMetadata),
+              }
+            : null);
+
+        setWalikelasSchedules(schedules);
+        setWalikelasScheduleMetadata(combinedMetadata);
+        setWalikelasScheduleError(null);
+        setWalikelasScheduleConflicts(null);
+      } catch (error: any) {
+        console.error("Failed to load walikelas schedules", error);
+        const codeValue = error?.code;
+        const codeString =
+          typeof codeValue === "number"
+            ? String(codeValue)
+            : typeof codeValue === "string"
+            ? codeValue
+            : "";
+        const message =
+          error?.message ||
+          (codeString === "404"
+            ? "Jadwal tidak ditemukan untuk semester yang dipilih."
+            : codeString === "409"
+            ? "Terjadi konflik pada jadwal wali kelas."
+            : "Gagal memuat jadwal wali kelas");
+
+        setWalikelasSchedules([]);
+        setWalikelasScheduleMetadata(null);
+        setWalikelasScheduleError(message);
+
+        if (codeString === "409") {
+          const details = error?.details;
+          const detailRecord = isRecord(details)
+            ? (details as UnknownRecord)
+            : null;
+          const conflictScope =
+            typeof detailRecord?.conflictScope === "string"
+              ? detailRecord.conflictScope
+              : null;
+          const conflictsRaw = Array.isArray(detailRecord?.conflicts)
+            ? (detailRecord?.conflicts as unknown[])
+            : [];
+          const conflicts = conflictsRaw
+            .map((item) => toScheduleConflictDetail(item))
+            .filter((item): item is ScheduleConflictDetail => item !== null);
+
+          setWalikelasScheduleConflicts({
+            conflictScope,
+            conflicts,
+          });
+        } else {
+          setWalikelasScheduleConflicts(null);
+        }
+
+        if (codeString !== "404") {
+          toast({
+            title: "Error",
+            description: message,
+            variant: "destructive",
+          });
+        }
+      } finally {
+        setIsWalikelasScheduleLoading(false);
+      }
+    },
+    [
+      buildSemesterRequestPayload,
+      buildSemesterTitle,
+      currentUser?.teacherId,
+      hasEnforcedActiveSemester,
+      isStrictModeActive,
+      toast,
+      walikelasScheduleFilters,
     ]
   );
 
@@ -575,7 +979,7 @@ const useWalikelasDashboard = (currentUser: CurrentUser | null) => {
 
     if (hasSemesterSelection) {
       const effectiveSemesterId = getEffectiveSemesterId();
-      loadWalikelasData(effectiveSemesterId);
+    loadWalikelasData(effectiveSemesterId);
     }
   }, [
     currentUser,
@@ -584,6 +988,19 @@ const useWalikelasDashboard = (currentUser: CurrentUser | null) => {
     selectedSemesterId,
     semesters,
   ]);
+
+  useEffect(() => {
+    if (!currentUser?.teacherId) {
+      setWalikelasSchedules([]);
+      setWalikelasScheduleMetadata(null);
+      setWalikelasScheduleError(null);
+      setWalikelasScheduleConflicts(null);
+      setIsWalikelasScheduleLoading(false);
+      return;
+    }
+
+    loadWalikelasSchedules();
+  }, [currentUser?.teacherId, loadWalikelasSchedules]);
 
   useEffect(() => {
     if (!isStrictModeActive) {
@@ -926,22 +1343,20 @@ const useWalikelasDashboard = (currentUser: CurrentUser | null) => {
   const handlePrintReport = useCallback(
     async (student: any) => {
       try {
-        const semesterIdForReport = getEffectiveSemesterId();
-        const enforcedId =
-          enforcedActiveSemester?.id !== undefined &&
-          enforcedActiveSemester?.id !== null
-            ? String(enforcedActiveSemester.id)
-            : null;
-        const candidateSemesterId =
-          (semesterIdForReport && semesterIdForReport !== ""
-            ? semesterIdForReport
-            : null) ?? enforcedId;
-        const shouldUseSemesterId = shouldAttachSemesterId(candidateSemesterId);
-        const requestSemesterId = shouldUseSemesterId
-          ? candidateSemesterId
-          : null;
+        const {
+          semesterId: requestSemesterId,
+          tahunAjaran: requestAcademicYear,
+          semester: requestSemesterNumber,
+          metadata: semesterMetadata,
+        } = buildSemesterRequestPayload();
 
-        if (isStrictModeActive && !requestSemesterId) {
+        const hasValidSemesterCombination = Boolean(requestSemesterId) ||
+          (requestAcademicYear &&
+            requestAcademicYear !== "" &&
+            requestSemesterNumber !== null &&
+            requestSemesterNumber !== undefined);
+
+        if (isStrictModeActive && !hasValidSemesterCombination) {
           toast({
             title: "Penegakan semester",
             description:
@@ -952,9 +1367,7 @@ const useWalikelasDashboard = (currentUser: CurrentUser | null) => {
         }
 
         const metadataForCheck =
-          (requestSemesterId
-            ? resolveSemesterMetadata(requestSemesterId)
-            : null) ?? enforcedActiveSemester;
+          semesterMetadata ?? enforcedActiveSemester ?? null;
 
         if (
           isStrictModeActive &&
@@ -992,8 +1405,8 @@ const useWalikelasDashboard = (currentUser: CurrentUser | null) => {
         const reportData = await apiService.getClassStudentReport(
           walikelasId,
           normalizedStudentId,
-          null,
-          null,
+          requestAcademicYear,
+          requestSemesterNumber,
           requestSemesterId
         );
 
@@ -1006,8 +1419,12 @@ const useWalikelasDashboard = (currentUser: CurrentUser | null) => {
           return;
         }
 
+        const fallbackSemesterId =
+          requestSemesterId ??
+          (semesterMetadata?.id ? String(semesterMetadata.id) : getEffectiveSemesterId());
+
         const resolvedSemesterMetadata = resolveSemesterMetadata(
-          reportData?.semesterId ?? semesterIdForReport,
+          reportData?.semesterId ?? fallbackSemesterId,
           reportData?.semesterInfo
         );
 
@@ -1059,15 +1476,14 @@ const useWalikelasDashboard = (currentUser: CurrentUser | null) => {
       }
     },
     [
+      buildSemesterRequestPayload,
       currentUser,
       enforcedActiveSemester,
       getEffectiveSemesterId,
-      hasEnforcedActiveSemester,
       isSemesterExpired,
       isStrictModeActive,
       notifyMissingTeacherId,
       resolveSemesterMetadata,
-      shouldAttachSemesterId,
       toast,
     ]
   );
@@ -1090,6 +1506,14 @@ const useWalikelasDashboard = (currentUser: CurrentUser | null) => {
     selectedSemesterId,
     handleSemesterChange,
     selectedSemesterMetadata,
+    walikelasSchedules,
+    walikelasScheduleMetadata,
+    walikelasScheduleError,
+    walikelasScheduleConflicts,
+    walikelasScheduleFilters,
+    updateWalikelasScheduleFilters,
+    isWalikelasScheduleLoading,
+    loadWalikelasSchedules,
     enforcementMode,
     enforcedActiveSemester,
     hasEnforcedActiveSemester,
