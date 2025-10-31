@@ -69,6 +69,7 @@ const students = [
   {
     id: "1", // Student ID
     userId: "2", // Foreign key to users table
+    nis: "1001001",
     nisn: "2024001001", // ✅ 10 digit
     nama: "Ahmad Fadli",
     kelasId: "1",
@@ -83,6 +84,7 @@ const students = [
   {
     id: "2", // Student ID
     userId: "3", // Foreign key to users table
+    nis: "1001002",
     nisn: "2024001002", // ✅ 10 digit
     nama: "Siti Aminah",
     kelasId: "1",

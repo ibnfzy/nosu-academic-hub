@@ -233,7 +233,8 @@ export default function AttendanceManagement({ attendance, students, subjects, c
                         );
                         return (
                           <SelectItem key={optionValue} value={optionValue}>
-                            {student.nama} - {student.nisn || student.nis}
+                            {student.nama} - NIS: {student.nis || "-"} • NISN:{" "}
+                            {student.nisn || "-"}
                           </SelectItem>
                         );
                       })}

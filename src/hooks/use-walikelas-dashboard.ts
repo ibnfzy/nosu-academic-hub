@@ -21,6 +21,7 @@ interface CurrentUser {
 interface StudentFormState {
   id?: string;
   userId?: string;
+  nis: string;
   nisn: string;
   nama: string;
   jenisKelamin: string;
@@ -134,6 +135,7 @@ const normalizeDateValue = (value: unknown): string => {
 const createDefaultStudentForm = (): StudentFormState => ({
   id: "",
   userId: "",
+  nis: "",
   nisn: "",
   nama: "",
   jenisKelamin: "",
@@ -250,11 +252,17 @@ const useWalikelasDashboard = (currentUser: CurrentUser | null) => {
     const resolvedTanggalLahir = normalizeDateValue(
       mergedRecord?.tanggalLahir ?? student?.tanggalLahir
     );
+    const resolvedNis = (() => {
+      const candidate = mergedRecord?.nis ?? student?.nis;
+      if (candidate === undefined || candidate === null) return "";
+      return String(candidate);
+    })();
 
     setStudentForm({
       ...createDefaultStudentForm(),
       ...(mergedRecord ?? {}),
       ...student,
+      nis: resolvedNis,
       tanggalLahir: resolvedTanggalLahir,
     });
     setEditingStudent(student);
@@ -1064,15 +1072,21 @@ const useWalikelasDashboard = (currentUser: CurrentUser | null) => {
     toast,
   ]);
 
-  const filteredStudents = useMemo(
-    () =>
-      students.filter(
-        (student) =>
-          student.nama?.toLowerCase().includes(searchTerm.toLowerCase()) ||
-          student.nisn?.toLowerCase().includes(searchTerm.toLowerCase())
-      ),
-    [searchTerm, students]
-  );
+  const filteredStudents = useMemo(() => {
+    const normalizedSearch = searchTerm.toLowerCase();
+
+    return students.filter((student) => {
+      const name = (student.nama ?? "").toLowerCase();
+      const nis = (student.nis ?? "").toLowerCase();
+      const nisn = (student.nisn ?? "").toLowerCase();
+
+      return (
+        name.includes(normalizedSearch) ||
+        nis.includes(normalizedSearch) ||
+        nisn.includes(normalizedSearch)
+      );
+    });
+  }, [searchTerm, students]);
 
   const unverifiedGrades = useMemo(
     () => grades.filter((grade) => !grade.verified),
@@ -1110,7 +1124,12 @@ const useWalikelasDashboard = (currentUser: CurrentUser | null) => {
     async (event: React.FormEvent<HTMLFormElement>) => {
       event.preventDefault();
 
-      if (!studentForm.nama || !studentForm.nisn || !studentForm.username) {
+      if (
+        !studentForm.nama ||
+        !studentForm.nis ||
+        !studentForm.nisn ||
+        !studentForm.username
+      ) {
         toast({
           title: "Error",
           description: "Mohon lengkapi field wajib",
@@ -1119,18 +1138,62 @@ const useWalikelasDashboard = (currentUser: CurrentUser | null) => {
         return;
       }
 
-      const nisnExists = students.some(
-        (s) => s.nisn === studentForm.nisn && s.id !== editingStudent?.id
+      const editingIdentifiers = new Set(
+        [editingStudent?.id, editingStudent?.studentId, editingStudent?.userId]
+          .filter((value) => value !== undefined && value !== null)
+          .map((value) => String(value))
       );
+
+      const isSameStudent = (candidate: any) => {
+        if (editingIdentifiers.size === 0) {
+          return false;
+        }
+
+        const candidateIds = [candidate?.id, candidate?.studentId, candidate?.userId]
+          .filter((value) => value !== undefined && value !== null)
+          .map((value) => String(value));
+
+        return candidateIds.some((value) => editingIdentifiers.has(value));
+      };
+
+      const trimmedNis = studentForm.nis.trim();
+      const trimmedNisn = studentForm.nisn.trim();
+      const trimmedUsername = studentForm.username.trim();
+
+      const nisnExists =
+        trimmedNisn !== "" &&
+        students.some(
+          (s) =>
+            !isSameStudent(s) &&
+            String(s?.nisn ?? "").trim() === trimmedNisn
+        );
+
+      const nisExists =
+        trimmedNis !== "" &&
+        students.some(
+          (s) =>
+            !isSameStudent(s) && String(s?.nis ?? "").trim() === trimmedNis
+        );
+
       const usernameExists = students.some(
         (s) =>
-          s.username === studentForm.username && s.id !== editingStudent?.id
+          !isSameStudent(s) &&
+          String(s?.username ?? "").trim() === trimmedUsername
       );
 
       if (nisnExists) {
         toast({
           title: "Error",
           description: "NISN sudah digunakan oleh siswa lain",
+          variant: "destructive",
+        });
+        return;
+      }
+
+      if (nisExists) {
+        toast({
+          title: "Error",
+          description: "NIS sudah digunakan oleh siswa lain",
           variant: "destructive",
         });
         return;
@@ -1165,6 +1228,7 @@ const useWalikelasDashboard = (currentUser: CurrentUser | null) => {
           students: {
             ...(targetStudentId && { id: targetStudentId }),
             nama: studentForm.nama,
+            nis: studentForm.nis,
             nisn: studentForm.nisn,
             kelasId: currentUser?.kelasId,
             alamat: studentForm.alamat,

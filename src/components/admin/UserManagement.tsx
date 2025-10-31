@@ -59,6 +59,7 @@ export default function UserManagement({
 
     // Students/Teachers table fields
     nama: "",
+    nis: "",
     nisn: "",
     nip: "",
     kelasId: "",
@@ -174,9 +175,20 @@ export default function UserManagement({
     }
 
     if (currentRole === "siswa") {
+      const isDuplicateNis = users.some(
+        (u) => u.nis === userForm.nis && u.id !== editingId
+      );
       const isDuplicateNisn = users.some(
         (u) => u.nisn === userForm.nisn && u.id !== editingId
       );
+      if (isDuplicateNis) {
+        toast({
+          title: "Error",
+          description: "NIS sudah terpakai.",
+          variant: "destructive",
+        });
+        return;
+      }
       if (isDuplicateNisn) {
         toast({
           title: "Error",
@@ -212,6 +224,15 @@ export default function UserManagement({
     }
 
     // Validate role-specific required fields
+    if (currentRole === "siswa" && !userForm.nis) {
+      toast({
+        title: "Error",
+        description: "NIS wajib diisi untuk siswa",
+        variant: "destructive",
+      });
+      return;
+    }
+
     if (currentRole === "siswa" && !userForm.nisn) {
       toast({
         title: "Error",
@@ -274,6 +295,7 @@ export default function UserManagement({
         payload = {
           users: baseUserData,
           students: {
+            nis: userForm.nis,
             nisn: userForm.nisn,
             nama: userForm.nama,
             kelasId: userForm.kelasId,
@@ -420,6 +442,7 @@ export default function UserManagement({
 
       // Students/Teachers table fields
       nama: "",
+      nis: "",
       nisn: "",
       nip: "",
       kelasId: "",
@@ -440,6 +463,7 @@ export default function UserManagement({
       username: user.username || "",
       nama: user.role === "admin" ? "" : user.nama || "",
       email: user.email || "",
+      nis: user.nis || "",
       nisn: user.nisn || "",
       nip: user.nip || "",
       role: user.role || "",
@@ -461,11 +485,14 @@ export default function UserManagement({
 
   const filteredUsers = users.filter((user) => {
     const matchesRole = roleFilter === "all" || user.role === roleFilter;
+    const normalizedSearch = searchTerm.toLowerCase();
     const matchesSearch =
       (user.role !== "admin" &&
-        user.nama?.toLowerCase().includes(searchTerm.toLowerCase())) ||
-      user.username?.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      user.email?.toLowerCase().includes(searchTerm.toLowerCase());
+        user.nama?.toLowerCase().includes(normalizedSearch)) ||
+      user.username?.toLowerCase().includes(normalizedSearch) ||
+      user.email?.toLowerCase().includes(normalizedSearch) ||
+      (user.nis && String(user.nis).toLowerCase().includes(normalizedSearch)) ||
+      (user.nisn && String(user.nisn).toLowerCase().includes(normalizedSearch));
 
     if (activeSection !== "semua") {
       return user.role === activeSection && matchesRole && matchesSearch;
@@ -675,27 +702,44 @@ export default function UserManagement({
 
                   {(userForm.role === "siswa" || activeSection === "siswa") && (
                     <>
-                      <div className="space-y-2">
-                        <Label>NISN *</Label>
-                        <Input
-                          value={userForm.nisn}
-                          onChange={(e) => {
-                            const value = e.target.value.replace(/\D/g, ""); // Only allow digits
-                            setUserForm((prev) => ({
-                              ...prev,
-                              nisn: value,
-                            }));
-                          }}
-                          placeholder="Masukkan 10 angka NISN"
-                          maxLength={10}
-                          pattern="[0-9]{10}"
-                          required
-                        />
-                        {userForm.nisn && !validateNISN(userForm.nisn) && (
-                          <p className="text-sm text-red-500">
-                            NISN harus terdiri dari 10 angka
-                          </p>
-                        )}
+                      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                        <div className="space-y-2">
+                          <Label>NIS *</Label>
+                          <Input
+                            value={userForm.nis}
+                            onChange={(e) => {
+                              const value = e.target.value.replace(/\D/g, "");
+                              setUserForm((prev) => ({
+                                ...prev,
+                                nis: value,
+                              }));
+                            }}
+                            placeholder="Masukkan NIS"
+                            required
+                          />
+                        </div>
+                        <div className="space-y-2">
+                          <Label>NISN *</Label>
+                          <Input
+                            value={userForm.nisn}
+                            onChange={(e) => {
+                              const value = e.target.value.replace(/\D/g, ""); // Only allow digits
+                              setUserForm((prev) => ({
+                                ...prev,
+                                nisn: value,
+                              }));
+                            }}
+                            placeholder="Masukkan 10 angka NISN"
+                            maxLength={10}
+                            pattern="[0-9]{10}"
+                            required
+                          />
+                          {userForm.nisn && !validateNISN(userForm.nisn) && (
+                            <p className="text-sm text-red-500">
+                              NISN harus terdiri dari 10 angka
+                            </p>
+                          )}
+                        </div>
                       </div>
                       <div className="space-y-2">
                         <Label>Tahun Masuk *</Label>
@@ -871,7 +915,7 @@ export default function UserManagement({
           <div className="relative flex-1">
             <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-muted-foreground h-4 w-4" />
             <Input
-              placeholder="Cari berdasarkan username atau email..."
+              placeholder="Cari berdasarkan nama, username, email, NIS, atau NISN..."
               value={searchTerm}
               onChange={(e) => setSearchTerm(e.target.value)}
               className="pl-10"
@@ -903,9 +947,7 @@ export default function UserManagement({
                 {filteredUsers.some((u) => u.role !== "admin") && (
                   <>
                     <TableHead>Nama</TableHead>
-                    <TableHead>
-                      {filteredUsers.some((u) => u.nisn) ? "NISN" : "NIP"}
-                    </TableHead>
+                    <TableHead>Identitas</TableHead>
                   </>
                 )}
                 <TableHead>Username / Password</TableHead>
@@ -952,10 +994,13 @@ export default function UserManagement({
                     {/* Identitas hanya tampil jika bukan admin */}
                     {user.role !== "admin" && (
                       <TableCell>
-                        {user.role === "siswa" && user.nisn ? (
-                          <div className="text-sm">{user.nisn}</div>
+                        {user.role === "siswa" ? (
+                          <div className="space-y-1 text-sm">
+                            <div>NIS: {user.nis || "-"}</div>
+                            <div>NISN: {user.nisn || "-"}</div>
+                          </div>
                         ) : user.nip ? (
-                          <div className="text-sm">{user.nip}</div>
+                          <div className="text-sm">NIP: {user.nip}</div>
                         ) : (
                           <span className="text-muted-foreground">-</span>
                         )}

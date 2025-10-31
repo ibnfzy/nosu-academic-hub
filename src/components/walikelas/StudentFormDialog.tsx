@@ -20,6 +20,7 @@ import {
 interface StudentForm {
   id?: string;
   userId?: string;
+  nis: string;
   nisn: string;
   nama: string;
   jenisKelamin: string;
@@ -63,13 +64,23 @@ const StudentFormDialog = ({
           <DialogTitle>{isEditing ? "Edit Siswa" : "Tambah Siswa Baru"}</DialogTitle>
         </DialogHeader>
         <form onSubmit={onSubmit} className="space-y-4">
+          <div className="space-y-2">
+            <Label>Nama Lengkap</Label>
+            <Input
+              value={studentForm.nama}
+              onChange={(e) => onFieldChange("nama", e.target.value)}
+              placeholder="Masukkan nama siswa"
+              required
+            />
+          </div>
+
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             <div className="space-y-2">
-              <Label>Nama Lengkap</Label>
+              <Label>NIS</Label>
               <Input
-                value={studentForm.nama}
-                onChange={(e) => onFieldChange("nama", e.target.value)}
-                placeholder="Masukkan nama siswa"
+                value={studentForm.nis}
+                onChange={(e) => onFieldChange("nis", e.target.value)}
+                placeholder="Masukkan NIS"
                 required
               />
             </div>

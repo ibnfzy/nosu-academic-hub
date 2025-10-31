@@ -53,8 +53,9 @@ export function TeacherStudentListDialog({
 
     return filteredStudents.filter((student) => {
       const name = (student.nama ?? "").toString().toLowerCase();
+      const nis = (student.nis ?? "").toString().toLowerCase();
       const nisn = (student.nisn ?? "").toString().toLowerCase();
-      return name.includes(query) || nisn.includes(query);
+      return name.includes(query) || nis.includes(query) || nisn.includes(query);
     });
   }, [filteredStudents, searchTerm]);
 
@@ -78,7 +79,7 @@ export function TeacherStudentListDialog({
             <Label htmlFor="student-search">Cari siswa</Label>
             <Input
               id="student-search"
-              placeholder="Cari berdasarkan nama atau NISN..."
+              placeholder="Cari berdasarkan nama, NIS, atau NISN..."
               value={searchTerm}
               onChange={(event) => setSearchTerm(event.target.value)}
             />
@@ -108,11 +109,12 @@ export function TeacherStudentListDialog({
                             {studentName}
                           </CardTitle>
                           <p className="text-sm text-muted-foreground">
-                            Nomor Induk (NISN)
+                            Nomor Induk
                           </p>
-                          <p className="text-sm font-medium text-foreground">
-                            {student.nisn || "-"}
-                          </p>
+                          <div className="text-sm font-medium text-foreground space-y-1">
+                            <p>NIS: {student.nis || "-"}</p>
+                            <p>NISN: {student.nisn || "-"}</p>
+                          </div>
                         </div>
                       </div>
                       <Badge variant="secondary" className="self-start">

@@ -779,20 +779,26 @@ export const generateReportHTML = (reportData) => {
           <tr>
             <td><strong>Nama Siswa</strong></td>
             <td>${student.nama}</td>
-            <td><strong>NISN</strong></td>
-            <td>${student.nisn}</td>
+            <td><strong>NIS</strong></td>
+            <td>${student.nis ?? "-"}</td>
           </tr>
           <tr>
+            <td><strong>NISN</strong></td>
+            <td>${student.nisn ?? "-"}</td>
             <td><strong>Kelas</strong></td>
             <td>${student.kelasId}</td>
-            <td><strong>Semester</strong></td>
-            <td>${formattedSemesterPeriod}</td>
           </tr>
           <tr>
+            <td><strong>Semester</strong></td>
+            <td>${formattedSemesterPeriod}</td>
             <td><strong>Tahun Ajaran</strong></td>
             <td>${tahunAjaran}</td>
+          </tr>
+          <tr>
             <td><strong>Wali Kelas</strong></td>
             <td>${walikelas?.nama || "-"}</td>
+            <td></td>
+            <td></td>
           </tr>
         </table>
       </div>

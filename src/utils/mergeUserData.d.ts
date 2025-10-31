@@ -27,6 +27,7 @@ export interface MergedUserRecord extends BaseUserRecord {
   email: string;
   role: string;
   nama: string;
+  nis: string;
   nisn: string;
   nip: string;
   kelasId: string | number | null;

@@ -29,6 +29,7 @@ describe("StudentsSection", () => {
       {
         id: "1",
         nama: "John Doe",
+        nis: "1001",
         nisn: "12345",
         username: "john",
         email: "john@example.com",
@@ -40,6 +41,7 @@ describe("StudentsSection", () => {
       {
         id: "1",
         nama: "John Doe",
+        nis: "1001",
         nisn: "12345",
         username: "john",
         email: "john@example.com",
@@ -57,6 +59,7 @@ describe("StudentsSection", () => {
     isEditing: false,
     studentForm: {
       nama: "",
+      nis: "",
       nisn: "",
       username: "",
       password: "",
@@ -78,6 +81,7 @@ describe("StudentsSection", () => {
     render(<StudentsSection {...baseProps} />);
 
     expect(screen.getByText("John Doe")).toBeInTheDocument();
+    expect(screen.getByText("1001")).toBeInTheDocument();
     expect(screen.getByText("12345")).toBeInTheDocument();
   });
 

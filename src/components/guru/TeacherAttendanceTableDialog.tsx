@@ -52,6 +52,7 @@ export function TeacherAttendanceTableDialog({
             <TableHeader>
               <TableRow>
                 <TableHead>Nama Siswa</TableHead>
+                <TableHead>NIS</TableHead>
                 <TableHead>NISN</TableHead>
                 <TableHead>Status Kehadiran</TableHead>
                 <TableHead>Tanggal</TableHead>
@@ -72,11 +73,12 @@ export function TeacherAttendanceTableDialog({
                 .map((att) => {
                   const student = students.find((s) => s.id === att.studentId);
                   return (
-                    <TableRow key={att.id}>
-                      <TableCell className="font-medium">
-                        {att.studentName || student?.nama}
-                      </TableCell>
-                      <TableCell>{student?.nisn || "-"}</TableCell>
+                  <TableRow key={att.id}>
+                    <TableCell className="font-medium">
+                      {att.studentName || student?.nama}
+                    </TableCell>
+                    <TableCell>{student?.nis || "-"}</TableCell>
+                    <TableCell>{student?.nisn || "-"}</TableCell>
                       <TableCell>
                         <Badge
                           variant={att.status === "hadir" ? "default" : "secondary"}

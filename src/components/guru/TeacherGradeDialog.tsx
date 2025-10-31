@@ -150,7 +150,8 @@ export function TeacherGradeDialog({
                       );
                       return (
                         <SelectItem key={optionValue} value={optionValue}>
-                          {student.nama} ({student.nisn})
+                          {student.nama} (NIS: {student.nis || "-"} • NISN:{" "}
+                          {student.nisn || "-"})
                         </SelectItem>
                       );
                     })}

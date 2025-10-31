@@ -84,6 +84,7 @@ export function TeacherGradeTableDialog({
               <TableHeader>
                 <TableRow>
                   <TableHead>Nama Siswa</TableHead>
+                  <TableHead>NIS</TableHead>
                   <TableHead>NISN</TableHead>
                   <TableHead>Jenis Penilaian</TableHead>
                   <TableHead>Nilai</TableHead>
@@ -98,11 +99,12 @@ export function TeacherGradeTableDialog({
                 {filteredGrades.map((grade) => {
                   const student = students.find((s) => s.id === grade.studentId);
                   return (
-                    <TableRow key={grade.id}>
-                      <TableCell className="font-medium">
-                        {grade.studentName || student?.nama}
-                      </TableCell>
-                      <TableCell>{student?.nisn || "-"}</TableCell>
+                  <TableRow key={grade.id}>
+                    <TableCell className="font-medium">
+                      {grade.studentName || student?.nama}
+                    </TableCell>
+                    <TableCell>{student?.nis || "-"}</TableCell>
+                    <TableCell>{student?.nisn || "-"}</TableCell>
                       <TableCell>
                         <Badge variant="outline">{grade.jenis}</Badge>
                       </TableCell>

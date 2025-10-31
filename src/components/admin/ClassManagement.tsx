@@ -478,6 +478,7 @@ export default function ClassManagement({
               <TableHeader>
                 <TableRow>
                   <TableHead>Nama</TableHead>
+                  <TableHead>NIS</TableHead>
                   <TableHead>NISN</TableHead>
                   <TableHead>Email</TableHead>
                   <TableHead>Jenis Kelamin</TableHead>
@@ -495,6 +496,7 @@ export default function ClassManagement({
                   getStudentsByClass(selectedClass.id).map((siswa) => (
                     <TableRow key={siswa.id}>
                       <TableCell>{siswa.nama}</TableCell>
+                      <TableCell>{siswa.nis || "-"}</TableCell>
                       <TableCell>{siswa.nisn}</TableCell>
                       <TableCell>{siswa.email}</TableCell>
                       <TableCell>{siswa.jenisKelamin}</TableCell>
@@ -509,7 +511,7 @@ export default function ClassManagement({
                 ) : (
                   <TableRow>
                     <TableCell
-                      colSpan={3}
+                      colSpan={11}
                       className="text-center py-4 text-muted-foreground"
                     >
                       Tidak ada siswa di kelas ini
