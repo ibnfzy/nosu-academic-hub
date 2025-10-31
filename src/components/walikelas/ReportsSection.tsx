@@ -1,7 +1,9 @@
+import type { ChangeEvent } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { FileText, Printer } from "lucide-react";
+import { Input } from "@/components/ui/input";
+import { FileText, Printer, Search } from "lucide-react";
 
 interface StudentReportCandidate {
   id: string;
@@ -28,6 +30,8 @@ interface ReportsSectionProps {
     catatan?: string | null;
   } | null;
   onPrintReport: (student: StudentReportCandidate) => void;
+  searchTerm: string;
+  onSearchChange: (value: string) => void;
 }
 
 const ReportsSection = ({
@@ -37,7 +41,13 @@ const ReportsSection = ({
   selectedSemesterDateRange,
   selectedSemesterMetadata,
   onPrintReport,
+  searchTerm,
+  onSearchChange,
 }: ReportsSectionProps) => {
+  const handleSearchChange = (event: ChangeEvent<HTMLInputElement>) => {
+    onSearchChange(event.target.value);
+  };
+
   const renderStudentCard = (student: StudentReportCandidate) => {
     const matchGradeToStudent = (grade: GradeItem) => {
       if (grade.studentId === undefined || grade.studentId === null) {
@@ -151,9 +161,21 @@ const ReportsSection = ({
               </div>
             )}
           </div>
-          <div className="text-sm text-muted-foreground">
-            <span className="font-medium">{students.length}</span> siswa siap
-            cetak raport
+          <div className="flex flex-col w-full md:w-auto gap-2">
+            <div className="relative w-full md:w-72">
+              <Search className="absolute left-3 top-3 h-4 w-4 text-muted-foreground" />
+              <Input
+                value={searchTerm}
+                onChange={handleSearchChange}
+                placeholder="Cari siswa berdasarkan nama, NIS, atau NISN..."
+                aria-label="Cari siswa untuk raport"
+                className="pl-9"
+              />
+            </div>
+            <div className="text-sm text-muted-foreground md:text-right">
+              <span className="font-medium">{students.length}</span> siswa siap
+              cetak raport
+            </div>
           </div>
         </div>
       </CardHeader>

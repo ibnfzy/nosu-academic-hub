@@ -62,6 +62,9 @@ const WalikelasaDashboard = ({ currentUser, onLogout }) => {
     handleVerifyAll,
     attendancePercentage,
     studentsWithVerifiedGrades,
+    filteredReportStudents,
+    reportSearchTerm,
+    setReportSearchTerm,
     handlePrintReport,
     resetStudentForm,
     editStudent,
@@ -852,12 +855,14 @@ const WalikelasaDashboard = ({ currentUser, onLogout }) => {
 
           {activeSection === "reports" && (
             <ReportsSection
-              students={studentsWithVerifiedGrades}
+              students={filteredReportStudents}
               grades={grades}
               selectedSemesterPeriodLabel={selectedSemesterPeriodLabel}
               selectedSemesterDateRange={selectedSemesterDateRange}
               selectedSemesterMetadata={selectedSemesterMetadata}
               onPrintReport={handlePrintReport}
+              searchTerm={reportSearchTerm}
+              onSearchChange={setReportSearchTerm}
             />
           )}
         </div>
