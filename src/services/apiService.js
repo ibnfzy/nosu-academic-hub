@@ -61,6 +61,29 @@ const appendQuery = (baseUrl, queryString) => {
   return `${baseUrl}?${queryString}`;
 };
 
+const extractScheduleDataOrThrow = (response, defaultMessage) => {
+  if (!response) {
+    const error = new Error(defaultMessage);
+    throw error;
+  }
+
+  const shouldThrow =
+    response?.success === false ||
+    response?.code === 404 ||
+    response?.code === 409;
+
+  if (shouldThrow) {
+    const error = new Error(response?.message || defaultMessage);
+    error.code = response?.code;
+    if (response?.code === 409 && response?.data) {
+      error.details = response.data;
+    }
+    throw error;
+  }
+
+  return response?.data;
+};
+
 const findLocalSemesterRecord = (semesterId, tahun, semester) => {
   const semesters = JSON.parse(
     localStorage.getItem(STORAGE_KEYS.ACADEMIC_YEARS) || "[]"
@@ -386,6 +409,45 @@ const apiService = {
       );
       // Ambil semua mapel yang diajar guru ini
       return subjects.filter((s) => s.teacherId === teacherId);
+    }
+  },
+
+  async getTeacherSchedules(
+    teacherId,
+    {
+      semesterId = null,
+      tahun = null,
+      tahunAjaran = null,
+      semester = null,
+      kelasId = null,
+      hari = null,
+    } = {}
+  ) {
+    if (USE_API) {
+      const queryParts = [];
+      const semesterQuery = buildSemesterQueryString({
+        semesterId,
+        tahun: tahun ?? tahunAjaran,
+        semester,
+      });
+      if (semesterQuery) queryParts.push(semesterQuery);
+      if (kelasId)
+        queryParts.push(`kelasId=${encodeURIComponent(kelasId)}`);
+      if (hari) queryParts.push(`hari=${encodeURIComponent(hari)}`);
+
+      const response = await this.authFetch(
+        appendQuery(
+          `${API_BASE_URL}/guru/${teacherId}/jadwal`,
+          queryParts.filter(Boolean).join("&")
+        )
+      );
+
+      return extractScheduleDataOrThrow(
+        response,
+        "Gagal memuat jadwal guru"
+      );
+    } else {
+      return [];
     }
   },
 
@@ -1415,6 +1477,129 @@ const apiService = {
     }
   },
 
+  async getAdminSchedules(
+    {
+      semesterId = null,
+      tahun = null,
+      tahunAjaran = null,
+      semester = null,
+      kelasId = null,
+      guruId = null,
+      teacherId = null,
+      hari = null,
+    } = {}
+  ) {
+    if (USE_API) {
+      const queryParts = [];
+      const semesterQuery = buildSemesterQueryString({
+        semesterId,
+        tahun: tahun ?? tahunAjaran,
+        semester,
+      });
+      if (semesterQuery) queryParts.push(semesterQuery);
+      if (kelasId)
+        queryParts.push(`kelasId=${encodeURIComponent(kelasId)}`);
+      if (hari) queryParts.push(`hari=${encodeURIComponent(hari)}`);
+      const teacherFilter = guruId ?? teacherId;
+      if (teacherFilter)
+        queryParts.push(`guruId=${encodeURIComponent(teacherFilter)}`);
+
+      const response = await this.authFetch(
+        appendQuery(
+          `${API_BASE_URL}/admin/schedules`,
+          queryParts.filter(Boolean).join("&")
+        )
+      );
+
+      return extractScheduleDataOrThrow(
+        response,
+        "Gagal memuat data jadwal"
+      );
+    } else {
+      return [];
+    }
+  },
+
+  async getAdminScheduleById(scheduleId) {
+    if (USE_API) {
+      const response = await this.authFetch(
+        `${API_BASE_URL}/admin/schedules/${scheduleId}`
+      );
+
+      return extractScheduleDataOrThrow(
+        response,
+        "Jadwal tidak ditemukan"
+      );
+    } else {
+      return null;
+    }
+  },
+
+  async createAdminSchedule(scheduleData) {
+    if (USE_API) {
+      const response = await this.authFetch(
+        `${API_BASE_URL}/admin/schedules`,
+        {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify(scheduleData),
+        }
+      );
+
+      return extractScheduleDataOrThrow(
+        response,
+        "Gagal membuat jadwal"
+      );
+    } else {
+      return {
+        ...scheduleData,
+        id: Date.now().toString(),
+      };
+    }
+  },
+
+  async updateAdminSchedule(scheduleId, scheduleData) {
+    if (USE_API) {
+      const response = await this.authFetch(
+        `${API_BASE_URL}/admin/schedules/${scheduleId}`,
+        {
+          method: "PUT",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify(scheduleData),
+        }
+      );
+
+      return extractScheduleDataOrThrow(
+        response,
+        "Gagal memperbarui jadwal"
+      );
+    } else {
+      return {
+        ...scheduleData,
+        id: scheduleId,
+        updatedAt: new Date().toISOString(),
+      };
+    }
+  },
+
+  async deleteAdminSchedule(scheduleId) {
+    if (USE_API) {
+      const response = await this.authFetch(
+        `${API_BASE_URL}/admin/schedules/${scheduleId}`,
+        {
+          method: "DELETE",
+        }
+      );
+
+      return extractScheduleDataOrThrow(
+        response,
+        "Gagal menghapus jadwal"
+      );
+    } else {
+      return { success: true };
+    }
+  },
+
   // ============= WALIKELAS METHODS =============
   async getClassStudents(walikelasId) {
     if (USE_API) {
@@ -1445,6 +1630,45 @@ const apiService = {
         ...student,
         studentId: student.studentId ?? classStudents.find((s) => String(s.userId) === String(student.userId))?.id ?? student.studentId,
       }));
+    }
+  },
+
+  async getWalikelasSchedules(
+    walikelasId,
+    {
+      semesterId = null,
+      tahun = null,
+      tahunAjaran = null,
+      semester = null,
+      kelasId = null,
+      hari = null,
+    } = {}
+  ) {
+    if (USE_API) {
+      const queryParts = [];
+      const semesterQuery = buildSemesterQueryString({
+        semesterId,
+        tahun: tahun ?? tahunAjaran,
+        semester,
+      });
+      if (semesterQuery) queryParts.push(semesterQuery);
+      if (kelasId)
+        queryParts.push(`kelasId=${encodeURIComponent(kelasId)}`);
+      if (hari) queryParts.push(`hari=${encodeURIComponent(hari)}`);
+
+      const response = await this.authFetch(
+        appendQuery(
+          `${API_BASE_URL}/walikelas/${walikelasId}/jadwal`,
+          queryParts.filter(Boolean).join("&")
+        )
+      );
+
+      return extractScheduleDataOrThrow(
+        response,
+        "Gagal memuat jadwal walikelas"
+      );
+    } else {
+      return [];
     }
   },
 
