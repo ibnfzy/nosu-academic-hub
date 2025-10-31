@@ -209,6 +209,7 @@ const DAY_OPTIONS = [
 const INITIAL_FILTERS = {
   kelasId: "",
   teacherId: "",
+  teacherSubjectId: "",
   semesterId: "",
   hari: "",
   walikelasId: "",
@@ -865,6 +866,7 @@ export default function AdminScheduleManagement({
         hari: filters.hari || null,
         walikelasId: filters.walikelasId || null,
         guruId: filters.teacherId || null,
+        teacherSubjectId: filters.teacherSubjectId || null,
       };
 
       const data = await apiService.getAdminSchedules(payload);
@@ -1290,7 +1292,7 @@ export default function AdminScheduleManagement({
         </Button>
       </CardHeader>
       <CardContent className="space-y-6">
-        <div className="grid grid-cols-1 gap-3 md:grid-cols-2 lg:grid-cols-5">
+        <div className="grid grid-cols-1 gap-3 md:grid-cols-2 lg:grid-cols-6">
           <div>
             <Label className="mb-1 block">Filter Kelas</Label>
             <Select
@@ -1326,6 +1328,28 @@ export default function AdminScheduleManagement({
                 {teachers.map((teacher) => (
                   <SelectItem key={teacher.id} value={toStringOrEmpty(teacher.id)}>
                     {teacher.nama || teacher.name}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </div>
+          <div>
+            <Label className="mb-1 block">Filter Relasi Guru-Mapel-Kelas</Label>
+            <Select
+              value={filters.teacherSubjectId || SELECT_ALL_VALUE}
+              onValueChange={(value) =>
+                handleFilterChange("teacherSubjectId", value)
+              }
+              disabled={isReferenceLoading || !teacherSubjectOptions.length}
+            >
+              <SelectTrigger>
+                <SelectValue placeholder="Semua relasi" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value={SELECT_ALL_VALUE}>Semua relasi</SelectItem>
+                {teacherSubjectOptions.map((option) => (
+                  <SelectItem key={option.id} value={option.id}>
+                    {option.label}
                   </SelectItem>
                 ))}
               </SelectContent>
