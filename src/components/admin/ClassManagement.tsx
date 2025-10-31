@@ -303,24 +303,6 @@ export default function ClassManagement({
                 </div>
 
                 <div className="space-y-2">
-                  <Label>Jurusan *</Label>
-                  <Select
-                    value={classForm.jurusan}
-                    onValueChange={(value) =>
-                      setClassForm((prev) => ({ ...prev, jurusan: value }))
-                    }
-                  >
-                    <SelectTrigger>
-                      <SelectValue placeholder="Pilih Jurusan" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="IPA">IPA</SelectItem>
-                      <SelectItem value="IPS">IPS</SelectItem>
-                    </SelectContent>
-                  </Select>
-                </div>
-
-                <div className="space-y-2">
                   <Label>Tingkat *</Label>
                   <Select
                     value={classForm.tingkat}
@@ -335,6 +317,24 @@ export default function ClassManagement({
                       <SelectItem value="X">Kelas X</SelectItem>
                       <SelectItem value="XI">Kelas XI</SelectItem>
                       <SelectItem value="XII">Kelas XII</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+
+                <div className="space-y-2">
+                  <Label>Jurusan *</Label>
+                  <Select
+                    value={classForm.jurusan}
+                    onValueChange={(value) =>
+                      setClassForm((prev) => ({ ...prev, jurusan: value }))
+                    }
+                  >
+                    <SelectTrigger>
+                      <SelectValue placeholder="Pilih Jurusan" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="IPA">IPA</SelectItem>
+                      <SelectItem value="IPS">IPS</SelectItem>
                     </SelectContent>
                   </Select>
                 </div>
