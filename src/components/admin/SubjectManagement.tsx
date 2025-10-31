@@ -1,6 +1,6 @@
 /* eslint-disable react-hooks/exhaustive-deps */
 /* eslint-disable @typescript-eslint/no-explicit-any */
-import { useState, useEffect, useCallback } from "react";
+import { useState, useEffect, useCallback, useMemo } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import {
@@ -20,17 +20,14 @@ import {
 } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select";
 import { Plus, Edit, Trash2, BookOpen } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import apiService from "@/services/apiService";
 import { MultiSelectKelas } from "@/components/ui/multi-select-class";
+import {
+  SearchableCombobox,
+  type SearchableComboboxOption,
+} from "@/components/ui/searchable-combobox";
 
 interface SubjectManagementProps {
   onDataChange: () => void;
@@ -236,10 +233,43 @@ export default function SubjectManagement({
     return teacher ? teacher.nama : "Belum ada guru";
   };
 
-  const getSelectTeacherName = (teacherId) => {
-    const teacher = teachers.find((t) => String(t.id) === String(teacherId));
-    return teacher ? teacher.nama : "Pilih Guru";
-  };
+  const teacherOptions = useMemo(() => {
+    return teachers
+      .map((teacher) => {
+        const rawValue =
+          teacher?.id ?? teacher?.teacherId ?? teacher?.userId ?? teacher?.value;
+        if (rawValue === null || rawValue === undefined) {
+          return null;
+        }
+
+        const value = String(rawValue);
+        if (!value) {
+          return null;
+        }
+
+        const name =
+          teacher?.nama ||
+          teacher?.name ||
+          teacher?.fullName ||
+          teacher?.username ||
+          `Guru ${value}`;
+        const nip = teacher?.nip || teacher?.employeeNumber || teacher?.nik;
+        const descriptionParts = [
+          nip ? `NIP: ${nip}` : null,
+          teacher?.email ? String(teacher.email) : null,
+        ].filter(Boolean);
+
+        return {
+          value,
+          label: name,
+          description: descriptionParts.join(" • ") || undefined,
+          searchValue: [value, name, nip, teacher?.email]
+            .filter(Boolean)
+            .join(" "),
+        } satisfies SearchableComboboxOption;
+      })
+      .filter(Boolean) as SearchableComboboxOption[];
+  }, [teachers]);
 
   return (
     <Card className="shadow-soft">
@@ -304,25 +334,18 @@ export default function SubjectManagement({
 
                 <div className="space-y-2">
                   <Label>Guru</Label>
-                  <Select
+                  <SearchableCombobox
+                    options={teacherOptions}
                     value={subjectForm.teacherId}
                     onValueChange={(val) =>
                       setSubjectForm((prev) => ({ ...prev, teacherId: val }))
                     }
-                  >
-                    <SelectTrigger>
-                      <SelectValue placeholder="Pilih guru mata pelajaran">
-                        {getSelectTeacherName(subjectForm.teacherId)}
-                      </SelectValue>
-                    </SelectTrigger>
-                    <SelectContent>
-                      {teachers.map((t) => (
-                        <SelectItem key={t.id} value={t.id}>
-                          {t.nama} - NIP : {t.nip}
-                        </SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
+                    placeholder="Pilih guru mata pelajaran"
+                    searchPlaceholder="Cari guru..."
+                    emptyMessage="Guru tidak ditemukan"
+                    allowClear
+                    clearLabel="Kosongkan pilihan"
+                  />
                 </div>
 
                 <div className="flex gap-2 pt-4">
