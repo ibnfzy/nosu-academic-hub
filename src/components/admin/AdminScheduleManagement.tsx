@@ -833,11 +833,37 @@ export default function AdminScheduleManagement({
       setClasses(classList);
       setSubjects(subjectList);
       setTeachers(teacherList);
-      const teacherSubjectList = Array.isArray(teacherSubjectData)
-        ? (teacherSubjectData as TeacherSubjectRelation[])
+      const teacherSubjectRelationsRaw = Array.isArray(
+        (teacherSubjectData as { relations?: unknown })?.relations
+      )
+        ? ((teacherSubjectData as { relations?: unknown[] }).relations ?? [])
+        : Array.isArray(
+            (teacherSubjectData as { data?: { relations?: unknown } })?.data
+              ?.relations
+          )
+        ? (
+            (
+              (teacherSubjectData as {
+                data?: { relations?: unknown[] };
+              }).data?.relations ?? []
+            )
+          )
+        : Array.isArray(teacherSubjectData)
+        ? (teacherSubjectData as unknown[])
         : teacherSubjectData
-        ? [teacherSubjectData as TeacherSubjectRelation]
+        ? [teacherSubjectData as unknown]
         : [];
+
+      const teacherSubjectList = teacherSubjectRelationsRaw.filter(
+        (relation): relation is TeacherSubjectRelation =>
+          Boolean(
+            relation &&
+              typeof relation === "object" &&
+              "id" in relation &&
+              (relation as { id?: unknown }).id !== undefined &&
+              (relation as { id?: unknown }).id !== null
+          )
+      );
 
       setSemesters(semesterList);
       setHomeroomTeachers(
