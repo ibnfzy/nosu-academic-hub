@@ -14,17 +14,18 @@ import {
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
-import { 
+import {
   Select,
-  SelectContent, 
-  SelectItem, 
-  SelectTrigger, 
-  SelectValue 
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue
 } from '@/components/ui/select';
 import { Plus, Edit, Trash2, Calendar } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import { formatDate, getAttendanceStatus } from '@/utils/helpers';
 import apiService from '@/services/apiService';
+import { SubjectCombobox } from '@/components/ui/subject-combobox';
 
 interface AttendanceManagementProps {
   attendance: any[];
@@ -244,21 +245,13 @@ export default function AttendanceManagement({ attendance, students, subjects, c
 
                 <div className="space-y-2">
                   <Label>Mata Pelajaran</Label>
-                  <Select 
+                  <SubjectCombobox
+                    subjects={subjects}
                     value={attendanceForm.subjectId}
-                    onValueChange={(value) => setAttendanceForm(prev => ({ ...prev, subjectId: value }))}
-                  >
-                    <SelectTrigger>
-                      <SelectValue placeholder="Pilih mata pelajaran" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      {subjects.map((subject) => (
-                        <SelectItem key={subject.id || subject} value={subject.id || subject}>
-                          {typeof subject === 'object' ? subject.nama : getSubjectName(subject)}
-                        </SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
+                    onValueChange={(value) =>
+                      setAttendanceForm((prev) => ({ ...prev, subjectId: value }))
+                    }
+                  />
                 </div>
 
                 <div className="space-y-2">

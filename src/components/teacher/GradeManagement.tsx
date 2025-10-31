@@ -13,17 +13,18 @@ import {
 } from '@/components/ui/dialog';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-import { 
+import {
   Select,
-  SelectContent, 
-  SelectItem, 
-  SelectTrigger, 
-  SelectValue 
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue
 } from '@/components/ui/select';
 import { Plus, Edit, Trash2, BookOpen } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import { formatDate, getGradeColor } from '@/utils/helpers';
 import apiService from '@/services/apiService';
+import { SubjectCombobox } from '@/components/ui/subject-combobox';
 
 interface GradeManagementProps {
   grades: any[];
@@ -268,21 +269,13 @@ export default function GradeManagement({ grades, students, subjects, currentUse
 
                 <div className="space-y-2">
                   <Label>Mata Pelajaran</Label>
-                  <Select 
+                  <SubjectCombobox
+                    subjects={subjects}
                     value={gradeForm.subjectId}
-                    onValueChange={(value) => setGradeForm(prev => ({ ...prev, subjectId: value }))}
-                  >
-                    <SelectTrigger>
-                      <SelectValue placeholder="Pilih mata pelajaran" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      {subjects.map((subject) => (
-                        <SelectItem key={subject.id || subject} value={subject.id || subject}>
-                          {typeof subject === 'object' ? subject.nama : getSubjectName(subject)}
-                        </SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
+                    onValueChange={(value) =>
+                      setGradeForm((prev) => ({ ...prev, subjectId: value }))
+                    }
+                  />
                 </div>
 
                 <div className="space-y-2">
