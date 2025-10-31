@@ -188,6 +188,9 @@ const INITIAL_FORM_STATE: ScheduleFormState = {
   catatan: "",
 };
 
+const SELECT_ALL_VALUE = "all";
+const SELECT_NONE_VALUE = "none";
+
 const toStringOrEmpty = (value: unknown): string => {
   if (value === undefined || value === null) return "";
   return `${value}`;
@@ -649,15 +652,18 @@ export default function AdminScheduleManagement({
     }
   };
 
-  const handleFilterChange = (key: keyof typeof INITIAL_FILTERS, value: string) => {
+  const handleFilterChange = (
+    key: keyof typeof INITIAL_FILTERS,
+    value: string
+  ) => {
     setFilters((prev) => ({
       ...prev,
-      [key]: value,
+      [key]: value === SELECT_ALL_VALUE ? "" : value,
     }));
   };
 
   const resetFilters = () => {
-    setFilters(INITIAL_FILTERS);
+    setFilters(() => ({ ...INITIAL_FILTERS }));
   };
 
   const renderScheduleRows = () => {
@@ -771,7 +777,7 @@ export default function AdminScheduleManagement({
           <div>
             <Label className="mb-1 block">Filter Kelas</Label>
             <Select
-              value={filters.kelasId}
+              value={filters.kelasId || SELECT_ALL_VALUE}
               onValueChange={(value) => handleFilterChange("kelasId", value)}
               disabled={isReferenceLoading}
             >
@@ -779,7 +785,7 @@ export default function AdminScheduleManagement({
                 <SelectValue placeholder="Semua kelas" />
               </SelectTrigger>
               <SelectContent>
-                <SelectItem value="">Semua kelas</SelectItem>
+                <SelectItem value={SELECT_ALL_VALUE}>Semua kelas</SelectItem>
                 {classes.map((kelas) => (
                   <SelectItem key={kelas.id} value={toStringOrEmpty(kelas.id)}>
                     {kelas.nama || kelas.name}
@@ -791,7 +797,7 @@ export default function AdminScheduleManagement({
           <div>
             <Label className="mb-1 block">Filter Guru</Label>
             <Select
-              value={filters.teacherId}
+              value={filters.teacherId || SELECT_ALL_VALUE}
               onValueChange={(value) => handleFilterChange("teacherId", value)}
               disabled={isReferenceLoading}
             >
@@ -799,7 +805,7 @@ export default function AdminScheduleManagement({
                 <SelectValue placeholder="Semua guru" />
               </SelectTrigger>
               <SelectContent>
-                <SelectItem value="">Semua guru</SelectItem>
+                <SelectItem value={SELECT_ALL_VALUE}>Semua guru</SelectItem>
                 {teachers.map((teacher) => (
                   <SelectItem key={teacher.id} value={toStringOrEmpty(teacher.id)}>
                     {teacher.nama || teacher.name}
@@ -811,7 +817,7 @@ export default function AdminScheduleManagement({
           <div>
             <Label className="mb-1 block">Filter Semester</Label>
             <Select
-              value={filters.semesterId}
+              value={filters.semesterId || SELECT_ALL_VALUE}
               onValueChange={(value) => handleFilterChange("semesterId", value)}
               disabled={isReferenceLoading}
             >
@@ -819,7 +825,7 @@ export default function AdminScheduleManagement({
                 <SelectValue placeholder="Semua semester" />
               </SelectTrigger>
               <SelectContent>
-                <SelectItem value="">Semua semester</SelectItem>
+                <SelectItem value={SELECT_ALL_VALUE}>Semua semester</SelectItem>
                 {semesters.map((semester) => (
                   <SelectItem key={semester.id} value={toStringOrEmpty(semester.id)}>
                     {semester.nama || semester.name || semester.tahunAjaran}
@@ -831,14 +837,14 @@ export default function AdminScheduleManagement({
           <div>
             <Label className="mb-1 block">Filter Hari</Label>
             <Select
-              value={filters.hari}
+              value={filters.hari || SELECT_ALL_VALUE}
               onValueChange={(value) => handleFilterChange("hari", value)}
             >
               <SelectTrigger>
                 <SelectValue placeholder="Semua hari" />
               </SelectTrigger>
               <SelectContent>
-                <SelectItem value="">Semua hari</SelectItem>
+                <SelectItem value={SELECT_ALL_VALUE}>Semua hari</SelectItem>
                 {DAY_OPTIONS.map((day) => (
                   <SelectItem key={day} value={day}>
                     {day}
@@ -850,7 +856,7 @@ export default function AdminScheduleManagement({
           <div>
             <Label className="mb-1 block">Filter Wali Kelas</Label>
             <Select
-              value={filters.walikelasId}
+              value={filters.walikelasId || SELECT_ALL_VALUE}
               onValueChange={(value) => handleFilterChange("walikelasId", value)}
               disabled={isReferenceLoading}
             >
@@ -858,9 +864,12 @@ export default function AdminScheduleManagement({
                 <SelectValue placeholder="Semua wali kelas" />
               </SelectTrigger>
               <SelectContent>
-                <SelectItem value="">Semua wali kelas</SelectItem>
+                <SelectItem value={SELECT_ALL_VALUE}>Semua wali kelas</SelectItem>
                 {homeroomFilterOptions.map((walikelas) => (
-                  <SelectItem key={walikelas.id} value={walikelas.id}>
+                  <SelectItem
+                    key={walikelas.id}
+                    value={toStringOrEmpty(walikelas.id)}
+                  >
                     {walikelas.nama}
                   </SelectItem>
                 ))}
@@ -1051,9 +1060,12 @@ export default function AdminScheduleManagement({
               <div>
                 <Label className="mb-1 block">Wali Kelas</Label>
                 <Select
-                  value={scheduleForm.walikelasId}
+                  value={scheduleForm.walikelasId || SELECT_NONE_VALUE}
                   onValueChange={(value) =>
-                    setScheduleForm((prev) => ({ ...prev, walikelasId: value }))
+                    setScheduleForm((prev) => ({
+                      ...prev,
+                      walikelasId: value === SELECT_NONE_VALUE ? "" : value,
+                    }))
                   }
                   disabled={isSaving || isFormDataLoading}
                 >
@@ -1061,9 +1073,12 @@ export default function AdminScheduleManagement({
                     <SelectValue placeholder="Pilih wali kelas (opsional)" />
                   </SelectTrigger>
                   <SelectContent>
-                    <SelectItem value="">Tidak ada</SelectItem>
+                    <SelectItem value={SELECT_NONE_VALUE}>Tidak ada</SelectItem>
                     {homeroomFilterOptions.map((walikelas) => (
-                      <SelectItem key={walikelas.id} value={walikelas.id}>
+                      <SelectItem
+                        key={walikelas.id}
+                        value={toStringOrEmpty(walikelas.id)}
+                      >
                         {walikelas.nama}
                       </SelectItem>
                     ))}
