@@ -6,6 +6,7 @@ import { FileText, Printer } from "lucide-react";
 interface StudentReportCandidate {
   id: string;
   nama: string;
+  nis?: string;
   nisn: string;
   studentId?: string | number | null;
   userId?: string | number | null;
@@ -81,7 +82,7 @@ const ReportsSection = ({
             <div>
               <h4 className="font-medium text-foreground">{student.nama}</h4>
               <p className="text-sm text-muted-foreground">
-                NISN: {student.nisn}
+                NIS: {student.nis || "-"} • NISN: {student.nisn || "-"}
               </p>
             </div>
           </div>

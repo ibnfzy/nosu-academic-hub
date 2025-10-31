@@ -257,7 +257,8 @@ export default function GradeManagement({ grades, students, subjects, currentUse
                         );
                         return (
                           <SelectItem key={optionValue} value={optionValue}>
-                            {student.nama} - {student.nisn || student.nis}
+                            {student.nama} - NIS: {student.nis || "-"} • NISN:{" "}
+                            {student.nisn || "-"}
                           </SelectItem>
                         );
                       })}

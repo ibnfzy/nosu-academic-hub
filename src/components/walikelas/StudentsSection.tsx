@@ -18,6 +18,7 @@ import StudentFormDialog from "./StudentFormDialog";
 interface Student {
   id: string;
   nama: string;
+  nis?: string;
   nisn: string;
   username?: string;
   email?: string;
@@ -100,7 +101,7 @@ const StudentsSection = ({
           <div className="relative">
             <Search className="absolute left-3 top-3 h-4 w-4 text-muted-foreground" />
             <Input
-              placeholder="Cari siswa..."
+              placeholder="Cari siswa berdasarkan nama, NIS, atau NISN..."
               value={searchTerm}
               onChange={handleSearch}
               className="pl-9"
@@ -114,6 +115,7 @@ const StudentsSection = ({
             <TableHeader>
               <TableRow>
                 <TableHead>Nama</TableHead>
+                <TableHead>NIS</TableHead>
                 <TableHead>NISN</TableHead>
                 {!isMobile && <TableHead>Username</TableHead>}
                 {!isMobile && <TableHead>Email</TableHead>}
@@ -126,6 +128,7 @@ const StudentsSection = ({
               {filteredStudents.map((student) => (
                 <TableRow key={student.id}>
                   <TableCell className="font-medium">{student.nama}</TableCell>
+                  <TableCell>{student.nis || "-"}</TableCell>
                   <TableCell>{student.nisn}</TableCell>
                   {!isMobile && (
                     <TableCell className="text-muted-foreground">

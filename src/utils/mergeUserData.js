@@ -30,6 +30,7 @@ export function mergeUserData(users = [], students = [], teachers = []) {
       email: user?.email ?? "",
       role: teacher?.role ?? student?.role ?? user?.role ?? "",
       nama: user?.nama ?? student?.nama ?? teacher?.nama ?? "",
+      nis: student?.nis ?? "",
       nisn: student?.nisn ?? "",
       nip: teacher?.nip ?? user?.nip ?? "",
       kelasId: student?.kelasId ?? teacher?.kelasId ?? user?.kelasId ?? "",

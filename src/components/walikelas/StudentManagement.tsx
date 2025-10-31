@@ -21,26 +21,34 @@ interface StudentManagementProps {
   onDataChange: () => void;
 }
 
+const initialStudentFormState = {
+  nama: "",
+  nis: "",
+  nisn: "",
+  username: "",
+  password: "",
+  email: "",
+  alamat: "",
+  tanggalLahir: "",
+};
+
 export default function StudentManagement({ students, currentUser, onDataChange }: StudentManagementProps) {
   const [showStudentDialog, setShowStudentDialog] = useState(false);
   const [editingStudent, setEditingStudent] = useState(null);
   const [searchTerm, setSearchTerm] = useState("");
-  const [studentForm, setStudentForm] = useState({
-    nama: "",
-    nisn: "",
-    username: "",
-    password: "",
-    email: "",
-    alamat: "",
-    tanggalLahir: "",
-  });
+  const [studentForm, setStudentForm] = useState(() => ({ ...initialStudentFormState }));
 
   const { toast } = useToast();
 
   const handleStudentSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
 
-    if (!studentForm.nama || !studentForm.nisn || !studentForm.username) {
+    if (
+      !studentForm.nama ||
+      !studentForm.nis ||
+      !studentForm.nisn ||
+      !studentForm.username
+    ) {
       toast({
         title: "Error",
         description: "Mohon lengkapi field wajib",
@@ -137,30 +145,33 @@ export default function StudentManagement({ students, currentUser, onDataChange 
   };
 
   const resetStudentForm = () => {
-    setStudentForm({
-      nama: "",
-      nisn: "",
-      username: "",
-      password: "",
-      email: "",
-      alamat: "",
-      tanggalLahir: "",
-    });
+    setStudentForm({ ...initialStudentFormState });
     setEditingStudent(null);
     setShowStudentDialog(false);
   };
 
   const editStudent = (student: any) => {
-    setStudentForm(student);
+    setStudentForm({
+      ...initialStudentFormState,
+      ...student,
+      nis: student?.nis ?? "",
+    });
     setEditingStudent(student);
     setShowStudentDialog(true);
   };
 
-  const filteredStudents = students.filter(
-    (student) =>
-      student.nama?.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      student.nisn?.toLowerCase().includes(searchTerm.toLowerCase())
-  );
+  const normalizedSearch = searchTerm.toLowerCase();
+  const filteredStudents = students.filter((student) => {
+    const name = (student.nama ?? "").toLowerCase();
+    const nis = (student.nis ?? "").toLowerCase();
+    const nisn = (student.nisn ?? "").toLowerCase();
+
+    return (
+      name.includes(normalizedSearch) ||
+      nis.includes(normalizedSearch) ||
+      nisn.includes(normalizedSearch)
+    );
+  });
 
   return (
     <Card className="shadow-soft">
@@ -193,13 +204,27 @@ export default function StudentManagement({ students, currentUser, onDataChange 
                   />
                 </div>
 
-                <div className="space-y-2">
-                  <Label>NISN *</Label>
-                  <Input
-                    value={studentForm.nisn}
-                    onChange={(e) => setStudentForm(prev => ({ ...prev, nisn: e.target.value }))}
-                    required
-                  />
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  <div className="space-y-2">
+                    <Label>NIS *</Label>
+                    <Input
+                      value={studentForm.nis}
+                      onChange={(e) =>
+                        setStudentForm((prev) => ({ ...prev, nis: e.target.value }))
+                      }
+                      required
+                    />
+                  </div>
+                  <div className="space-y-2">
+                    <Label>NISN *</Label>
+                    <Input
+                      value={studentForm.nisn}
+                      onChange={(e) =>
+                        setStudentForm((prev) => ({ ...prev, nisn: e.target.value }))
+                      }
+                      required
+                    />
+                  </div>
                 </div>
 
                 <div className="space-y-2">
@@ -271,7 +296,7 @@ export default function StudentManagement({ students, currentUser, onDataChange 
           <div className="relative">
             <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-muted-foreground h-4 w-4" />
             <Input
-              placeholder="Cari berdasarkan nama atau NISN..."
+              placeholder="Cari berdasarkan nama, NIS, atau NISN..."
               value={searchTerm}
               onChange={(e) => setSearchTerm(e.target.value)}
               className="pl-10"
@@ -284,6 +309,7 @@ export default function StudentManagement({ students, currentUser, onDataChange 
             <TableHeader>
               <TableRow>
                 <TableHead>Nama</TableHead>
+                <TableHead>NIS</TableHead>
                 <TableHead>NISN</TableHead>
                 <TableHead>Username</TableHead>
                 <TableHead>Email</TableHead>
@@ -299,6 +325,7 @@ export default function StudentManagement({ students, currentUser, onDataChange 
                   return (
                     <TableRow key={rowKey}>
                     <TableCell className="font-medium">{student.nama}</TableCell>
+                    <TableCell>{student.nis || "-"}</TableCell>
                     <TableCell>{student.nisn}</TableCell>
                     <TableCell>{student.username}</TableCell>
                     <TableCell>{student.email || "-"}</TableCell>
@@ -327,13 +354,13 @@ export default function StudentManagement({ students, currentUser, onDataChange 
                 })
               ) : searchTerm ? (
                 <TableRow>
-                  <TableCell colSpan={5} className="text-center py-8 text-muted-foreground">
+                  <TableCell colSpan={6} className="text-center py-8 text-muted-foreground">
                     Tidak ada siswa yang cocok dengan pencarian "{searchTerm}"
                   </TableCell>
                 </TableRow>
               ) : (
                 <TableRow>
-                  <TableCell colSpan={5} className="text-center py-8 text-muted-foreground">
+                  <TableCell colSpan={6} className="text-center py-8 text-muted-foreground">
                     <Users className="h-12 w-12 mx-auto mb-4 opacity-50" />
                     <p>Belum ada data siswa</p>
                   </TableCell>

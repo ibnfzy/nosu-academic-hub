@@ -216,6 +216,7 @@ const apiService = {
           if (student) {
             sessionUser.studentId = student.id;
             sessionUser.kelasId = student.kelasId;
+            sessionUser.nis = student.nis;
             sessionUser.nisn = student.nisn;
           }
         } else if (role === "guru" || role === "walikelas") {
@@ -1786,6 +1787,7 @@ const apiService = {
       const newStudent = {
         id: (Date.now() + 1).toString(),
         userId: newUser.id,
+        nis: studentData.nis,
         nisn: studentData.nisn,
         nama: studentData.nama,
         kelasId: studentData.kelasId || "1",
@@ -1806,6 +1808,7 @@ const apiService = {
         success: true,
         data: {
           ...newStudent,
+          nis: studentData.nis,
           username: newUser.username,
           email: newUser.email,
         },
@@ -1842,6 +1845,7 @@ const apiService = {
       // update student
       students[studentIndex] = {
         ...student,
+        nis: studentData.nis,
         nisn: studentData.nisn,
         nama: studentData.nama,
         alamat: studentData.alamat,
@@ -1870,6 +1874,7 @@ const apiService = {
         success: true,
         data: {
           ...students[studentIndex],
+          nis: studentData.nis ?? students[studentIndex].nis,
           username: users[userIndex]?.username,
           email: users[userIndex]?.email,
         },

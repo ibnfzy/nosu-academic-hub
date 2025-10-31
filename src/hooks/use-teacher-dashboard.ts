@@ -50,6 +50,7 @@ export type Student = UnknownRecord & {
   userId?: Identifier | null;
   studentId?: Identifier | null;
   nama?: string;
+  nis?: string;
   nisn?: string;
   kelasId?: Identifier;
   username?: string;
@@ -1855,7 +1856,11 @@ export function useTeacherDashboard(currentUser: TeacherDashboardUser | null) {
   const getStudentName = useCallback(
     (id: Identifier | "") => {
       const student = findStudentByAnyId(id);
-      return student ? `${student.nama} (${student.nisn})` : "Pilih siswa";
+      return student
+        ? `${student.nama} (NIS: ${student.nis || "-"} • NISN: ${
+            student.nisn || "-"
+          })`
+        : "Pilih siswa";
     },
     [students]
   );

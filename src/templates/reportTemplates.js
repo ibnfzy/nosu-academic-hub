@@ -13,6 +13,7 @@ export const reportCardTemplate = {
   studentInfo: {
     fields: [
       { label: "Nama Siswa", key: "nama" },
+      { label: "NIS", key: "nis" },
       { label: "NISN", key: "nisn" },
       { label: "Kelas", key: "kelas" },
       { label: "Semester", key: "semester" },

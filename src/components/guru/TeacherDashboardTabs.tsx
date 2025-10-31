@@ -329,8 +329,9 @@ export function TeacherDashboardTabs({
                       </div>
                       <div>
                         <h4 className="font-medium text-foreground">{student.nama}</h4>
-                        <div className="flex items-center space-x-4 text-sm text-muted-foreground">
-                          <span>NISN: {student.nisn}</span>
+                        <div className="flex flex-wrap items-center gap-x-4 gap-y-1 text-sm text-muted-foreground">
+                          <span>NIS: {student.nis || "-"}</span>
+                          <span>NISN: {student.nisn || "-"}</span>
                           <span>Username: {student.username}</span>
                         </div>
                       </div>
