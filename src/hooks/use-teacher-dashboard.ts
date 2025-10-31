@@ -114,9 +114,42 @@ export type TeacherSchedule = UnknownRecord & {
   catatan?: string | null;
 };
 
+type TeacherSubjectRelation = UnknownRecord & {
+  id?: Identifier;
+  relationId?: Identifier;
+  teacherSubjectId?: Identifier;
+  teacherSubjectClassId?: Identifier;
+  teacherId?: Identifier;
+  guruId?: Identifier;
+  subjectId?: Identifier;
+  mapelId?: Identifier;
+  kelasId?: Identifier;
+  classId?: Identifier;
+  teacher?: UnknownRecord | null;
+  guru?: UnknownRecord | null;
+  subject?: UnknownRecord | null;
+  mapel?: UnknownRecord | null;
+  kelas?: UnknownRecord | null;
+  class?: UnknownRecord | null;
+  pivot?: UnknownRecord | null;
+};
+
+export type TeacherSubjectOption = {
+  id: string;
+  label: string;
+  teacherId: string;
+  teacherName: string;
+  subjectId: string;
+  subjectName: string;
+  kelasId: string;
+  kelasName: string;
+  relation: TeacherSubjectRelation | null;
+};
+
 type TeacherScheduleFilters = {
   kelasId: string;
   hari: string;
+  teacherSubjectId: string;
 };
 
 type ScheduleConflictDetail = UnknownRecord & {
@@ -264,6 +297,191 @@ const toTeacherSchedule = (value: unknown): TeacherSchedule | null => {
   return value as TeacherSchedule;
 };
 
+const toStringOrEmpty = (value: unknown): string => {
+  if (value === undefined || value === null) return "";
+  return String(value);
+};
+
+const toTextValue = (value: unknown): string => {
+  if (typeof value === "string") return value.trim();
+  if (typeof value === "number") return String(value);
+  return "";
+};
+
+const getCandidateValue = (source: unknown, paths: string[]): unknown => {
+  if (!source || typeof source !== "object") return undefined;
+
+  for (const path of paths) {
+    const segments = path.split(".");
+    let current: unknown = source;
+    let isValidPath = true;
+
+    for (const segment of segments) {
+      if (!current || typeof current !== "object") {
+        isValidPath = false;
+        break;
+      }
+
+      if (!(segment in (current as Record<string, unknown>))) {
+        isValidPath = false;
+        break;
+      }
+
+      current = (current as Record<string, unknown>)[segment];
+    }
+
+    if (isValidPath && current !== undefined && current !== null) {
+      return current;
+    }
+  }
+
+  return undefined;
+};
+
+const RELATION_ID_PATHS = [
+  "id",
+  "relationId",
+  "teacherSubjectId",
+  "teacherSubjectClassId",
+  "teacher_subject_id",
+  "teacher_subject_class_id",
+  "guruMapelKelasId",
+  "guruMapelId",
+  "mapelGuruKelasId",
+  "pivot.id",
+  "pivot.teacherSubjectId",
+  "teacherSubject.id",
+  "teacher_subject.id",
+];
+
+const RELATION_SUBJECT_PATHS = [
+  "subjectId",
+  "mapelId",
+  "subject.id",
+  "mapel.id",
+  "pivot.subjectId",
+  "pivot.mapelId",
+];
+
+const RELATION_CLASS_PATHS = [
+  "kelasId",
+  "classId",
+  "kelas.id",
+  "class.id",
+  "pivot.kelasId",
+  "pivot.classId",
+];
+
+const RELATION_TEACHER_PATHS = [
+  "teacherId",
+  "guruId",
+  "teacher.id",
+  "teacher.teacherId",
+  "guru.id",
+  "pivot.teacherId",
+  "pivot.guruId",
+];
+
+const RELATION_TEACHER_NAME_PATHS = [
+  "teacherNama",
+  "guruNama",
+  "teacher.nama",
+  "teacher.name",
+  "teacher.fullName",
+  "guru.nama",
+  "guru.name",
+  "users.nama",
+  "user.name",
+];
+
+const RELATION_SUBJECT_NAME_PATHS = [
+  "subjectNama",
+  "mapelNama",
+  "subject.nama",
+  "subject.name",
+  "mapel.nama",
+  "mapel.name",
+];
+
+const RELATION_CLASS_NAME_PATHS = [
+  "kelasNama",
+  "classNama",
+  "kelas.nama",
+  "kelas.name",
+  "class.nama",
+  "class.name",
+];
+
+const buildTeacherSubjectOption = (
+  relation: TeacherSubjectRelation | null | undefined,
+  {
+    teacherIdFallback = "",
+    teacherNameFallback = "",
+    subjectNameMap,
+    classNameMap,
+  }: {
+    teacherIdFallback?: string;
+    teacherNameFallback?: string;
+    subjectNameMap?: Map<string, string>;
+    classNameMap?: Map<string, string>;
+  } = {}
+): TeacherSubjectOption | null => {
+  if (!relation || typeof relation !== "object") return null;
+
+  const subjectId = toStringOrEmpty(
+    getCandidateValue(relation, RELATION_SUBJECT_PATHS)
+  );
+  const kelasId = toStringOrEmpty(
+    getCandidateValue(relation, RELATION_CLASS_PATHS)
+  );
+
+  let relationId = toStringOrEmpty(
+    getCandidateValue(relation, RELATION_ID_PATHS)
+  );
+
+  if (!relationId) {
+    const fallbackParts = [subjectId, kelasId].filter((part) => part);
+    if (fallbackParts.length > 0) {
+      relationId = `relation-${fallbackParts.join("-")}`;
+    }
+  }
+
+  if (!relationId) return null;
+
+  const teacherId =
+    toStringOrEmpty(getCandidateValue(relation, RELATION_TEACHER_PATHS)) ||
+    teacherIdFallback;
+
+  const teacherName =
+    toTextValue(getCandidateValue(relation, RELATION_TEACHER_NAME_PATHS)) ||
+    teacherNameFallback;
+
+  const subjectName =
+    toTextValue(getCandidateValue(relation, RELATION_SUBJECT_NAME_PATHS)) ||
+    (subjectId ? subjectNameMap?.get(subjectId) ?? "" : "");
+
+  const kelasName =
+    toTextValue(getCandidateValue(relation, RELATION_CLASS_NAME_PATHS)) ||
+    (kelasId ? classNameMap?.get(kelasId) ?? "" : "");
+
+  const labelSegments = [teacherName, subjectName, kelasName].filter(
+    (segment) => segment && segment.trim() !== ""
+  );
+
+  return {
+    id: relationId,
+    label:
+      labelSegments.length > 0 ? labelSegments.join(" • ") : relationId,
+    teacherId,
+    teacherName,
+    subjectId,
+    subjectName,
+    kelasId,
+    kelasName,
+    relation: relation ?? null,
+  };
+};
+
 const toScheduleConflictDetail = (
   value: unknown
 ): ScheduleConflictDetail | null => {
@@ -298,6 +516,8 @@ const toScheduleConflictDetail = (
 
 export function useTeacherDashboard(currentUser: TeacherDashboardUser | null) {
   const [subjects, setSubjects] = useState<Subject[]>([]);
+  const [teacherSubjectRelations, setTeacherSubjectRelations] =
+    useState<TeacherSubjectRelation[]>([]);
   const [students, setStudents] = useState<Student[]>([]);
   const findStudentByAnyId = useCallback(
     (candidateId: Identifier | null | undefined) => {
@@ -338,6 +558,7 @@ export function useTeacherDashboard(currentUser: TeacherDashboardUser | null) {
     useState<TeacherScheduleFilters>({
       kelasId: "",
       hari: "",
+      teacherSubjectId: "",
     });
   const [isTeacherScheduleLoading, setIsTeacherScheduleLoading] =
     useState(false);
@@ -422,6 +643,8 @@ export function useTeacherDashboard(currentUser: TeacherDashboardUser | null) {
 
   const teacherScheduleClassFilter = teacherScheduleFilters.kelasId;
   const teacherScheduleDayFilter = teacherScheduleFilters.hari;
+  const teacherScheduleSubjectFilter =
+    teacherScheduleFilters.teacherSubjectId;
 
   const updateTeacherScheduleFilters = useCallback(
     (updates: Partial<TeacherScheduleFilters>) => {
@@ -429,6 +652,129 @@ export function useTeacherDashboard(currentUser: TeacherDashboardUser | null) {
     },
     []
   );
+
+  const teacherSubjectOptions = useMemo<TeacherSubjectOption[]>(() => {
+    const subjectNameMap = new Map<string, string>();
+    subjects.forEach((subject) => {
+      if (subject?.id === undefined || subject?.id === null) return;
+      const subjectId = toStringOrEmpty(subject.id);
+      if (!subjectId) return;
+      const subjectName = toTextValue(subject.nama);
+      if (subjectName) {
+        subjectNameMap.set(subjectId, subjectName);
+      }
+    });
+
+    const classNameMap = new Map<string, string>();
+    classes.forEach((kelas) => {
+      if (kelas?.id === undefined || kelas?.id === null) return;
+      const kelasId = toStringOrEmpty(kelas.id);
+      if (!kelasId) return;
+      const kelasName = toTextValue(kelas.nama);
+      if (kelasName) {
+        classNameMap.set(kelasId, kelasName);
+      }
+    });
+
+    const fallbackTeacherId = toStringOrEmpty(currentUser?.teacherId ?? "");
+    const fallbackTeacherName = (() => {
+      if (!currentUser) return "";
+      const candidates: unknown[] = [currentUser.nama];
+      if (isRecord(currentUser)) {
+        const record = currentUser as UnknownRecord;
+        candidates.push(record.name, record.fullName, record.displayName);
+      }
+      for (const candidate of candidates) {
+        const text = toTextValue(candidate);
+        if (text) {
+          return text;
+        }
+      }
+      return "";
+    })();
+
+    const optionsMap = new Map<string, TeacherSubjectOption>();
+
+    teacherSubjectRelations.forEach((relation) => {
+      const option = buildTeacherSubjectOption(relation, {
+        teacherIdFallback: fallbackTeacherId,
+        teacherNameFallback: fallbackTeacherName,
+        subjectNameMap,
+        classNameMap,
+      });
+      if (option) {
+        optionsMap.set(option.id, option);
+      }
+    });
+
+    const hasOptionFor = (subjectId: string, kelasId: string) => {
+      for (const option of optionsMap.values()) {
+        if (option.subjectId === subjectId && option.kelasId === kelasId) {
+          return true;
+        }
+      }
+      return false;
+    };
+
+    subjects.forEach((subject) => {
+      const subjectId = toStringOrEmpty(subject?.id ?? "");
+      if (!subjectId) return;
+      const kelasId = toStringOrEmpty(subject?.kelasId ?? "");
+      if (subjectId && hasOptionFor(subjectId, kelasId)) {
+        return;
+      }
+
+      const subjectName =
+        toTextValue(subject?.nama) || subjectNameMap.get(subjectId) || "";
+      const kelasName = kelasId ? classNameMap.get(kelasId) ?? "" : "";
+      const labelSegments = [
+        fallbackTeacherName,
+        subjectName,
+        kelasName,
+      ].filter((segment) => segment && segment.trim() !== "");
+
+      const fallbackIdParts = [subjectId];
+      if (kelasId) fallbackIdParts.push(kelasId);
+      const fallbackId = `subject-${fallbackIdParts.join("-")}`;
+
+      optionsMap.set(fallbackId, {
+        id: fallbackId,
+        label:
+          labelSegments.length > 0
+            ? labelSegments.join(" • ")
+            : fallbackId,
+        teacherId: fallbackTeacherId,
+        teacherName: fallbackTeacherName,
+        subjectId,
+        subjectName,
+        kelasId,
+        kelasName,
+        relation: null,
+      });
+    });
+
+    return Array.from(optionsMap.values());
+  }, [classes, currentUser, subjects, teacherSubjectRelations]);
+
+  useEffect(() => {
+    const selectedId = teacherScheduleFilters.teacherSubjectId;
+    if (!selectedId) {
+      return;
+    }
+
+    const exists = teacherSubjectOptions.some(
+      (option) => option.id === selectedId
+    );
+
+    if (!exists) {
+      setTeacherScheduleFilters((prev) => {
+        if (!prev.teacherSubjectId) {
+          return prev;
+        }
+        return { ...prev, teacherSubjectId: "" };
+      });
+    }
+  }, [teacherScheduleFilters.teacherSubjectId, teacherSubjectOptions]);
 
   const gradeTypes = useMemo<string[]>(
     () => ["Ulangan Harian", "UTS", "UAS", "Kuis", "Tugas"],
@@ -563,6 +909,28 @@ export function useTeacherDashboard(currentUser: TeacherDashboardUser | null) {
       const subjectsData = await apiService.getTeacherSubjects(
         currentUser.teacherId
       );
+      const normalizedTeacherSubjectRelations = Array.isArray(subjectsData)
+        ? subjectsData
+            .map((item) => {
+              if (isRecord(item)) {
+                return item as TeacherSubjectRelation;
+              }
+              if (isIdentifier(item)) {
+                return {
+                  id: item,
+                  subjectId: item,
+                } as TeacherSubjectRelation;
+              }
+              return null;
+            })
+            .filter(
+              (
+                item
+              ): item is TeacherSubjectRelation => item !== null
+            )
+        : [];
+
+      setTeacherSubjectRelations(normalizedTeacherSubjectRelations);
       const [
         allSubjectsResponse,
         classesResponse,
@@ -585,13 +953,15 @@ export function useTeacherDashboard(currentUser: TeacherDashboardUser | null) {
               }
               if (isRecord(item)) {
                 const candidate =
-                  (item.subjectId as unknown) ?? (item.id as unknown);
-                return isIdentifier(candidate) ? candidate : null;
+                  getCandidateValue(item, RELATION_SUBJECT_PATHS) ??
+                  getCandidateValue(item, ["id"]);
+                return extractIdentifier(candidate);
               }
               return null;
             })
             .filter((value): value is Identifier => value !== null)
         : [];
+      const subjectIdSet = new Set(subjectIds.map((value) => String(value)));
 
       const allSubjects = Array.isArray(allSubjectsResponse)
         ? allSubjectsResponse
@@ -605,9 +975,14 @@ export function useTeacherDashboard(currentUser: TeacherDashboardUser | null) {
             .filter((item): item is ClassInfo => item !== null)
         : [];
 
-      const teacherSubjects = allSubjects.filter((subj) =>
-        subjectIds.includes(subj.id)
-      );
+      const teacherSubjects =
+        subjectIdSet.size > 0
+          ? allSubjects.filter((subj) =>
+              subj?.id !== undefined && subj?.id !== null
+                ? subjectIdSet.has(String(subj.id))
+                : false
+            )
+          : [];
 
       setSubjects(teacherSubjects);
       setClasses(classesData);
@@ -629,6 +1004,7 @@ export function useTeacherDashboard(currentUser: TeacherDashboardUser | null) {
       setStudents(studentsData);
     } catch (error) {
       console.error(error);
+      setTeacherSubjectRelations([]);
       toast({
         title: "Error",
         description: "Gagal memuat data guru",
@@ -994,6 +1370,11 @@ export function useTeacherDashboard(currentUser: TeacherDashboardUser | null) {
             teacherScheduleDayFilter && teacherScheduleDayFilter !== ""
               ? teacherScheduleDayFilter
               : undefined,
+          teacherSubjectId:
+            teacherScheduleSubjectFilter &&
+            teacherScheduleSubjectFilter !== ""
+              ? teacherScheduleSubjectFilter
+              : undefined,
         }
       );
 
@@ -1134,6 +1515,7 @@ export function useTeacherDashboard(currentUser: TeacherDashboardUser | null) {
     selectedSemesterId,
     teacherScheduleClassFilter,
     teacherScheduleDayFilter,
+    teacherScheduleSubjectFilter,
     toast,
   ]);
 
@@ -1943,6 +2325,7 @@ export function useTeacherDashboard(currentUser: TeacherDashboardUser | null) {
     attendanceContextLock,
     setAttendanceContextLock,
     teacherSchedules,
+    teacherSubjectOptions,
     teacherScheduleFilters,
     updateTeacherScheduleFilters,
     isTeacherScheduleLoading,
