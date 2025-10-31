@@ -45,6 +45,7 @@ const TeacherDashboard = ({ currentUser, onLogout }: TeacherDashboardProps) => {
     setSelectedSemesterId,
     semesters,
     teacherSchedules,
+    teacherSubjectOptions,
     teacherScheduleFilters,
     updateTeacherScheduleFilters,
     isTeacherScheduleLoading,
@@ -173,6 +174,21 @@ const TeacherDashboard = ({ currentUser, onLogout }: TeacherDashboardProps) => {
     });
   }, [classes, subjects]);
 
+  const scheduleTeacherSubjectOptions = useMemo(() => {
+    if (!teacherSubjectOptions || teacherSubjectOptions.length === 0) {
+      return teacherSubjectOptions;
+    }
+
+    if (!scheduleFilters.kelasId) {
+      return teacherSubjectOptions;
+    }
+
+    return teacherSubjectOptions.filter((option) => {
+      if (!option.kelasId) return true;
+      return option.kelasId === scheduleFilters.kelasId;
+    });
+  }, [scheduleFilters.kelasId, teacherSubjectOptions]);
+
   const scheduleDayOptions = useMemo(
     () => ["Senin", "Selasa", "Rabu", "Kamis", "Jumat", "Sabtu"],
     []
@@ -291,6 +307,28 @@ const TeacherDashboard = ({ currentUser, onLogout }: TeacherDashboardProps) => {
                   {scheduleClassOptions.map((kelas) => (
                     <option key={String(kelas.id)} value={String(kelas.id)}>
                       {kelas.nama || getClassesName(kelas.id ?? "") || "Kelas"}
+                    </option>
+                  ))}
+                </select>
+              </div>
+              <div>
+                <label className="text-sm font-medium text-muted-foreground">
+                  Filter Relasi Mapel
+                </label>
+                <select
+                  value={scheduleFilters.teacherSubjectId}
+                  onChange={(event) =>
+                    updateTeacherScheduleFilters({
+                      teacherSubjectId: event.target.value,
+                    })
+                  }
+                  className="mt-1 block w-full rounded-md border border-input bg-background px-3 py-2 text-sm shadow-sm focus:outline-none focus:ring-2 focus:ring-primary"
+                  disabled={teacherSubjectOptions.length === 0}
+                >
+                  <option value="">Semua relasi</option>
+                  {scheduleTeacherSubjectOptions.map((option) => (
+                    <option key={option.id} value={option.id}>
+                      {option.label}
                     </option>
                   ))}
                 </select>

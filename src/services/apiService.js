@@ -422,6 +422,7 @@ const apiService = {
       semester = null,
       kelasId = null,
       hari = null,
+      teacherSubjectId = null,
     } = {}
   ) {
     if (USE_API) {
@@ -435,6 +436,10 @@ const apiService = {
       if (kelasId)
         queryParts.push(`kelasId=${encodeURIComponent(kelasId)}`);
       if (hari) queryParts.push(`hari=${encodeURIComponent(hari)}`);
+      if (teacherSubjectId)
+        queryParts.push(
+          `teacherSubjectId=${encodeURIComponent(teacherSubjectId)}`
+        );
 
       const response = await this.authFetch(
         appendQuery(
