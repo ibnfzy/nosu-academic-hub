@@ -70,7 +70,6 @@ type ScheduleRecord = {
   walikelasId?: string | number | null;
   walikelasNama?: string | null;
   ruangan?: string | null;
-  catatan?: string | null;
   [key: string]: unknown;
 };
 
@@ -85,7 +84,6 @@ type ScheduleFormState = {
   jamSelesai: string;
   walikelasId: string;
   ruangan: string;
-  catatan: string;
 };
 
 type ConflictDetail = {
@@ -230,7 +228,6 @@ const INITIAL_FORM_STATE: ScheduleFormState = {
   jamSelesai: "",
   walikelasId: "",
   ruangan: "",
-  catatan: "",
 };
 
 const SELECT_ALL_VALUE = "all";
@@ -1024,7 +1021,6 @@ export default function AdminScheduleManagement({
         jamSelesai: toStringOrEmpty(data?.jamSelesai),
         walikelasId: toStringOrEmpty(data?.walikelasId),
         ruangan: toStringOrEmpty(data?.ruangan),
-        catatan: toStringOrEmpty(data?.catatan),
       });
     } catch (error) {
       const err = toScheduleError(error);
@@ -1183,10 +1179,6 @@ export default function AdminScheduleManagement({
 
     if (scheduleForm.ruangan) {
       payload.ruangan = scheduleForm.ruangan;
-    }
-
-    if (scheduleForm.catatan) {
-      payload.catatan = scheduleForm.catatan;
     }
 
     try {
@@ -1761,20 +1753,6 @@ export default function AdminScheduleManagement({
                   disabled={isSaving || isFormDataLoading}
                 />
               </div>
-              <div className="sm:col-span-2">
-                <Label className="mb-1 block">Catatan</Label>
-                <Input
-                  placeholder="Catatan tambahan (opsional)"
-                  value={scheduleForm.catatan}
-                  onChange={(event) =>
-                    setScheduleForm((prev) => ({
-                      ...prev,
-                      catatan: event.target.value,
-                    }))
-                  }
-                  disabled={isSaving || isFormDataLoading}
-                />
-              </div>
             </div>
 
             <DialogFooter className="pt-2">
@@ -1882,14 +1860,6 @@ export default function AdminScheduleManagement({
                   </p>
                 </div>
               </div>
-              {detailSchedule.catatan && (
-                <div>
-                  <span className="text-xs font-medium uppercase text-muted-foreground">
-                    Catatan
-                  </span>
-                  <p>{detailSchedule.catatan}</p>
-                </div>
-              )}
             </div>
           ) : (
             <div className="py-6 text-center text-muted-foreground">
