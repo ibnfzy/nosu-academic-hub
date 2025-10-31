@@ -12,6 +12,7 @@ import ClassManagement from "@/components/admin/ClassManagement";
 import SchoolProfileManagement from "@/components/admin/SchoolProfileManagement";
 import SemesterManagement from "@/components/admin/SemesterManagement";
 import SemesterEnforcementSettings from "@/components/admin/SemesterEnforcementSettings";
+import AdminScheduleManagement from "@/components/admin/AdminScheduleManagement";
 
 const AdminDashboard = ({ currentUser, onLogout }) => {
   const [users, setUsers] = useState([]);
@@ -127,6 +128,11 @@ const AdminDashboard = ({ currentUser, onLogout }) => {
           {/* Semester Enforcement Settings */}
           {activeSection === "semester-enforcement" && (
             <SemesterEnforcementSettings />
+          )}
+
+          {/* Schedule Management */}
+          {activeSection === "schedules" && (
+            <AdminScheduleManagement onDataChange={loadAdminData} />
           )}
         </div>
       </div>

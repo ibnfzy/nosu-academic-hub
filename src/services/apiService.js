@@ -1486,6 +1486,8 @@ const apiService = {
       kelasId = null,
       guruId = null,
       teacherId = null,
+      walikelasId = null,
+      homeroomTeacherId = null,
       hari = null,
     } = {}
   ) {
@@ -1503,6 +1505,9 @@ const apiService = {
       const teacherFilter = guruId ?? teacherId;
       if (teacherFilter)
         queryParts.push(`guruId=${encodeURIComponent(teacherFilter)}`);
+      const walikelasFilter = homeroomTeacherId ?? walikelasId;
+      if (walikelasFilter)
+        queryParts.push(`walikelasId=${encodeURIComponent(walikelasFilter)}`);
 
       const response = await this.authFetch(
         appendQuery(

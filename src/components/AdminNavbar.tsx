@@ -11,6 +11,7 @@ import {
   Shield,
   BookOpen,
   School,
+  CalendarClock,
   CalendarDays,
   Building2,
   LogOut,
@@ -68,6 +69,12 @@ const groupedMenu = [
         icon: CalendarDays,
         id: "semesters",
         description: "Kelola periode semester akademik",
+      },
+      {
+        title: "Jadwal",
+        icon: CalendarClock,
+        id: "schedules",
+        description: "Atur jadwal pelajaran dan pengampu",
       },
       {
         title: "Penegakan Semester",
@@ -132,7 +139,11 @@ export function AdminNavbar({
                       <DropdownMenuItem
                         key={item.id}
                         onClick={() => setActiveSection(item.id)}
-                        className="flex items-center space-x-2 cursor-pointer"
+                        className={`flex items-center space-x-2 cursor-pointer transition-colors ${
+                          item.id === activeSection
+                            ? "bg-primary/10 text-primary"
+                            : ""
+                        }`}
                       >
                         <Icon className="h-4 w-4" />
                         <span>{item.title}</span>
