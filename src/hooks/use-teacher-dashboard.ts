@@ -95,6 +95,43 @@ export type AttendanceRecord = UnknownRecord & {
   studyDayNumber?: number | null;
 };
 
+export type TeacherSchedule = UnknownRecord & {
+  id?: Identifier;
+  kelasId?: Identifier | null;
+  kelasNama?: string | null;
+  subjectId?: Identifier | null;
+  subjectNama?: string | null;
+  teacherId?: Identifier | null;
+  teacherNama?: string | null;
+  semesterId?: Identifier | null;
+  semesterNama?: string | null;
+  semesterTahunAjaran?: string | null;
+  hari?: string | null;
+  jamMulai?: string | null;
+  jamSelesai?: string | null;
+  ruangan?: string | null;
+  catatan?: string | null;
+};
+
+type TeacherScheduleFilters = {
+  kelasId: string;
+  hari: string;
+};
+
+type ScheduleConflictDetail = UnknownRecord & {
+  hari?: string | null;
+  jamMulai?: string | null;
+  jamSelesai?: string | null;
+  kelasNama?: string | null;
+  teacherNama?: string | null;
+  subjectNama?: string | null;
+};
+
+type ScheduleConflictInfo = {
+  conflictScope?: string | null;
+  conflicts: ScheduleConflictDetail[];
+};
+
 type GradeFormState = {
   studentId: string;
   subjectId: string;
@@ -218,6 +255,46 @@ const toAttendanceRecord = (value: unknown): AttendanceRecord | null => {
   } as AttendanceRecord;
 };
 
+const toTeacherSchedule = (value: unknown): TeacherSchedule | null => {
+  if (!isRecord(value)) {
+    return null;
+  }
+
+  return value as TeacherSchedule;
+};
+
+const toScheduleConflictDetail = (
+  value: unknown
+): ScheduleConflictDetail | null => {
+  if (!isRecord(value)) {
+    return null;
+  }
+
+  const record = value as UnknownRecord;
+  const normalizeStringOrNull = (candidate: unknown) => {
+    if (candidate === null || candidate === undefined) {
+      return null;
+    }
+    if (typeof candidate === "string") {
+      return candidate;
+    }
+    if (typeof candidate === "number") {
+      return String(candidate);
+    }
+    return null;
+  };
+
+  return {
+    ...record,
+    hari: normalizeStringOrNull(record.hari),
+    jamMulai: normalizeStringOrNull(record.jamMulai),
+    jamSelesai: normalizeStringOrNull(record.jamSelesai),
+    kelasNama: normalizeStringOrNull(record.kelasNama),
+    teacherNama: normalizeStringOrNull(record.teacherNama),
+    subjectNama: normalizeStringOrNull(record.subjectNama),
+  } as ScheduleConflictDetail;
+};
+
 export function useTeacherDashboard(currentUser: TeacherDashboardUser | null) {
   const [subjects, setSubjects] = useState<Subject[]>([]);
   const [students, setStudents] = useState<Student[]>([]);
@@ -245,10 +322,24 @@ export function useTeacherDashboard(currentUser: TeacherDashboardUser | null) {
   );
   const [grades, setGrades] = useState<GradeRecord[]>([]);
   const [attendance, setAttendance] = useState<AttendanceRecord[]>([]);
+  const [teacherSchedules, setTeacherSchedules] = useState<TeacherSchedule[]>([]);
+  const [teacherScheduleMetadata, setTeacherScheduleMetadata] =
+    useState<UnknownRecord | null>(null);
+  const [teacherScheduleError, setTeacherScheduleError] =
+    useState<string | null>(null);
+  const [teacherScheduleConflicts, setTeacherScheduleConflicts] =
+    useState<ScheduleConflictInfo | null>(null);
   const [loading, setLoading] = useState(false);
   const [classes, setClasses] = useState<ClassInfo[]>([]);
   const [semesters, setSemesters] = useState<Semester[]>([]);
   const [selectedSemesterId, setSelectedSemesterId] = useState<string>("");
+  const [teacherScheduleFilters, setTeacherScheduleFilters] =
+    useState<TeacherScheduleFilters>({
+      kelasId: "",
+      hari: "",
+    });
+  const [isTeacherScheduleLoading, setIsTeacherScheduleLoading] =
+    useState(false);
   const { buildSemesterLabel, getSemesterLabelById, resolveSemesterMetadata } =
     useDashboardSemester({
       semesters,
@@ -327,6 +418,16 @@ export function useTeacherDashboard(currentUser: TeacherDashboardUser | null) {
     tanggal: new Date().toISOString().split("T")[0],
     semesterId: "",
   });
+
+  const teacherScheduleClassFilter = teacherScheduleFilters.kelasId;
+  const teacherScheduleDayFilter = teacherScheduleFilters.hari;
+
+  const updateTeacherScheduleFilters = useCallback(
+    (updates: Partial<TeacherScheduleFilters>) => {
+      setTeacherScheduleFilters((prev) => ({ ...prev, ...updates }));
+    },
+    []
+  );
 
   const gradeTypes = useMemo<string[]>(
     () => ["Ulangan Harian", "UTS", "UAS", "Kuis", "Tugas"],
@@ -863,12 +964,197 @@ export function useTeacherDashboard(currentUser: TeacherDashboardUser | null) {
       toast,
     ]);
 
+  const loadTeacherSchedules = useCallback(async () => {
+    if (!currentUser?.teacherId) {
+      setTeacherSchedules([]);
+      setTeacherScheduleMetadata(null);
+      setTeacherScheduleError(null);
+      setTeacherScheduleConflicts(null);
+      return;
+    }
+
+    setIsTeacherScheduleLoading(true);
+    setTeacherScheduleError(null);
+    setTeacherScheduleConflicts(null);
+
+    try {
+      const response = await apiService.getTeacherSchedules(
+        currentUser.teacherId,
+        {
+          semesterId:
+            selectedSemesterId && selectedSemesterId !== ""
+              ? selectedSemesterId
+              : undefined,
+          kelasId:
+            teacherScheduleClassFilter && teacherScheduleClassFilter !== ""
+              ? teacherScheduleClassFilter
+              : undefined,
+          hari:
+            teacherScheduleDayFilter && teacherScheduleDayFilter !== ""
+              ? teacherScheduleDayFilter
+              : undefined,
+        }
+      );
+
+      const normalizeSchedules = (items: unknown): TeacherSchedule[] => {
+        if (!Array.isArray(items)) return [];
+        return items
+          .map((item) => toTeacherSchedule(item))
+          .filter((item): item is TeacherSchedule => item !== null);
+      };
+
+      let schedules: TeacherSchedule[] = [];
+      let metadata: UnknownRecord | null = null;
+
+      if (Array.isArray(response)) {
+        schedules = normalizeSchedules(response);
+      } else if (isRecord(response)) {
+        const record = response as UnknownRecord;
+        const metadataCandidate = isRecord(record.metadata)
+          ? (record.metadata as UnknownRecord)
+          : isRecord(record.meta)
+          ? (record.meta as UnknownRecord)
+          : null;
+
+        if (metadataCandidate) {
+          metadata = metadataCandidate;
+        } else {
+          const fallbackMetadata: UnknownRecord = {};
+          Object.entries(record).forEach(([key, value]) => {
+            if (
+              ["items", "data", "schedules", "records", "result"].includes(key)
+            ) {
+              return;
+            }
+            if (
+              typeof value === "string" ||
+              typeof value === "number" ||
+              typeof value === "boolean" ||
+              value === null
+            ) {
+              fallbackMetadata[key] = value;
+            }
+          });
+          metadata = Object.keys(fallbackMetadata).length > 0
+            ? fallbackMetadata
+            : null;
+        }
+
+        const potentialKeys = [
+          "items",
+          "data",
+          "schedules",
+          "records",
+          "result",
+        ] as const;
+
+        let schedulesAssigned = false;
+        for (const key of potentialKeys) {
+          const candidate = record[key];
+          if (Array.isArray(candidate)) {
+            schedules = normalizeSchedules(candidate);
+            schedulesAssigned = true;
+            break;
+          }
+        }
+
+        if (!schedulesAssigned) {
+          const candidate = toTeacherSchedule(record);
+          schedules = candidate ? [candidate] : [];
+        }
+      } else {
+        schedules = [];
+      }
+
+      setTeacherSchedules(schedules);
+      setTeacherScheduleMetadata(metadata);
+      setTeacherScheduleError(null);
+    } catch (error) {
+      console.error("Error loading teacher schedules:", error);
+      const err = (error as {
+        message?: string;
+        code?: unknown;
+        details?: unknown;
+      }) || { message: "Gagal memuat jadwal guru" };
+
+      const codeString =
+        typeof err.code === "number"
+          ? String(err.code)
+          : typeof err.code === "string"
+          ? err.code
+          : "";
+
+      const message =
+        err.message ||
+        (codeString === "404"
+          ? "Jadwal tidak ditemukan untuk filter yang dipilih."
+          : codeString === "409"
+          ? "Terjadi konflik pada jadwal yang dipilih."
+          : "Gagal memuat jadwal guru");
+
+      setTeacherSchedules([]);
+      setTeacherScheduleMetadata(null);
+      setTeacherScheduleError(message);
+
+      if (codeString === "409") {
+        const details = (err as { details?: unknown }).details;
+        const detailRecord = isRecord(details) ? (details as UnknownRecord) : null;
+        const conflictScope =
+          typeof detailRecord?.conflictScope === "string"
+            ? (detailRecord.conflictScope as string)
+            : null;
+        const conflictsRaw = Array.isArray(detailRecord?.conflicts)
+          ? (detailRecord?.conflicts as unknown[])
+          : [];
+        const conflicts = conflictsRaw
+          .map((item) => toScheduleConflictDetail(item))
+          .filter((item): item is ScheduleConflictDetail => item !== null);
+
+        setTeacherScheduleConflicts({
+          conflictScope,
+          conflicts,
+        });
+      } else {
+        setTeacherScheduleConflicts(null);
+      }
+
+      if (codeString !== "404") {
+        toast({
+          title: "Error",
+          description: message,
+          variant: "destructive",
+        });
+      }
+    } finally {
+      setIsTeacherScheduleLoading(false);
+    }
+  }, [
+    currentUser?.teacherId,
+    selectedSemesterId,
+    teacherScheduleClassFilter,
+    teacherScheduleDayFilter,
+    toast,
+  ]);
+
   useEffect(() => {
     if (currentUser) {
       loadSemesters();
       loadTeacherData();
     }
   }, [currentUser, loadSemesters, loadTeacherData]);
+
+  useEffect(() => {
+    if (!currentUser?.teacherId) {
+      setTeacherSchedules([]);
+      setTeacherScheduleMetadata(null);
+      setTeacherScheduleError(null);
+      setTeacherScheduleConflicts(null);
+      setIsTeacherScheduleLoading(false);
+      return;
+    }
+
+    loadTeacherSchedules();
+  }, [currentUser?.teacherId, loadTeacherSchedules]);
 
   useEffect(() => {
     const hasSemesterSelection = semesters.length === 0 || selectedSemesterId;
@@ -1595,6 +1881,7 @@ export function useTeacherDashboard(currentUser: TeacherDashboardUser | null) {
     students,
     grades,
     attendance,
+    classes,
     loading,
     enforcementMode,
     enforcedActiveSemester,
@@ -1650,6 +1937,14 @@ export function useTeacherDashboard(currentUser: TeacherDashboardUser | null) {
     setGradeContextLock,
     attendanceContextLock,
     setAttendanceContextLock,
+    teacherSchedules,
+    teacherScheduleFilters,
+    updateTeacherScheduleFilters,
+    isTeacherScheduleLoading,
+    teacherScheduleError,
+    teacherScheduleMetadata,
+    teacherScheduleConflicts,
+    loadTeacherSchedules,
   };
 }
 
