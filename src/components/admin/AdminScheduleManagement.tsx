@@ -42,7 +42,6 @@ import {
 } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import apiService from "@/services/apiService";
-import { SubjectCombobox } from "@/components/ui/subject-combobox";
 
 interface AdminScheduleManagementProps {
   onDataChange?: () => void;
@@ -56,6 +55,8 @@ type ScheduleRecord = {
   subjectNama?: string | null;
   teacherId?: string | number | null;
   teacherNama?: string | null;
+  teacherSubjectId?: string | number | null;
+  teacherSubject?: TeacherSubjectRelation | null;
   semesterId?: string | number | null;
   semesterNama?: string | null;
   semesterTahunAjaran?: string | null;
@@ -73,6 +74,7 @@ type ScheduleFormState = {
   kelasId: string;
   subjectId: string;
   teacherId: string;
+  teacherSubjectId: string;
   semesterId: string;
   hari: string;
   jamMulai: string;
@@ -131,6 +133,43 @@ type OptionEntity = {
   [key: string]: unknown;
 };
 
+type TeacherSubjectRelation = {
+  id?: string | number;
+  relationId?: string | number;
+  teacherId?: string | number;
+  guruId?: string | number;
+  subjectId?: string | number;
+  mapelId?: string | number;
+  kelasId?: string | number;
+  classId?: string | number;
+  teacherNama?: string;
+  guruNama?: string;
+  subjectNama?: string;
+  mapelNama?: string;
+  kelasNama?: string;
+  classNama?: string;
+  teacher?: OptionEntity | null;
+  guru?: OptionEntity | null;
+  subject?: OptionEntity | null;
+  mapel?: OptionEntity | null;
+  kelas?: OptionEntity | null;
+  class?: OptionEntity | null;
+  pivot?: Record<string, unknown> | null;
+  [key: string]: unknown;
+};
+
+type TeacherSubjectOption = {
+  id: string;
+  label: string;
+  teacherId: string;
+  subjectId: string;
+  kelasId: string;
+  teacherName: string;
+  subjectName: string;
+  kelasName: string;
+  relation: TeacherSubjectRelation | null;
+};
+
 type ScheduleError = Partial<Error> & {
   code?: number;
   message?: string;
@@ -179,6 +218,7 @@ const INITIAL_FORM_STATE: ScheduleFormState = {
   kelasId: "",
   subjectId: "",
   teacherId: "",
+  teacherSubjectId: "",
   semesterId: "",
   hari: "",
   jamMulai: "",
@@ -194,6 +234,195 @@ const SELECT_NONE_VALUE = "none";
 const toStringOrEmpty = (value: unknown): string => {
   if (value === undefined || value === null) return "";
   return `${value}`;
+};
+
+const toTextValue = (value: unknown): string => {
+  if (typeof value === "string") return value.trim();
+  if (typeof value === "number") return `${value}`;
+  return "";
+};
+
+const getCandidateValue = (
+  source: unknown,
+  paths: string[]
+): unknown => {
+  if (!source || typeof source !== "object") return undefined;
+
+  for (const path of paths) {
+    const segments = path.split(".");
+    let current: unknown = source;
+    let isValidPath = true;
+
+    for (const segment of segments) {
+      if (!current || typeof current !== "object") {
+        isValidPath = false;
+        break;
+      }
+
+      if (!(segment in (current as Record<string, unknown>))) {
+        isValidPath = false;
+        break;
+      }
+
+      current = (current as Record<string, unknown>)[segment];
+    }
+
+    if (isValidPath && current !== undefined && current !== null) {
+      return current;
+    }
+  }
+
+  return undefined;
+};
+
+const buildTeacherSubjectOption = (
+  relation: TeacherSubjectRelation | null | undefined,
+  {
+    teacherNameMap,
+    subjectNameMap,
+    classNameMap,
+  }: {
+    teacherNameMap?: Map<string, string>;
+    subjectNameMap?: Map<string, string>;
+    classNameMap?: Map<string, string>;
+  } = {}
+): TeacherSubjectOption | null => {
+  if (!relation || typeof relation !== "object") return null;
+
+  const id = toStringOrEmpty(
+    (getCandidateValue(relation, [
+      "id",
+      "relationId",
+      "teacherSubjectId",
+      "teacherSubjectClassId",
+      "teacher_subject_id",
+      "teacher_subject_class_id",
+      "guruMapelKelasId",
+      "guruMapelId",
+      "mapelGuruKelasId",
+      "pivot.id",
+      "pivot.teacherSubjectId",
+      "teacherSubject.id",
+      "teacher_subject.id",
+    ]) as string | number | undefined) ?? ""
+  );
+
+  if (!id) return null;
+
+  const teacherId = toStringOrEmpty(
+    (getCandidateValue(relation, [
+      "teacherId",
+      "guruId",
+      "teacher.id",
+      "teacher.teacherId",
+      "guru.id",
+      "pivot.teacherId",
+      "pivot.guruId",
+    ]) as string | number | undefined) ?? ""
+  );
+
+  const subjectId = toStringOrEmpty(
+    (getCandidateValue(relation, [
+      "subjectId",
+      "mapelId",
+      "subject.id",
+      "mapel.id",
+      "pivot.subjectId",
+      "pivot.mapelId",
+    ]) as string | number | undefined) ?? ""
+  );
+
+  const kelasId = toStringOrEmpty(
+    (getCandidateValue(relation, [
+      "kelasId",
+      "classId",
+      "kelas.id",
+      "class.id",
+      "pivot.kelasId",
+      "pivot.classId",
+    ]) as string | number | undefined) ?? ""
+  );
+
+  const teacherName =
+    toTextValue(
+      getCandidateValue(relation, [
+        "teacherNama",
+        "guruNama",
+        "teacher.nama",
+        "teacher.name",
+        "teacher.fullName",
+        "guru.nama",
+        "guru.name",
+        "users.nama",
+        "user.name",
+      ])
+    ) || (teacherId && teacherNameMap?.get(teacherId)) || "";
+
+  const subjectName =
+    toTextValue(
+      getCandidateValue(relation, [
+        "subjectNama",
+        "mapelNama",
+        "subject.nama",
+        "subject.name",
+        "mapel.nama",
+        "mapel.name",
+      ])
+    ) || (subjectId && subjectNameMap?.get(subjectId)) || "";
+
+  const kelasName =
+    toTextValue(
+      getCandidateValue(relation, [
+        "kelasNama",
+        "classNama",
+        "kelas.nama",
+        "kelas.name",
+        "class.nama",
+        "class.name",
+      ])
+    ) || (kelasId && classNameMap?.get(kelasId)) || "";
+
+  const labelSegments = [
+    teacherName || "Guru",
+    subjectName || "Mapel",
+    kelasName || "Kelas",
+  ];
+
+  return {
+    id,
+    label: labelSegments.join(" • "),
+    teacherId,
+    subjectId,
+    kelasId,
+    teacherName,
+    subjectName,
+    kelasName,
+    relation: relation ?? null,
+  };
+};
+
+const getScheduleRelation = (
+  schedule: ScheduleRecord | null | undefined
+): TeacherSubjectRelation | null => {
+  if (!schedule || typeof schedule !== "object") return null;
+
+  const candidates = [
+    schedule.teacherSubject,
+    (schedule as Record<string, unknown>).teacher_subject,
+    (schedule as Record<string, unknown>).teacherSubjectRelation,
+    (schedule as Record<string, unknown>).teacherSubjectClass,
+    (schedule as Record<string, unknown>).teacher_subject_class,
+    (schedule as Record<string, unknown>).teacherSubjectMapping,
+    (schedule as Record<string, unknown>).teacherSubjectMapel,
+  ];
+
+  for (const candidate of candidates) {
+    if (candidate && typeof candidate === "object") {
+      return candidate as TeacherSubjectRelation;
+    }
+  }
+
+  return null;
 };
 
 const mapHomeroomTeachers = (
@@ -297,6 +526,9 @@ export default function AdminScheduleManagement({
   const [subjects, setSubjects] = useState<OptionEntity[]>([]);
   const [teachers, setTeachers] = useState<OptionEntity[]>([]);
   const [semesters, setSemesters] = useState<OptionEntity[]>([]);
+  const [teacherSubjectRelations, setTeacherSubjectRelations] = useState<
+    TeacherSubjectRelation[]
+  >([]);
   const [homeroomTeachers, setHomeroomTeachers] = useState<
     Array<{ id: string; nama: string }>
   >([]);
@@ -326,16 +558,263 @@ export default function AdminScheduleManagement({
     homeroomTeachers,
   ]);
 
+  const teacherNameMap = useMemo(() => {
+    const map = new Map<string, string>();
+    teachers.forEach((teacher) => {
+      const id = toStringOrEmpty(teacher?.id ?? teacher?.teacherId);
+      if (!id) return;
+      const name =
+        toTextValue(teacher?.nama) ||
+        toTextValue(teacher?.name) ||
+        toTextValue(teacher?.fullName) ||
+        toTextValue(teacher?.users?.nama) ||
+        toTextValue(teacher?.user?.name);
+      if (name) {
+        map.set(id, name);
+      }
+    });
+    return map;
+  }, [teachers]);
+
+  const subjectNameMap = useMemo(() => {
+    const map = new Map<string, string>();
+    subjects.forEach((subject) => {
+      const id = toStringOrEmpty(subject?.id ?? subject?.subjectId);
+      if (!id) return;
+      const name =
+        toTextValue(subject?.nama) ||
+        toTextValue(subject?.name) ||
+        toTextValue((subject as Record<string, unknown>)?.subjectNama);
+      if (name) {
+        map.set(id, name);
+      }
+    });
+    return map;
+  }, [subjects]);
+
+  const classNameMap = useMemo(() => {
+    const map = new Map<string, string>();
+    classes.forEach((kelas) => {
+      const id = toStringOrEmpty(kelas?.id ?? kelas?.kelasId);
+      if (!id) return;
+      const name =
+        toTextValue(kelas?.nama) ||
+        toTextValue(kelas?.name) ||
+        toTextValue((kelas as Record<string, unknown>)?.kelasNama);
+      if (name) {
+        map.set(id, name);
+      }
+    });
+    return map;
+  }, [classes]);
+
+  const teacherSubjectOptions = useMemo(() => {
+    return teacherSubjectRelations
+      .map((relation) =>
+        buildTeacherSubjectOption(relation, {
+          teacherNameMap,
+          subjectNameMap,
+          classNameMap,
+        })
+      )
+      .filter((option): option is TeacherSubjectOption => Boolean(option));
+  }, [
+    teacherSubjectRelations,
+    teacherNameMap,
+    subjectNameMap,
+    classNameMap,
+  ]);
+
+  const teacherSubjectOptionMap = useMemo(() => {
+    const map = new Map<string, TeacherSubjectOption>();
+    teacherSubjectOptions.forEach((option) => {
+      map.set(option.id, option);
+    });
+    return map;
+  }, [teacherSubjectOptions]);
+
+  const resolveTeacherSubjectInfo = useCallback(
+    (schedule: ScheduleRecord | null | undefined): TeacherSubjectOption | null => {
+      if (!schedule) return null;
+
+      const relation = getScheduleRelation(schedule);
+      const relationOption = relation
+        ? buildTeacherSubjectOption(relation, {
+            teacherNameMap,
+            subjectNameMap,
+            classNameMap,
+          })
+        : null;
+
+      const scheduleRelationId = toStringOrEmpty(
+        (getCandidateValue(schedule, [
+          "teacherSubjectId",
+          "teacherSubjectClassId",
+          "teacher_subject_id",
+          "teacher_subject_class_id",
+          "relationId",
+          "guruMapelKelasId",
+          "guruMapelId",
+          "mapelGuruKelasId",
+          "teacherSubject.id",
+          "teacher_subject.id",
+        ]) as string | number | undefined) ?? ""
+      );
+
+      const optionFromMap = scheduleRelationId
+        ? teacherSubjectOptionMap.get(scheduleRelationId)
+        : null;
+
+      const teacherId =
+        relationOption?.teacherId ||
+        optionFromMap?.teacherId ||
+        toStringOrEmpty(
+          (getCandidateValue(schedule, [
+            "teacherId",
+            "guruId",
+            "teacher.id",
+            "teacher.teacherId",
+            "guru.id",
+          ]) as string | number | undefined) ?? ""
+        );
+
+      const subjectId =
+        relationOption?.subjectId ||
+        optionFromMap?.subjectId ||
+        toStringOrEmpty(
+          (getCandidateValue(schedule, [
+            "subjectId",
+            "mapelId",
+            "subject.id",
+            "mapel.id",
+          ]) as string | number | undefined) ?? ""
+        );
+
+      const kelasId =
+        relationOption?.kelasId ||
+        optionFromMap?.kelasId ||
+        toStringOrEmpty(
+          (getCandidateValue(schedule, [
+            "kelasId",
+            "classId",
+            "kelas.id",
+            "class.id",
+          ]) as string | number | undefined) ?? ""
+        );
+
+      const teacherName =
+        relationOption?.teacherName ||
+        optionFromMap?.teacherName ||
+        toTextValue(
+          getCandidateValue(schedule, [
+            "teacherNama",
+            "teacher.nama",
+            "teacher.name",
+            "guruNama",
+            "guru.nama",
+            "guru.name",
+          ])
+        ) ||
+        (teacherId ? teacherNameMap.get(teacherId) ?? "" : "");
+
+      const subjectName =
+        relationOption?.subjectName ||
+        optionFromMap?.subjectName ||
+        toTextValue(
+          getCandidateValue(schedule, [
+            "subjectNama",
+            "subject.nama",
+            "subject.name",
+            "mapel.nama",
+            "mapel.name",
+          ])
+        ) ||
+        (subjectId ? subjectNameMap.get(subjectId) ?? "" : "");
+
+      const kelasName =
+        relationOption?.kelasName ||
+        optionFromMap?.kelasName ||
+        toTextValue(
+          getCandidateValue(schedule, [
+            "kelasNama",
+            "kelas.nama",
+            "kelas.name",
+            "class.nama",
+            "class.name",
+          ])
+        ) ||
+        (kelasId ? classNameMap.get(kelasId) ?? "" : "");
+
+      const id = relationOption?.id || optionFromMap?.id || scheduleRelationId;
+
+      if (!id && !teacherName && !subjectName && !kelasName) {
+        return null;
+      }
+
+      const labelSegments = [
+        teacherName || "Guru",
+        subjectName || "Mapel",
+        kelasName || "Kelas",
+      ];
+
+      return {
+        id: id || "",
+        label: labelSegments.join(" • "),
+        teacherId,
+        subjectId,
+        kelasId,
+        teacherName,
+        subjectName,
+        kelasName,
+        relation: relationOption?.relation || relation || null,
+      };
+    },
+    [
+      teacherSubjectOptionMap,
+      teacherNameMap,
+      subjectNameMap,
+      classNameMap,
+    ]
+  );
+
+  const filteredTeacherSubjectOptions = useMemo(() => {
+    if (!scheduleForm.kelasId) return teacherSubjectOptions;
+    return teacherSubjectOptions.filter(
+      (option) => option.kelasId === scheduleForm.kelasId
+    );
+  }, [scheduleForm.kelasId, teacherSubjectOptions]);
+
+  const detailTeacherSubjectInfo = useMemo(
+    () => resolveTeacherSubjectInfo(detailSchedule),
+    [detailSchedule, resolveTeacherSubjectInfo]
+  );
+
+  const detailSubjectName = detailSchedule
+    ? detailTeacherSubjectInfo?.subjectName || detailSchedule.subjectNama || "Mata pelajaran"
+    : "Mata pelajaran";
+  const detailClassName = detailSchedule
+    ? detailTeacherSubjectInfo?.kelasName || detailSchedule.kelasNama || "Kelas"
+    : "Kelas";
+  const detailTeacherName = detailSchedule
+    ? detailTeacherSubjectInfo?.teacherName || detailSchedule.teacherNama || "-"
+    : "-";
+
   const loadReferenceData = useCallback(async () => {
     setIsReferenceLoading(true);
     try {
-      const [classesData, subjectsData, teachersData, semestersData] =
-        await Promise.all([
-          apiService.getClasses(),
-          apiService.getSubjects(),
-          apiService.getTeachers(),
-          apiService.getSemesters(),
-        ]);
+      const [
+        classesData,
+        subjectsData,
+        teachersData,
+        semestersData,
+        teacherSubjectData,
+      ] = await Promise.all([
+        apiService.getClasses(),
+        apiService.getSubjects(),
+        apiService.getTeachers(),
+        apiService.getSemesters(),
+        apiService.getTeacherSubjectClassRelations(),
+      ]);
 
       const classList = Array.isArray(classesData)
         ? (classesData as OptionEntity[])
@@ -353,10 +832,17 @@ export default function AdminScheduleManagement({
       setClasses(classList);
       setSubjects(subjectList);
       setTeachers(teacherList);
+      const teacherSubjectList = Array.isArray(teacherSubjectData)
+        ? (teacherSubjectData as TeacherSubjectRelation[])
+        : teacherSubjectData
+        ? [teacherSubjectData as TeacherSubjectRelation]
+        : [];
+
       setSemesters(semesterList);
       setHomeroomTeachers(
         mapHomeroomTeachers(teacherList, classList)
       );
+      setTeacherSubjectRelations(teacherSubjectList);
     } catch (error) {
       const err = toScheduleError(error);
       console.error("Gagal memuat referensi jadwal", err);
@@ -438,10 +924,15 @@ export default function AdminScheduleManagement({
       const semesterInfo = data?.semester as
         | { id?: string | number }
         | undefined;
+      const relationInfo = resolveTeacherSubjectInfo(data);
       setScheduleForm({
-        kelasId: toStringOrEmpty(data?.kelasId),
-        subjectId: toStringOrEmpty(data?.subjectId),
-        teacherId: toStringOrEmpty(data?.teacherId),
+        kelasId:
+          relationInfo?.kelasId || toStringOrEmpty(data?.kelasId),
+        subjectId:
+          relationInfo?.subjectId || toStringOrEmpty(data?.subjectId),
+        teacherId:
+          relationInfo?.teacherId || toStringOrEmpty(data?.teacherId),
+        teacherSubjectId: relationInfo?.id || "",
         semesterId: toStringOrEmpty(
           data?.semesterId ?? semesterInfo?.id ?? data?.semester
         ),
@@ -521,11 +1012,31 @@ export default function AdminScheduleManagement({
   const validateForm = (): boolean => {
     setFormError(null);
 
-    if (!scheduleForm.kelasId || !scheduleForm.subjectId || !scheduleForm.teacherId) {
-      setFormError("Kelas, mata pelajaran, dan guru wajib diisi");
+    if (!scheduleForm.kelasId) {
+      setFormError("Kelas wajib diisi");
       toast({
         title: "Validasi gagal",
-        description: "Kelas, mata pelajaran, dan guru wajib diisi",
+        description: "Kelas wajib diisi",
+        variant: "destructive",
+      });
+      return false;
+    }
+
+    if (!scheduleForm.teacherSubjectId) {
+      setFormError("Relasi guru dan mata pelajaran wajib dipilih");
+      toast({
+        title: "Validasi gagal",
+        description: "Relasi guru dan mata pelajaran wajib dipilih",
+        variant: "destructive",
+      });
+      return false;
+    }
+
+    if (!scheduleForm.subjectId || !scheduleForm.teacherId) {
+      setFormError("Data guru atau mata pelajaran tidak valid");
+      toast({
+        title: "Validasi gagal",
+        description: "Data guru atau mata pelajaran tidak valid",
         variant: "destructive",
       });
       return false;
@@ -576,6 +1087,7 @@ export default function AdminScheduleManagement({
       kelasId: scheduleForm.kelasId,
       subjectId: scheduleForm.subjectId,
       teacherId: scheduleForm.teacherId,
+      teacherSubjectId: scheduleForm.teacherSubjectId,
       semesterId: scheduleForm.semesterId,
       hari: scheduleForm.hari,
       jamMulai: scheduleForm.jamMulai,
@@ -692,16 +1204,21 @@ export default function AdminScheduleManagement({
 
     return schedules.map((schedule) => {
       const scheduleId = schedule.id ? String(schedule.id) : undefined;
+      const relationInfo = resolveTeacherSubjectInfo(schedule);
+      const subjectName =
+        relationInfo?.subjectName || schedule.subjectNama || "-";
+      const className =
+        relationInfo?.kelasName || schedule.kelasNama || "-";
+      const teacherName =
+        relationInfo?.teacherName || schedule.teacherNama || "-";
       return (
         <TableRow
           key={schedule.id || `${schedule.kelasId}-${schedule.subjectId}`}
         >
           <TableCell className="font-medium">
             <div className="flex flex-col">
-              <span>{schedule.subjectNama || "-"}</span>
-              <span className="text-xs text-muted-foreground">
-                {schedule.kelasNama || "-"}
-              </span>
+              <span>{subjectName}</span>
+              <span className="text-xs text-muted-foreground">{className}</span>
             </div>
           </TableCell>
           <TableCell>
@@ -712,7 +1229,7 @@ export default function AdminScheduleManagement({
               {schedule.jamMulai || "-"} - {schedule.jamSelesai || "-"}
             </div>
           </TableCell>
-          <TableCell>{schedule.teacherNama || "-"}</TableCell>
+          <TableCell>{teacherName}</TableCell>
           <TableCell>{schedule.walikelasNama || "-"}</TableCell>
           <TableCell>
             <div className="flex flex-col text-sm">
@@ -961,7 +1478,25 @@ export default function AdminScheduleManagement({
                 <Select
                   value={scheduleForm.kelasId}
                   onValueChange={(value) =>
-                    setScheduleForm((prev) => ({ ...prev, kelasId: value }))
+                    setScheduleForm((prev) => {
+                      const isRelationValid =
+                        prev.teacherSubjectId &&
+                        teacherSubjectOptions.some(
+                          (option) =>
+                            option.id === prev.teacherSubjectId &&
+                            option.kelasId === value
+                        );
+
+                      return {
+                        ...prev,
+                        kelasId: value,
+                        teacherSubjectId: isRelationValid
+                          ? prev.teacherSubjectId
+                          : "",
+                        teacherId: isRelationValid ? prev.teacherId : "",
+                        subjectId: isRelationValid ? prev.subjectId : "",
+                      };
+                    })
                   }
                   disabled={isSaving || isFormDataLoading}
                 >
@@ -978,37 +1513,49 @@ export default function AdminScheduleManagement({
                 </Select>
               </div>
               <div>
-                <Label className="mb-1 block">Mata Pelajaran</Label>
-                <SubjectCombobox
-                  subjects={subjects}
-                  value={scheduleForm.subjectId}
-                  onValueChange={(value) =>
-                    setScheduleForm((prev) => ({ ...prev, subjectId: value }))
-                  }
-                  disabled={isSaving || isFormDataLoading}
-                />
-              </div>
-              <div>
-                <Label className="mb-1 block">Guru Pengampu</Label>
+                <Label className="mb-1 block">Guru • Mata Pelajaran</Label>
                 <Select
-                  value={scheduleForm.teacherId}
+                  value={scheduleForm.teacherSubjectId}
                   onValueChange={(value) =>
-                    setScheduleForm((prev) => ({ ...prev, teacherId: value }))
+                    setScheduleForm((prev) => {
+                      const option =
+                        teacherSubjectOptionMap.get(value) ||
+                        filteredTeacherSubjectOptions.find(
+                          (item) => item.id === value
+                        ) || null;
+
+                      return {
+                        ...prev,
+                        teacherSubjectId: value,
+                        teacherId: option?.teacherId || "",
+                        subjectId: option?.subjectId || "",
+                        kelasId: option?.kelasId || prev.kelasId,
+                      };
+                    })
                   }
-                  disabled={isSaving || isFormDataLoading}
+                  disabled={
+                    isSaving ||
+                    isFormDataLoading ||
+                    (!scheduleForm.kelasId && !teacherSubjectOptions.length)
+                  }
                 >
                   <SelectTrigger>
-                    <SelectValue placeholder="Pilih guru" />
+                    <SelectValue placeholder="Pilih guru dan mata pelajaran" />
                   </SelectTrigger>
                   <SelectContent>
-                    {teachers.map((teacher) => (
-                      <SelectItem
-                        key={teacher.id}
-                        value={toStringOrEmpty(teacher.id)}
-                      >
-                        {teacher.nama || teacher.name}
+                    {filteredTeacherSubjectOptions.length > 0 ? (
+                      filteredTeacherSubjectOptions.map((option) => (
+                        <SelectItem key={option.id} value={option.id}>
+                          {option.label}
+                        </SelectItem>
+                      ))
+                    ) : (
+                      <SelectItem value="__no-options" disabled>
+                        {scheduleForm.kelasId
+                          ? "Tidak ada relasi untuk kelas ini"
+                          : "Pilih kelas terlebih dahulu"}
                       </SelectItem>
-                    ))}
+                    )}
                   </SelectContent>
                 </Select>
               </div>
@@ -1187,13 +1734,9 @@ export default function AdminScheduleManagement({
           ) : detailSchedule ? (
             <div className="space-y-4 text-sm">
               <div>
-                <h3 className="text-lg font-semibold">
-                  {detailSchedule.subjectNama || "Mata pelajaran"}
-                </h3>
+                <h3 className="text-lg font-semibold">{detailSubjectName}</h3>
                 <p className="text-muted-foreground">
-                  {detailSchedule.kelasNama || "Kelas"} •{
-                    " "
-                  }
+                  {detailClassName} •{" "}
                   {detailSchedule.semesterTahunAjaran || detailSchedule.semesterNama}
                 </p>
               </div>
@@ -1220,9 +1763,7 @@ export default function AdminScheduleManagement({
                   <span className="text-xs font-medium uppercase text-muted-foreground">
                     Guru Pengampu
                   </span>
-                  <p className="text-base font-medium">
-                    {detailSchedule.teacherNama || "-"}
-                  </p>
+                  <p className="text-base font-medium">{detailTeacherName}</p>
                 </div>
                 <div>
                   <span className="text-xs font-medium uppercase text-muted-foreground">
