@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import {
   Select,
@@ -24,6 +24,14 @@ import AttendanceDialog from "@/components/walikelas/AttendanceDialog";
 import GradesDialog from "@/components/walikelas/GradesDialog";
 import { useDashboardSemester } from "@/hooks/use-dashboard-semester";
 import useWalikelasDashboard from "@/hooks/use-walikelas-dashboard";
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from "@/components/ui/table";
 
 const WalikelasaDashboard = ({ currentUser, onLogout }) => {
   const {
@@ -57,6 +65,13 @@ const WalikelasaDashboard = ({ currentUser, onLogout }) => {
     handlePrintReport,
     resetStudentForm,
     editStudent,
+    walikelasSchedules,
+    walikelasScheduleMetadata,
+    walikelasScheduleError,
+    walikelasScheduleConflicts,
+    walikelasScheduleFilters,
+    updateWalikelasScheduleFilters,
+    isWalikelasScheduleLoading,
   } = useWalikelasDashboard(currentUser);
 
   const test = () => {
@@ -77,6 +92,151 @@ const WalikelasaDashboard = ({ currentUser, onLogout }) => {
   const selectedSemesterDateRange = buildSemesterDateRange(
     selectedSemesterMetadata
   );
+
+  const scheduleMetadataEntries = useMemo(() => {
+    if (!walikelasScheduleMetadata) {
+      return [] as Array<{ label: string; value: string }>;
+    }
+
+    const metadata = walikelasScheduleMetadata as Record<string, unknown>;
+    const entries: Array<{ label: string; value: string }> = [];
+
+    const addEntry = (label: string, value: unknown) => {
+      if (value === null || value === undefined) return;
+      if (typeof value === "string" && value.trim() === "") return;
+      entries.push({ label, value: String(value) });
+    };
+
+    addEntry(
+      "Semester",
+      metadata.semesterLabel ??
+        metadata.semesterNama ??
+        metadata.semester ??
+        metadata.semesterName
+    );
+    addEntry(
+      "Tahun Ajaran",
+      metadata.semesterTahunAjaran ??
+        metadata.tahunAjaran ??
+        metadata.tahun ??
+        metadata.academicYear
+    );
+    addEntry(
+      "Jumlah Jadwal",
+      metadata.total ??
+        metadata.count ??
+        metadata.totalItems ??
+        metadata.totalSchedules ??
+        metadata.jumlah
+    );
+
+    return entries;
+  }, [walikelasScheduleMetadata]);
+
+  const scheduleDayOptions = useMemo(() => {
+    const baseDays = ["Senin", "Selasa", "Rabu", "Kamis", "Jumat", "Sabtu"];
+    const uniqueDays = [...baseDays];
+
+    const addDay = (value: unknown) => {
+      if (value === null || value === undefined) return;
+      const stringValue = String(value);
+      if (!uniqueDays.includes(stringValue)) {
+        uniqueDays.push(stringValue);
+      }
+    };
+
+    const metadata = walikelasScheduleMetadata as Record<string, unknown> | null;
+    const metadataDaySources = metadata
+      ? [
+          metadata.hariOptions,
+          metadata.dayOptions,
+          metadata.days,
+          metadata.availableDays,
+        ]
+      : [];
+
+    metadataDaySources.forEach((candidate) => {
+      if (Array.isArray(candidate)) {
+        candidate.forEach((value) => addDay(value));
+      }
+    });
+
+    walikelasSchedules.forEach((item) => {
+      if (item && typeof item === "object" && "hari" in item) {
+        addDay((item as Record<string, unknown>).hari);
+      }
+    });
+
+    return uniqueDays;
+  }, [walikelasScheduleMetadata, walikelasSchedules]);
+
+  const scheduleClassOptions = useMemo(() => {
+    const options: Array<{ value: string; label: string }> = [];
+
+    const addOption = (value: unknown, label?: unknown) => {
+      if (value === null || value === undefined) return;
+      const stringValue = String(value);
+      if (options.some((option) => option.value === stringValue)) {
+        return;
+      }
+      const resolvedLabel =
+        label !== undefined && label !== null && String(label).trim() !== ""
+          ? String(label)
+          : `Kelas ${stringValue}`;
+      options.push({ value: stringValue, label: resolvedLabel });
+    };
+
+    if (classInfo?.id !== undefined && classInfo?.id !== null) {
+      addOption(classInfo.id, classInfo.nama);
+    }
+
+    if (currentUser?.kelasId) {
+      addOption(currentUser.kelasId, classInfo?.nama);
+    }
+
+    const metadata = walikelasScheduleMetadata as Record<string, unknown> | null;
+    const metadataClassSources = metadata
+      ? [
+          metadata.kelasOptions,
+          metadata.classOptions,
+          metadata.classes,
+          metadata.availableClasses,
+        ]
+      : [];
+
+    metadataClassSources.forEach((candidate) => {
+      if (Array.isArray(candidate)) {
+        candidate.forEach((item) => {
+          if (item && typeof item === "object") {
+            const record = item as Record<string, unknown>;
+            const idCandidate =
+              record.id ?? record.kelasId ?? record.classId ?? null;
+            const labelCandidate =
+              record.nama ??
+              record.name ??
+              record.label ??
+              record.kelasNama ??
+              null;
+            addOption(idCandidate, labelCandidate ?? idCandidate);
+          } else {
+            addOption(item);
+          }
+        });
+      }
+    });
+
+    walikelasSchedules.forEach((item) => {
+      if (!item || typeof item !== "object") return;
+      const record = item as Record<string, unknown>;
+      const idCandidate =
+        record.kelasId ?? record.classId ?? record.kelas_id ?? null;
+      const labelCandidate =
+        record.kelasNama ?? record.namaKelas ?? record.className ?? null;
+      addOption(idCandidate, labelCandidate ?? idCandidate);
+    });
+
+    return options;
+  }, [classInfo, currentUser?.kelasId, walikelasScheduleMetadata, walikelasSchedules]);
 
   const [isAttendanceDialogOpen, setAttendanceDialogOpen] = useState(false);
   const [isGradesDialogOpen, setGradesDialogOpen] = useState(false);
@@ -435,6 +595,224 @@ const WalikelasaDashboard = ({ currentUser, onLogout }) => {
             </CardContent>
           </Card>
         </div>
+
+        <Card className="mb-6 shadow-soft">
+          <CardHeader>
+            <CardTitle>Jadwal Kelas</CardTitle>
+            {scheduleMetadataEntries.length > 0 && (
+              <div className="mt-2 space-y-1 text-sm text-muted-foreground">
+                {scheduleMetadataEntries.map((entry) => (
+                  <p key={`${entry.label}-${entry.value}`}>
+                    <span className="font-medium text-foreground">
+                      {entry.label}:
+                    </span>{" "}
+                    {entry.value}
+                  </p>
+                ))}
+              </div>
+            )}
+          </CardHeader>
+          <CardContent>
+            <div className="grid gap-4 md:grid-cols-3 mb-6">
+              <div>
+                <label className="text-sm font-medium text-muted-foreground">
+                  Filter Kelas
+                </label>
+                <Select
+                  value={walikelasScheduleFilters.kelasId}
+                  onValueChange={(value) =>
+                    updateWalikelasScheduleFilters({ kelasId: value })
+                  }
+                >
+                  <SelectTrigger className="mt-1 w-full">
+                    <SelectValue placeholder="Semua kelas" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="">Semua kelas</SelectItem>
+                    {scheduleClassOptions.map((option) => (
+                      <SelectItem key={option.value} value={option.value}>
+                        {option.label}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+              <div>
+                <label className="text-sm font-medium text-muted-foreground">
+                  Filter Hari
+                </label>
+                <Select
+                  value={walikelasScheduleFilters.hari}
+                  onValueChange={(value) =>
+                    updateWalikelasScheduleFilters({ hari: value })
+                  }
+                >
+                  <SelectTrigger className="mt-1 w-full">
+                    <SelectValue placeholder="Semua hari" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="">Semua hari</SelectItem>
+                    {scheduleDayOptions.map((day) => (
+                      <SelectItem key={day} value={day}>
+                        {day}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+            </div>
+
+            {walikelasScheduleConflicts &&
+              walikelasScheduleConflicts.conflicts.length > 0 && (
+                <div className="mb-6 rounded-md border border-destructive/40 bg-destructive/10 p-4 text-destructive">
+                  <p className="font-semibold">Terdapat konflik jadwal</p>
+                  {walikelasScheduleConflicts.conflictScope && (
+                    <p className="mt-1 text-sm">
+                      Ruang lingkup: {walikelasScheduleConflicts.conflictScope}
+                    </p>
+                  )}
+                  <ul className="mt-2 space-y-1 text-sm">
+                    {walikelasScheduleConflicts.conflicts.map(
+                      (conflict, index) => {
+                        const segments: string[] = [];
+                        const record = conflict as Record<string, unknown>;
+                        const day =
+                          typeof record.hari === "string" ? record.hari : null;
+                        const start =
+                          typeof record.jamMulai === "string"
+                            ? record.jamMulai
+                            : null;
+                        const end =
+                          typeof record.jamSelesai === "string"
+                            ? record.jamSelesai
+                            : null;
+                        const className =
+                          typeof record.kelasNama === "string"
+                            ? record.kelasNama
+                            : null;
+                        const teacherName =
+                          typeof record.teacherNama === "string"
+                            ? record.teacherNama
+                            : null;
+                        const subjectName =
+                          typeof record.subjectNama === "string"
+                            ? record.subjectNama
+                            : null;
+
+                        if (day) segments.push(day);
+                        if (start || end) {
+                          segments.push(`${start || "?"} - ${end || "?"}`);
+                        }
+                        if (className) segments.push(`Kelas ${className}`);
+                        if (teacherName) segments.push(`Guru ${teacherName}`);
+                        if (subjectName) segments.push(`Mapel ${subjectName}`);
+
+                        return (
+                          <li key={`${day ?? "conflict"}-${index}`}>
+                            •
+                            {segments.length > 0
+                              ? ` ${segments.join(" • ")}`
+                              : ` Konflik ${index + 1}`}
+                          </li>
+                        );
+                      }
+                    )}
+                  </ul>
+                </div>
+              )}
+
+            {walikelasScheduleError && (
+              <div className="mb-6 rounded-md border border-destructive/40 bg-destructive/10 p-4 text-destructive">
+                {walikelasScheduleError}
+              </div>
+            )}
+
+            <div className="overflow-x-auto">
+              <Table>
+                <TableHeader>
+                  <TableRow>
+                    <TableHead>Hari</TableHead>
+                    <TableHead>Waktu</TableHead>
+                    <TableHead>Mata Pelajaran</TableHead>
+                    <TableHead>Kelas</TableHead>
+                    <TableHead>Ruang</TableHead>
+                  </TableRow>
+                </TableHeader>
+                <TableBody>
+                  {isWalikelasScheduleLoading ? (
+                    <TableRow>
+                      <TableCell
+                        colSpan={5}
+                        className="text-center text-sm text-muted-foreground"
+                      >
+                        Memuat jadwal kelas...
+                      </TableCell>
+                    </TableRow>
+                  ) : walikelasSchedules.length === 0 ? (
+                    <TableRow>
+                      <TableCell
+                        colSpan={5}
+                        className="text-center text-sm text-muted-foreground"
+                      >
+                        Tidak ada jadwal untuk filter yang dipilih.
+                      </TableCell>
+                    </TableRow>
+                  ) : (
+                    walikelasSchedules.map((scheduleItem, index) => {
+                      const record = scheduleItem as Record<string, unknown>;
+                      const timeSegments: string[] = [];
+                      const appendTime = (value: unknown) => {
+                        if (value === null || value === undefined) return;
+                        const stringValue = String(value);
+                        if (stringValue.trim() === "") return;
+                        timeSegments.push(stringValue);
+                      };
+
+                      appendTime(record.jamMulai);
+                      appendTime(record.jamSelesai);
+
+                      const timeLabel =
+                        timeSegments.length > 0
+                          ? timeSegments.join(" - ")
+                          : "-";
+
+                      const dayLabel =
+                        record.hari !== undefined && record.hari !== null
+                          ? (() => {
+                              const stringValue = String(record.hari);
+                              return stringValue.trim() === "" ? "-" : stringValue;
+                            })()
+                          : "-";
+
+                      const subjectLabel =
+                        (record.subjectNama ??
+                          record.mataPelajaran ??
+                          record.subjectName ??
+                          record.mapel) ?? "-";
+                      const classLabel =
+                        (record.kelasNama ??
+                          record.namaKelas ??
+                          record.className ??
+                          classInfo?.nama) ?? "-";
+                      const roomLabel =
+                        (record.ruangan ?? record.room ?? record.roomName) ?? "-";
+
+                      return (
+                        <TableRow key={String(record.id ?? index)}>
+                          <TableCell className="font-medium">{dayLabel}</TableCell>
+                          <TableCell>{timeLabel}</TableCell>
+                          <TableCell>{String(subjectLabel)}</TableCell>
+                          <TableCell>{String(classLabel)}</TableCell>
+                          <TableCell>{String(roomLabel)}</TableCell>
+                        </TableRow>
+                      );
+                    })
+                  )}
+                </TableBody>
+              </Table>
+            </div>
+          </CardContent>
+        </Card>
 
         <div className="space-y-6">
           {activeSection === "students" && (
