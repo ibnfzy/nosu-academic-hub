@@ -269,20 +269,6 @@ export default function SubjectManagement({
               </DialogHeader>
               <form onSubmit={handleSubjectSubmit} className="space-y-4">
                 <div className="space-y-2">
-                  <Label>Nama Mata Pelajaran *</Label>
-                  <Input
-                    value={subjectForm.nama}
-                    onChange={(e) =>
-                      setSubjectForm((prev) => ({
-                        ...prev,
-                        nama: e.target.value,
-                      }))
-                    }
-                    required
-                  />
-                </div>
-
-                <div className="space-y-2">
                   <Label>Kode Mata Pelajaran *</Label>
                   <Input
                     value={subjectForm.kode}
@@ -290,6 +276,20 @@ export default function SubjectManagement({
                       setSubjectForm((prev) => ({
                         ...prev,
                         kode: e.target.value,
+                      }))
+                    }
+                    required
+                  />
+                </div>
+
+                <div className="space-y-2">
+                  <Label>Nama Mata Pelajaran *</Label>
+                  <Input
+                    value={subjectForm.nama}
+                    onChange={(e) =>
+                      setSubjectForm((prev) => ({
+                        ...prev,
+                        nama: e.target.value,
                       }))
                     }
                     required
