@@ -1526,6 +1526,42 @@ const apiService = {
     }
   },
 
+  async getTeacherSubjectClassRelations() {
+    if (USE_API) {
+      const endpoints = [
+        `${API_BASE_URL}/admin/teacher-subject-classes`,
+        `${API_BASE_URL}/admin/teacher-subjects`,
+      ];
+
+      let lastNotFoundError = null;
+
+      for (const endpoint of endpoints) {
+        try {
+          const response = await this.authFetch(endpoint);
+          return extractScheduleDataOrThrow(
+            response,
+            "Gagal memuat relasi guru-mapel-kelas"
+          );
+        } catch (error) {
+          const err = error;
+          if (err && typeof err === "object" && err.code === 404) {
+            lastNotFoundError = err;
+            continue;
+          }
+          throw error;
+        }
+      }
+
+      if (lastNotFoundError) {
+        return [];
+      }
+
+      return [];
+    } else {
+      return [];
+    }
+  },
+
   async getAdminScheduleById(scheduleId) {
     if (USE_API) {
       const response = await this.authFetch(
