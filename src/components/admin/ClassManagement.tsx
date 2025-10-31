@@ -17,7 +17,6 @@ import {
   DialogTitle,
   DialogTrigger,
 } from "@/components/ui/dialog";
-import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import {
   Select,
@@ -45,7 +44,6 @@ export default function ClassManagement({
   const [selectedClass, setSelectedClass] = useState<any | null>(null);
   const [showStudentDialog, setShowStudentDialog] = useState(false);
   const [classForm, setClassForm] = useState({
-    nama: "",
     tingkat: "",
     walikelasId: "unassigned",
     jurusan: "",
@@ -98,7 +96,7 @@ export default function ClassManagement({
   const handleClassSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
 
-    if (!classForm.nama || !classForm.tingkat) {
+    if (!classForm.tingkat || !classForm.jurusan) {
       toast({
         title: "Error",
         description: "Mohon lengkapi field wajib",
@@ -171,10 +169,9 @@ export default function ClassManagement({
 
   const resetClassForm = () => {
     setClassForm({
-      nama: "",
       tingkat: "",
       walikelasId: "unassigned",
-      jurusan: "unassigned",
+      jurusan: "",
     });
     setEditingItem(null);
   };
@@ -186,13 +183,12 @@ export default function ClassManagement({
       kelas?.walikelasUserId ??
       null;
     setClassForm({
-      nama: kelas?.nama ?? "",
       tingkat: kelas?.tingkat ? String(kelas.tingkat) : "",
       walikelasId:
         walikelasReferenceId === null || walikelasReferenceId === undefined
           ? "unassigned"
           : String(walikelasReferenceId),
-      jurusan: kelas?.jurusan ?? "unassigned",
+      jurusan: kelas?.jurusan ?? "",
     });
     setEditingItem(kelas);
     setShowClassDialog(true);
@@ -287,21 +283,18 @@ export default function ClassManagement({
                 </DialogTitle>
               </DialogHeader>
               <form onSubmit={handleClassSubmit} className="space-y-4">
-                <div className="space-y-2">
-                  <Label>Nama Kelas *</Label>
-                  <Input
-                    value={classForm.nama}
-                    onChange={(e) =>
-                      setClassForm((prev) => ({
-                        ...prev,
-                        nama: e.target.value,
-                      }))
-                    }
-                    placeholder="contoh: X IPA 1"
-                    required
-                  />
-                </div>
-
+                {editingItem?.nama && (
+                  <div className="space-y-1">
+                    <Label>Nama Kelas</Label>
+                    <div className="px-3 py-2 border rounded-md bg-muted text-sm">
+                      {editingItem.nama}
+                    </div>
+                  </div>
+                )}
+                <p className="text-sm text-muted-foreground">
+                  Nama kelas akan dibuat otomatis oleh sistem berdasarkan
+                  pengaturan di backend.
+                </p>
                 <div className="space-y-2">
                   <Label>Tingkat *</Label>
                   <Select
