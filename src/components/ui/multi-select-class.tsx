@@ -5,7 +5,14 @@ import {
   PopoverContent,
   PopoverTrigger,
 } from "@/components/ui/popover";
-import { Command, CommandGroup, CommandItem } from "@/components/ui/command";
+import {
+  Command,
+  CommandEmpty,
+  CommandGroup,
+  CommandInput,
+  CommandItem,
+  CommandList,
+} from "@/components/ui/command";
 import { Check, ChevronsUpDown } from "lucide-react";
 
 export function MultiSelectKelas({ classes, subjectForm, setSubjectForm }) {
@@ -42,26 +49,38 @@ export function MultiSelectKelas({ classes, subjectForm, setSubjectForm }) {
             <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
           </Button>
         </PopoverTrigger>
-        <PopoverContent className="w-[200px] p-0">
+        <PopoverContent className="w-[280px] p-0">
           <Command>
-            <CommandGroup>
-              {classes.map((kelas) => {
-                const selected = subjectForm.kelasIds?.includes(kelas.id);
-                return (
-                  <CommandItem
-                    key={kelas.id}
-                    onSelect={() => toggleKelas(kelas.id)}
-                  >
-                    <Check
-                      className={`mr-2 h-4 w-4 ${
-                        selected ? "opacity-100" : "opacity-0"
-                      }`}
-                    />
-                    {kelas.nama}
-                  </CommandItem>
-                );
-              })}
-            </CommandGroup>
+            <CommandInput placeholder="Cari kelas..." />
+            <CommandList>
+              <CommandEmpty>Tidak ada kelas ditemukan</CommandEmpty>
+              <CommandGroup>
+                {classes.map((kelas) => {
+                  const selected = subjectForm.kelasIds?.includes(kelas.id);
+                  return (
+                    <CommandItem
+                      key={kelas.id}
+                      value={`${kelas.nama} ${kelas.tingkat || ""}`.trim()}
+                      onSelect={() => toggleKelas(kelas.id)}
+                    >
+                      <Check
+                        className={`mr-2 h-4 w-4 ${
+                          selected ? "opacity-100" : "opacity-0"
+                        }`}
+                      />
+                      <div className="flex flex-col">
+                        <span>{kelas.nama}</span>
+                        {kelas.tingkat ? (
+                          <span className="text-xs text-muted-foreground">
+                            Tingkat {kelas.tingkat}
+                          </span>
+                        ) : null}
+                      </div>
+                    </CommandItem>
+                  );
+                })}
+              </CommandGroup>
+            </CommandList>
           </Command>
         </PopoverContent>
       </Popover>

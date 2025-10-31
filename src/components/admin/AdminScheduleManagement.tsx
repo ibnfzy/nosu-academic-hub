@@ -33,6 +33,10 @@ import {
 import { Badge } from "@/components/ui/badge";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import {
+  SearchableCombobox,
+  type SearchableComboboxOption,
+} from "@/components/ui/searchable-combobox";
+import {
   Plus,
   Loader2,
   Eye,
@@ -785,6 +789,57 @@ export default function AdminScheduleManagement({
     );
   }, [scheduleForm.kelasId, teacherSubjectOptions]);
 
+  const classComboboxOptions = useMemo<SearchableComboboxOption[]>(() => {
+    return classes
+      .map((kelas) => {
+        const value = toStringOrEmpty(kelas?.id ?? kelas?.kelasId);
+        if (!value) {
+          return null;
+        }
+
+        const name =
+          toStringOrEmpty(kelas?.nama ?? kelas?.name ?? kelas?.label) ||
+          `Kelas ${value}`;
+        const tingkat = toStringOrEmpty(
+          (kelas as Record<string, unknown>)?.tingkat
+        );
+
+        return {
+          value,
+          label: name,
+          description: tingkat ? `Tingkat ${tingkat}` : undefined,
+          searchValue: [value, name, tingkat].filter(Boolean).join(" "),
+        };
+      })
+      .filter((option): option is SearchableComboboxOption => Boolean(option));
+  }, [classes]);
+
+  const teacherSubjectComboboxOptions = useMemo<SearchableComboboxOption[]>(() => {
+    return filteredTeacherSubjectOptions.map((option) => {
+      const label = option.teacherName || option.label || "Guru";
+      const descriptionParts = [
+        option.subjectName || null,
+        option.kelasName || null,
+      ].filter(Boolean);
+
+      return {
+        value: option.id,
+        label,
+        description: descriptionParts.join(" • ") || undefined,
+        searchValue: [
+          option.label,
+          option.teacherName,
+          option.subjectName,
+          option.kelasName,
+          option.teacherId,
+          option.subjectId,
+        ]
+          .filter(Boolean)
+          .join(" "),
+      };
+    });
+  }, [filteredTeacherSubjectOptions]);
+
   const detailTeacherSubjectInfo = useMemo(
     () => resolveTeacherSubjectInfo(detailSchedule),
     [detailSchedule, resolveTeacherSubjectInfo]
@@ -1525,7 +1580,8 @@ export default function AdminScheduleManagement({
             <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
               <div>
                 <Label className="mb-1 block">Kelas</Label>
-                <Select
+                <SearchableCombobox
+                  options={classComboboxOptions}
                   value={scheduleForm.kelasId}
                   onValueChange={(value) =>
                     setScheduleForm((prev) => {
@@ -1549,22 +1605,15 @@ export default function AdminScheduleManagement({
                     })
                   }
                   disabled={isSaving || isFormDataLoading}
-                >
-                  <SelectTrigger>
-                    <SelectValue placeholder="Pilih kelas" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {classes.map((kelas) => (
-                      <SelectItem key={kelas.id} value={toStringOrEmpty(kelas.id)}>
-                        {kelas.nama || kelas.name}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
+                  placeholder="Pilih kelas"
+                  searchPlaceholder="Cari kelas..."
+                  emptyMessage="Kelas tidak ditemukan"
+                />
               </div>
               <div>
                 <Label className="mb-1 block">Guru • Mata Pelajaran</Label>
-                <Select
+                <SearchableCombobox
+                  options={teacherSubjectComboboxOptions}
                   value={scheduleForm.teacherSubjectId}
                   onValueChange={(value) =>
                     setScheduleForm((prev) => {
@@ -1588,26 +1637,14 @@ export default function AdminScheduleManagement({
                     isFormDataLoading ||
                     (!scheduleForm.kelasId && !teacherSubjectOptions.length)
                   }
-                >
-                  <SelectTrigger>
-                    <SelectValue placeholder="Pilih guru dan mata pelajaran" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {filteredTeacherSubjectOptions.length > 0 ? (
-                      filteredTeacherSubjectOptions.map((option) => (
-                        <SelectItem key={option.id} value={option.id}>
-                          {option.label}
-                        </SelectItem>
-                      ))
-                    ) : (
-                      <SelectItem value="__no-options" disabled>
-                        {scheduleForm.kelasId
-                          ? "Tidak ada relasi untuk kelas ini"
-                          : "Pilih kelas terlebih dahulu"}
-                      </SelectItem>
-                    )}
-                  </SelectContent>
-                </Select>
+                  placeholder="Pilih guru dan mata pelajaran"
+                  searchPlaceholder="Cari guru atau mata pelajaran..."
+                  emptyMessage={
+                    scheduleForm.kelasId
+                      ? "Tidak ada relasi untuk kelas ini"
+                      : "Pilih kelas terlebih dahulu"
+                  }
+                />
               </div>
               <div>
                 <Label className="mb-1 block">Semester</Label>
