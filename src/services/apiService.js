@@ -1487,6 +1487,7 @@ const apiService = {
       kelasId = null,
       guruId = null,
       teacherId = null,
+      teacherSubjectId = null,
       walikelasId = null,
       homeroomTeacherId = null,
       hari = null,
@@ -1506,6 +1507,10 @@ const apiService = {
       const teacherFilter = guruId ?? teacherId;
       if (teacherFilter)
         queryParts.push(`guruId=${encodeURIComponent(teacherFilter)}`);
+      if (teacherSubjectId)
+        queryParts.push(
+          `teacherSubjectId=${encodeURIComponent(teacherSubjectId)}`
+        );
       const walikelasFilter = homeroomTeacherId ?? walikelasId;
       if (walikelasFilter)
         queryParts.push(`walikelasId=${encodeURIComponent(walikelasFilter)}`);
