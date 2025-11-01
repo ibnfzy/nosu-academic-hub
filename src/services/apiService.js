@@ -81,7 +81,25 @@ const extractScheduleDataOrThrow = (response, defaultMessage) => {
     throw error;
   }
 
-  return response?.data;
+  const data = response?.data;
+
+  if (Array.isArray(data)) {
+    return data;
+  }
+
+  if (data && typeof data === "object") {
+    const numericKeys = Object.keys(data).filter(
+      (key) => Number.isInteger(Number(key))
+    );
+
+    if (numericKeys.length > 0) {
+      return numericKeys
+        .sort((a, b) => Number(a) - Number(b))
+        .map((key) => data[key]);
+    }
+  }
+
+  return data;
 };
 
 const findLocalSemesterRecord = (semesterId, tahun, semester) => {
