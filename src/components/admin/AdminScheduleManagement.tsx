@@ -55,6 +55,7 @@ type ScheduleRecord = {
   id?: string;
   kelasId?: string | number | null;
   kelasNama?: string | null;
+  kelas?: OptionEntity | null;
   subjectId?: string | number | null;
   subjectNama?: string | null;
   teacherId?: string | number | null;
@@ -69,6 +70,7 @@ type ScheduleRecord = {
   jamSelesai?: string | null;
   walikelasId?: string | number | null;
   walikelasNama?: string | null;
+  walikelasName?: string | null;
   ruangan?: string | null;
   [key: string]: unknown;
 };
@@ -149,12 +151,16 @@ type TeacherSubjectRelation = {
   mapelNama?: string;
   kelasNama?: string;
   classNama?: string;
+  walikelasId?: string | number;
+  walikelasNama?: string;
+  walikelasName?: string;
   teacher?: OptionEntity | null;
   guru?: OptionEntity | null;
   subject?: OptionEntity | null;
   mapel?: OptionEntity | null;
   kelas?: OptionEntity | null;
   class?: OptionEntity | null;
+  walikelas?: OptionEntity | null;
   pivot?: Record<string, unknown> | null;
   [key: string]: unknown;
 };
@@ -168,6 +174,8 @@ type TeacherSubjectOption = {
   teacherName: string;
   subjectName: string;
   kelasName: string;
+  walikelasId?: string;
+  walikelasName?: string;
   relation: TeacherSubjectRelation | null;
 };
 
@@ -272,6 +280,93 @@ const getCandidateValue = (
   }
 
   return undefined;
+};
+
+const WALIKELAS_ID_PATHS = [
+  "walikelasId",
+  "walikelasTeacherId",
+  "walikelas.id",
+  "walikelas.teacherId",
+  "walikelas.userId",
+  "kelas.walikelasId",
+  "kelas.walikelasTeacherId",
+  "class.walikelasId",
+  "class.walikelasTeacherId",
+  "teacherSubjectClass.walikelasId",
+  "teacher_subject_class.walikelasId",
+  "pivot.walikelasId",
+];
+
+const WALIKELAS_NAME_PATHS = [
+  "walikelasNama",
+  "walikelasName",
+  "walikelas.nama",
+  "walikelas.name",
+  "walikelas.fullName",
+  "walikelas.users.nama",
+  "walikelas.user.name",
+  "kelas.walikelasNama",
+  "kelas.walikelasName",
+  "kelas.walikelas.nama",
+  "kelas.walikelas.name",
+  "class.walikelasNama",
+  "class.walikelasName",
+  "class.walikelas.nama",
+  "class.walikelas.name",
+  "teacherSubjectClass.walikelasNama",
+  "teacherSubjectClass.walikelasName",
+  "teacher_subject_class.walikelasNama",
+  "teacher_subject_class.walikelasName",
+  "pivot.walikelasNama",
+  "pivot.walikelasName",
+];
+
+const resolveWalikelasId = (source: unknown): string => {
+  const candidate = getCandidateValue(source, WALIKELAS_ID_PATHS);
+  if (candidate === undefined || candidate === null) return "";
+  if (typeof candidate === "string" || typeof candidate === "number") {
+    return toStringOrEmpty(candidate);
+  }
+  return "";
+};
+
+const resolveWalikelasNameFromSource = (source: unknown): string => {
+  const candidate = getCandidateValue(source, WALIKELAS_NAME_PATHS);
+  return toTextValue(candidate);
+};
+
+const resolveWalikelasName = (
+  schedule: ScheduleRecord | null | undefined,
+  relationOption: TeacherSubjectOption | null | undefined,
+  teacherNameMap?: Map<string, string>
+): string => {
+  const directName = resolveWalikelasNameFromSource(schedule);
+  if (directName) return directName;
+
+  if (relationOption?.walikelasName) {
+    return relationOption.walikelasName;
+  }
+
+  if (relationOption?.relation) {
+    const relationName = resolveWalikelasNameFromSource(
+      relationOption.relation
+    );
+    if (relationName) return relationName;
+  }
+
+  const scheduleWalikelasId = resolveWalikelasId(schedule);
+  if (scheduleWalikelasId && teacherNameMap?.has(scheduleWalikelasId)) {
+    return teacherNameMap.get(scheduleWalikelasId) ?? "";
+  }
+
+  const relationWalikelasId =
+    relationOption?.walikelasId ||
+    resolveWalikelasId(relationOption?.relation);
+  if (relationWalikelasId && teacherNameMap?.has(relationWalikelasId)) {
+    return teacherNameMap.get(relationWalikelasId) ?? "";
+  }
+
+  return "";
 };
 
 const buildTeacherSubjectOption = (
@@ -381,6 +476,18 @@ const buildTeacherSubjectOption = (
       ])
     ) || (kelasId && classNameMap?.get(kelasId)) || "";
 
+  const walikelasId = toStringOrEmpty(
+    (getCandidateValue(relation, WALIKELAS_ID_PATHS) as
+      | string
+      | number
+      | undefined) ?? ""
+  );
+
+  const walikelasName =
+    toTextValue(getCandidateValue(relation, WALIKELAS_NAME_PATHS)) ||
+    (walikelasId && teacherNameMap?.get(walikelasId)) ||
+    "";
+
   const labelSegments = [
     teacherName || "Guru",
     subjectName || "Mapel",
@@ -396,6 +503,8 @@ const buildTeacherSubjectOption = (
     teacherName,
     subjectName,
     kelasName,
+    walikelasId: walikelasId || undefined,
+    walikelasName: walikelasName || undefined,
     relation: relation ?? null,
   };
 };
@@ -472,6 +581,7 @@ const mapHomeroomTeachers = (
       const nama =
         kelas?.walikelas?.nama ||
         kelas?.walikelasNama ||
+        kelas?.walikelasName ||
         fallbackTeacher?.nama ||
         fallbackTeacher?.name ||
         fallbackTeacher?.fullName ||
@@ -744,6 +854,22 @@ export default function AdminScheduleManagement({
         ) ||
         (kelasId ? classNameMap.get(kelasId) ?? "" : "");
 
+      const walikelasId =
+        relationOption?.walikelasId ||
+        optionFromMap?.walikelasId ||
+        toStringOrEmpty(
+          (getCandidateValue(schedule, WALIKELAS_ID_PATHS) as
+            | string
+            | number
+            | undefined) ?? ""
+        );
+
+      const walikelasName =
+        relationOption?.walikelasName ||
+        optionFromMap?.walikelasName ||
+        resolveWalikelasNameFromSource(schedule) ||
+        (walikelasId ? teacherNameMap.get(walikelasId) ?? "" : "");
+
       const id = relationOption?.id || optionFromMap?.id || scheduleRelationId;
 
       if (!id && !teacherName && !subjectName && !kelasName) {
@@ -765,6 +891,8 @@ export default function AdminScheduleManagement({
         teacherName,
         subjectName,
         kelasName,
+        walikelasId: walikelasId || undefined,
+        walikelasName: walikelasName || undefined,
         relation: relationOption?.relation || relation || null,
       };
     },
@@ -838,6 +966,13 @@ export default function AdminScheduleManagement({
     () => resolveTeacherSubjectInfo(detailSchedule),
     [detailSchedule, resolveTeacherSubjectInfo]
   );
+
+  const detailWalikelasName = useMemo(() => {
+    return (
+      resolveWalikelasName(detailSchedule, detailTeacherSubjectInfo, teacherNameMap) ||
+      "-"
+    );
+  }, [detailSchedule, detailTeacherSubjectInfo, teacherNameMap]);
 
   const detailSubjectName = detailSchedule
     ? detailTeacherSubjectInfo?.subjectName || detailSchedule.subjectNama || "Mata pelajaran"
@@ -1278,6 +1413,8 @@ export default function AdminScheduleManagement({
         relationInfo?.kelasName || schedule.kelasNama || "-";
       const teacherName =
         relationInfo?.teacherName || schedule.teacherNama || "-";
+      const walikelasName =
+        resolveWalikelasName(schedule, relationInfo, teacherNameMap) || "-";
       return (
         <TableRow
           key={schedule.id || `${schedule.kelasId}-${schedule.subjectId}`}
@@ -1297,7 +1434,7 @@ export default function AdminScheduleManagement({
             </div>
           </TableCell>
           <TableCell>{teacherName}</TableCell>
-          <TableCell>{schedule.walikelasNama || "-"}</TableCell>
+          <TableCell>{walikelasName}</TableCell>
           <TableCell>
             <div className="flex flex-col text-sm">
               <span>{schedule.semesterNama || "-"}</span>
@@ -1799,7 +1936,7 @@ export default function AdminScheduleManagement({
                     Wali Kelas
                   </span>
                   <p className="text-base font-medium">
-                    {detailSchedule.walikelasNama || "-"}
+                    {detailWalikelasName}
                   </p>
                 </div>
                 <div>
