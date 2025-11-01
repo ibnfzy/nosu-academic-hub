@@ -82,7 +82,6 @@ type ScheduleFormState = {
   hari: string;
   jamMulai: string;
   jamSelesai: string;
-  walikelasId: string;
   ruangan: string;
 };
 
@@ -226,12 +225,10 @@ const INITIAL_FORM_STATE: ScheduleFormState = {
   hari: "",
   jamMulai: "",
   jamSelesai: "",
-  walikelasId: "",
   ruangan: "",
 };
 
 const SELECT_ALL_VALUE = "all";
-const SELECT_NONE_VALUE = "none";
 
 const toStringOrEmpty = (value: unknown): string => {
   if (value === undefined || value === null) return "";
@@ -1019,7 +1016,6 @@ export default function AdminScheduleManagement({
         hari: toStringOrEmpty(data?.hari),
         jamMulai: toStringOrEmpty(data?.jamMulai),
         jamSelesai: toStringOrEmpty(data?.jamSelesai),
-        walikelasId: toStringOrEmpty(data?.walikelasId),
         ruangan: toStringOrEmpty(data?.ruangan),
       });
     } catch (error) {
@@ -1172,10 +1168,6 @@ export default function AdminScheduleManagement({
       jamMulai: scheduleForm.jamMulai,
       jamSelesai: scheduleForm.jamSelesai,
     };
-
-    if (scheduleForm.walikelasId) {
-      payload.walikelasId = scheduleForm.walikelasId;
-    }
 
     if (scheduleForm.ruangan) {
       payload.ruangan = scheduleForm.ruangan;
@@ -1678,34 +1670,6 @@ export default function AdminScheduleManagement({
                     {DAY_OPTIONS.map((day) => (
                       <SelectItem key={day} value={day}>
                         {day}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-              </div>
-              <div>
-                <Label className="mb-1 block">Wali Kelas</Label>
-                <Select
-                  value={scheduleForm.walikelasId || SELECT_NONE_VALUE}
-                  onValueChange={(value) =>
-                    setScheduleForm((prev) => ({
-                      ...prev,
-                      walikelasId: value === SELECT_NONE_VALUE ? "" : value,
-                    }))
-                  }
-                  disabled={isSaving || isFormDataLoading}
-                >
-                  <SelectTrigger>
-                    <SelectValue placeholder="Pilih wali kelas (opsional)" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value={SELECT_NONE_VALUE}>Tidak ada</SelectItem>
-                    {homeroomFilterOptions.map((walikelas) => (
-                      <SelectItem
-                        key={walikelas.id}
-                        value={toStringOrEmpty(walikelas.id)}
-                      >
-                        {walikelas.nama}
                       </SelectItem>
                     ))}
                   </SelectContent>
