@@ -293,14 +293,33 @@ const WALIKELAS_ID_PATHS = [
   "walikelasTeacherId",
   "walikelas.id",
   "walikelas.teacherId",
+  "walikelas.userId",
   "kelas.walikelasId",
   "kelas.walikelasTeacherId",
+  "kelas.walikelas.userId",
+  "kelasWalikelasId",
+  "kelasWalikelasTeacherId",
+  "kelasWalikelasUserId",
   "class.walikelasId",
   "class.walikelasTeacherId",
+  "class.walikelas.userId",
+  "classWalikelasId",
+  "classWalikelasTeacherId",
+  "classWalikelasUserId",
   "teacherSubjectClass.walikelasId",
   "teacher_subject_class.walikelasId",
   "pivot.walikelasId",
-  "walikelas.userId",
+  "teacherSubjectClass.walikelasTeacherId",
+  "teacherSubjectClass.walikelasUserId",
+  "teacher_subject_class.walikelasTeacherId",
+  "teacher_subject_class.walikelasUserId",
+  "teacherSubjectClassWalikelasId",
+  "teacherSubjectClassWalikelasTeacherId",
+  "teacherSubjectClassWalikelasUserId",
+  "teacher_subject_classWalikelasId",
+  "teacher_subject_classWalikelasTeacherId",
+  "teacher_subject_classWalikelasUserId",
+  "walikelasUserId",
 ];
 
 const WALIKELAS_NAME_PATHS = [
@@ -581,7 +600,10 @@ const mapHomeroomTeachers = (
       const fallbackTeacher = teachers.find(
         (teacher) =>
           toStringOrEmpty(teacher?.id) === walikelasId ||
-          toStringOrEmpty(teacher?.teacherId) === walikelasId
+          toStringOrEmpty(teacher?.teacherId) === walikelasId ||
+          toStringOrEmpty(teacher?.userId) === walikelasId ||
+          toStringOrEmpty(teacher?.users?.id) === walikelasId ||
+          toStringOrEmpty(teacher?.user?.id) === walikelasId
       );
 
       const nama =
@@ -677,15 +699,23 @@ export default function AdminScheduleManagement({
     const map = new Map<string, string>();
     teachers.forEach((teacher) => {
       const id = toStringOrEmpty(teacher?.id ?? teacher?.teacherId);
-      if (!id) return;
+      const userId = toStringOrEmpty(
+        teacher?.userId ?? teacher?.users?.id ?? teacher?.user?.id
+      );
       const name =
         toTextValue(teacher?.nama) ||
         toTextValue(teacher?.name) ||
         toTextValue(teacher?.fullName) ||
         toTextValue(teacher?.users?.nama) ||
         toTextValue(teacher?.user?.name);
-      if (name) {
+      if (!name) return;
+
+      if (id) {
         map.set(id, name);
+      }
+
+      if (userId) {
+        map.set(userId, name);
       }
     });
     return map;
