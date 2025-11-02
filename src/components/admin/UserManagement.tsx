@@ -49,9 +49,9 @@ export default function UserManagement({
   const [searchTerm, setSearchTerm] = useState("");
   const [roleFilter, setRoleFilter] = useState("all");
   const [classes, setClasses] = useState<any[]>([]);
-  const [kelasFilter, setKelasFilter] = useState("");
-  const [tahunMasukFilter, setTahunMasukFilter] = useState("");
-  const [jenisKelaminFilter, setJenisKelaminFilter] = useState("");
+  const [kelasFilter, setKelasFilter] = useState("all");
+  const [tahunMasukFilter, setTahunMasukFilter] = useState("all");
+  const [jenisKelaminFilter, setJenisKelaminFilter] = useState("all");
   const [loadingUsers, setLoadingUsers] = useState(true);
   const [loadingClasses, setLoadingClasses] = useState(true);
   const [userForm, setUserForm] = useState({
@@ -79,9 +79,9 @@ export default function UserManagement({
   const { toast } = useToast();
 
   const resetStudentFilters = useCallback(() => {
-    setKelasFilter("");
-    setTahunMasukFilter("");
-    setJenisKelaminFilter("");
+    setKelasFilter("all");
+    setTahunMasukFilter("all");
+    setJenisKelaminFilter("all");
   }, []);
 
   // Validation functions
@@ -553,9 +553,11 @@ export default function UserManagement({
       user.role === "siswa";
 
     const matchesStudentFilters = shouldApplyStudentFilters
-      ? (!kelasFilter || String(user.kelasId) === kelasFilter) &&
-        (!tahunMasukFilter || String(user.tahunMasuk) === tahunMasukFilter) &&
-        (!jenisKelaminFilter || user.jenisKelamin === jenisKelaminFilter)
+      ? (kelasFilter === "all" || String(user.kelasId) === kelasFilter) &&
+        (tahunMasukFilter === "all" ||
+          String(user.tahunMasuk) === tahunMasukFilter) &&
+        (jenisKelaminFilter === "all" ||
+          user.jenisKelamin === jenisKelaminFilter)
       : true;
 
     if (activeSection !== "semua") {
@@ -1037,7 +1039,7 @@ export default function UserManagement({
                 <SelectValue placeholder="Semua Kelas" />
               </SelectTrigger>
               <SelectContent>
-                <SelectItem value="">Semua Kelas</SelectItem>
+                <SelectItem value="all">Semua Kelas</SelectItem>
                 {kelasOptions.map((kelas) => (
                   <SelectItem key={kelas.value} value={kelas.value}>
                     {kelas.label}
@@ -1053,7 +1055,7 @@ export default function UserManagement({
                 <SelectValue placeholder="Semua Tahun" />
               </SelectTrigger>
               <SelectContent>
-                <SelectItem value="">Semua Tahun</SelectItem>
+                <SelectItem value="all">Semua Tahun</SelectItem>
                 {tahunMasukOptions.map((tahun) => (
                   <SelectItem key={tahun} value={tahun}>
                     {tahun}
@@ -1072,7 +1074,7 @@ export default function UserManagement({
                 <SelectValue placeholder="Semua Kelamin" />
               </SelectTrigger>
               <SelectContent>
-                <SelectItem value="">Semua Kelamin</SelectItem>
+                <SelectItem value="all">Semua Kelamin</SelectItem>
                 {jenisKelaminOptions.map((gender) => (
                   <SelectItem key={gender} value={gender}>
                     {getFullJenisKelamin(gender)}
