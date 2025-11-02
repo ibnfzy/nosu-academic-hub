@@ -276,6 +276,26 @@ const useWalikelasDashboard = (currentUser: CurrentUser | null) => {
     buildSemesterTitle,
   } = useDashboardSemester({ semesters });
 
+  const selectedSemesterMetadata = useMemo(() => {
+    if (selectedSemesterId) {
+      return resolveSemesterMetadata(selectedSemesterId);
+    }
+    if (isStrictModeActive && enforcedActiveSemester) {
+      return enforcedActiveSemester;
+    }
+    if (semesters.length === 1) {
+      return normalizeSemesterMetadata(semesters[0]);
+    }
+    return null;
+  }, [
+    enforcedActiveSemester,
+    isStrictModeActive,
+    normalizeSemesterMetadata,
+    resolveSemesterMetadata,
+    selectedSemesterId,
+    semesters,
+  ]);
+
   const getEffectiveSemesterId = useCallback(
     (customId?: string | number | null) => {
       if (customId) return String(customId);
@@ -367,26 +387,6 @@ const useWalikelasDashboard = (currentUser: CurrentUser | null) => {
       shouldAttachSemesterId,
     ]
   );
-
-  const selectedSemesterMetadata = useMemo(() => {
-    if (selectedSemesterId) {
-      return resolveSemesterMetadata(selectedSemesterId);
-    }
-    if (isStrictModeActive && enforcedActiveSemester) {
-      return enforcedActiveSemester;
-    }
-    if (semesters.length === 1) {
-      return normalizeSemesterMetadata(semesters[0]);
-    }
-    return null;
-  }, [
-    enforcedActiveSemester,
-    isStrictModeActive,
-    normalizeSemesterMetadata,
-    resolveSemesterMetadata,
-    selectedSemesterId,
-    semesters,
-  ]);
 
   useEffect(() => {
     if (!currentUser?.kelasId) {
