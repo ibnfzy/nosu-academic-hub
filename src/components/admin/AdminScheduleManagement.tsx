@@ -255,6 +255,63 @@ const toTextValue = (value: unknown): string => {
   return "";
 };
 
+const formatSemesterLabel = (value: unknown): string => {
+  const textValue = toTextValue(value);
+  if (!textValue) return "";
+
+  const normalized = textValue.trim();
+  if (!normalized) return "";
+
+  if (/^semester\b/i.test(normalized)) {
+    return normalized;
+  }
+
+  return `Semester ${normalized}`;
+};
+
+const resolveSemesterLabelFromRecord = (source: unknown): string => {
+  if (!source) return "";
+
+  if (typeof source === "number") {
+    return formatSemesterLabel(source);
+  }
+
+  if (typeof source === "string") {
+    const normalized = source.trim();
+    if (!normalized) return "";
+    if (/^semester\b/i.test(normalized)) {
+      return normalized;
+    }
+    if (/^\d+$/u.test(normalized)) {
+      return formatSemesterLabel(normalized);
+    }
+    return normalized;
+  }
+
+  if (typeof source !== "object") return "";
+
+  const record = source as Record<string, unknown>;
+  const directKeys = ["nama", "name", "label", "semesterNama"];
+
+  for (const key of directKeys) {
+    const label = toTextValue(record[key]);
+    if (label) {
+      return label;
+    }
+  }
+
+  const numericKeys = ["semester", "semesterKe"];
+
+  for (const key of numericKeys) {
+    const label = formatSemesterLabel(record[key]);
+    if (label) {
+      return label;
+    }
+  }
+
+  return "";
+};
+
 const getCandidateValue = (
   source: unknown,
   paths: string[]
@@ -759,10 +816,10 @@ export default function AdminScheduleManagement({
     semesters.forEach((semester) => {
       const semesterRecord = (semester || {}) as Record<string, unknown>;
       const idCandidate =
-        semesterRecord?.id ??
-        semesterRecord?.semesterId ??
-        semesterRecord?.value ??
-        semesterRecord?.kode;
+        semesterRecord["id"] ??
+        semesterRecord["semesterId"] ??
+        semesterRecord["value"] ??
+        semesterRecord["kode"];
 
       const id =
         typeof idCandidate === "string" || typeof idCandidate === "number"
@@ -771,18 +828,13 @@ export default function AdminScheduleManagement({
 
       if (!id) return;
 
-      const name =
-        toTextValue(semesterRecord?.nama) ||
-        toTextValue(semesterRecord?.name) ||
-        toTextValue(semesterRecord?.label) ||
-        toTextValue(semesterRecord?.semesterNama) ||
-        undefined;
+      const name = resolveSemesterLabelFromRecord(semesterRecord) || undefined;
 
       const year =
-        toTextValue(semesterRecord?.tahunAjaran) ||
-        toTextValue(semesterRecord?.academicYear) ||
-        toTextValue(semesterRecord?.tahun) ||
-        toTextValue(semesterRecord?.periode) ||
+        toTextValue(semesterRecord["tahunAjaran"]) ||
+        toTextValue(semesterRecord["academicYear"]) ||
+        toTextValue(semesterRecord["tahun"]) ||
+        toTextValue(semesterRecord["periode"]) ||
         undefined;
 
       map.set(id, { id, name, year });
@@ -1001,9 +1053,22 @@ export default function AdminScheduleManagement({
         "semester.nama",
         "semester.name",
         "semester.label",
-        "semester",
+        "semester.semesterNama",
       ]);
       const directName = toTextValue(nameCandidate);
+
+      const numericLabel =
+        formatSemesterLabel(getCandidateValue(schedule, ["semesterKe"])) ||
+        formatSemesterLabel(
+          getCandidateValue(schedule, ["semester.semesterKe"])
+        ) ||
+        formatSemesterLabel(
+          getCandidateValue(schedule, ["semester.semester"])
+        );
+
+      const nestedSemesterLabel = resolveSemesterLabelFromRecord(
+        getCandidateValue(schedule, ["semester"])
+      );
 
       const yearCandidate = getCandidateValue(schedule, [
         "semesterTahunAjaran",
@@ -1018,7 +1083,11 @@ export default function AdminScheduleManagement({
 
       return {
         id,
-        name: directName || fallback?.name,
+        name:
+          directName ||
+          numericLabel ||
+          nestedSemesterLabel ||
+          fallback?.name,
         year: directYear || fallback?.year,
       };
     },
@@ -1730,11 +1799,39 @@ export default function AdminScheduleManagement({
               </SelectTrigger>
               <SelectContent>
                 <SelectItem value={SELECT_ALL_VALUE}>Semua semester</SelectItem>
-                {semesters.map((semester) => (
-                  <SelectItem key={semester.id} value={toStringOrEmpty(semester.id)}>
-                    {semester.nama || semester.name || semester.tahunAjaran}
-                  </SelectItem>
-                ))}
+                {semesters.map((semester, index) => {
+                  const semesterRecord = (semester || {}) as Record<
+                    string,
+                    unknown
+                  >;
+                  const idCandidate =
+                    semesterRecord["id"] ??
+                    semesterRecord["semesterId"] ??
+                    semesterRecord["value"] ??
+                    semesterRecord["kode"] ??
+                    "";
+                  const value = toStringOrEmpty(idCandidate);
+                  const yearLabel =
+                    toTextValue(semesterRecord["tahunAjaran"]) ||
+                    toTextValue(semesterRecord["academicYear"]) ||
+                    toTextValue(semesterRecord["tahun"]) ||
+                    toTextValue(semesterRecord["periode"]) ||
+                    "";
+                  const displayLabel =
+                    resolveSemesterLabelFromRecord(semesterRecord) ||
+                    yearLabel ||
+                    (value ? formatSemesterLabel(value) : "") ||
+                    "Semester";
+
+                  return (
+                    <SelectItem
+                      key={value || `semester-${index}`}
+                      value={value}
+                    >
+                      {displayLabel}
+                    </SelectItem>
+                  );
+                })}
               </SelectContent>
             </Select>
           </div>
