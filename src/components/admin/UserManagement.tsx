@@ -31,6 +31,7 @@ import { Plus, Edit, Trash2, Search } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import apiService from "@/services/apiService";
 import { Skeleton } from "@/components/ui/skeleton";
+import StudentCardList from "./StudentCardList";
 
 interface UserManagementProps {
   users: any[];
@@ -500,6 +501,13 @@ export default function UserManagement({
     return matchesRole && matchesSearch;
   });
 
+  const studentUsers = filteredUsers.filter((user) => user.role === "siswa");
+  const otherUsers = filteredUsers.filter((user) => user.role !== "siswa");
+  const shouldShowStudentCards =
+    activeSection === "siswa" ||
+    (activeSection === "semua" &&
+      (roleFilter === "all" || roleFilter === "siswa"));
+
   const getKelasName = (kelasId: string, classes: any[]) => {
     if (!kelasId) return "-";
     const kelas = classes.find((c) => String(c.id) === String(kelasId));
@@ -530,10 +538,22 @@ export default function UserManagement({
             <Skeleton className="h-4 w-20" />
           </TableCell>
           <TableCell>
-            <Skeleton className="h-4 w-16" />
+            <Skeleton className="h-4 w-32" />
           </TableCell>
           <TableCell>
-            <Skeleton className="h-4 w-32" />
+            <Skeleton className="h-4 w-24" />
+          </TableCell>
+          <TableCell>
+            <Skeleton className="h-4 w-28" />
+          </TableCell>
+          <TableCell>
+            <Skeleton className="h-4 w-28" />
+          </TableCell>
+          <TableCell>
+            <Skeleton className="h-4 w-28" />
+          </TableCell>
+          <TableCell>
+            <Skeleton className="h-4 w-24" />
           </TableCell>
           <TableCell className="text-right">
             <Skeleton className="h-8 w-16 rounded" />
@@ -939,143 +959,105 @@ export default function UserManagement({
           )}
         </div>
 
-        <div className="rounded-md border">
-          <Table className="w-ful text-sm">
-            <TableHeader>
-              <TableRow>
-                {/* Tampilkan Nama & Identitas hanya jika bukan admin */}
-                {filteredUsers.some((u) => u.role !== "admin") && (
-                  <>
-                    <TableHead>Nama</TableHead>
-                    <TableHead>Identitas</TableHead>
-                  </>
-                )}
-                <TableHead>Username / Password</TableHead>
-                <TableHead>Role</TableHead>
-                {filteredUsers.some((u) => u.role === "siswa") && (
-                  <TableHead>Kelas</TableHead>
-                )}
-                <TableHead>Email</TableHead>
-                {filteredUsers.some((u) =>
-                  ["guru", "walikelas"].includes(u.role)
-                ) && (
-                  <>
-                    <TableHead>Jenis Kelamin</TableHead>
-                    <TableHead>Alamat</TableHead>
-                    <TableHead>Nomor HP</TableHead>
-                  </>
-                )}
-                {filteredUsers.some((u) => u.role === "siswa") && (
-                  <>
-                    <TableHead>Jenis Kelamin</TableHead>
-                    <TableHead>Tanggal Lahir</TableHead>
-                    <TableHead>Alamat</TableHead>
-                    <TableHead>Nomor HP</TableHead>
-                    <TableHead>Nama Orang Tua</TableHead>
-                    <TableHead>Pekerjaan Orang Tua</TableHead>
-                    <TableHead>Tahun Masuk</TableHead>
-                  </>
-                )}
-                <TableHead className="text-right">Aksi</TableHead>
-              </TableRow>
-            </TableHeader>
+        <div className="space-y-6">
+          {shouldShowStudentCards && (
+            <StudentCardList
+              students={studentUsers}
+              classes={classes}
+              loading={loadingUsers}
+              onEdit={editUser}
+              onDelete={handleDeleteUser}
+              getKelasName={getKelasName}
+              getFullJenisKelamin={getFullJenisKelamin}
+              formatDate={formatDate}
+            />
+          )}
 
-            <TableBody>
-              {loadingUsers ? (
-                <TableSkeleton />
-              ) : filteredUsers.length > 0 ? (
-                filteredUsers.map((user) => (
-                  <TableRow key={user.id}>
-                    {/* Nama hanya tampil jika bukan admin */}
-                    {user.role !== "admin" && (
-                      <TableCell className="font-medium">{user.nama}</TableCell>
-                    )}
+          {activeSection !== "siswa" &&
+            !(activeSection === "semua" && roleFilter === "siswa") && (
+              <div className="rounded-md border">
+                <Table className="w-full text-sm">
+                  <TableHeader>
+                    <TableRow>
+                      <TableHead>Nama</TableHead>
+                      <TableHead>Identitas</TableHead>
+                      <TableHead>Username / Password</TableHead>
+                      <TableHead>Role</TableHead>
+                      <TableHead>Email</TableHead>
+                      <TableHead>Jenis Kelamin</TableHead>
+                      <TableHead>Alamat</TableHead>
+                      <TableHead>Nomor HP</TableHead>
+                      <TableHead className="text-right">Aksi</TableHead>
+                    </TableRow>
+                  </TableHeader>
 
-                    {/* Identitas hanya tampil jika bukan admin */}
-                    {user.role !== "admin" && (
-                      <TableCell>
-                        {user.role === "siswa" ? (
-                          <div className="space-y-1 text-sm">
-                            <div>NIS: {user.nis || "-"}</div>
-                            <div>NISN: {user.nisn || "-"}</div>
-                          </div>
-                        ) : user.nip ? (
-                          <div className="text-sm">NIP: {user.nip}</div>
-                        ) : (
-                          <span className="text-muted-foreground">-</span>
-                        )}
-                      </TableCell>
-                    )}
-
-                    <TableCell>
-                      {user.username} / {user.password}
-                    </TableCell>
-                    <TableCell>
-                      <Badge variant="outline">
-                        {roles.find((r) => r.value === user.role)?.label ||
-                          user.role}
-                      </Badge>
-                    </TableCell>
-                    {user.role === "siswa" && (
-                      <TableCell>
-                        {getKelasName(user.kelasId, classes)}
-                      </TableCell>
-                    )}
-                    <TableCell>{user.email || "-"}</TableCell>
-                    {(user.role === "guru" || user.role === "walikelas") && (
-                      <>
-                        <TableCell>
-                          {getFullJenisKelamin(user.jenisKelamin)}
-                        </TableCell>
-                        <TableCell>{user.alamat}</TableCell>
-                        <TableCell>{user.nomorHP}</TableCell>
-                      </>
-                    )}
-                    {user.role === "siswa" && (
-                      <>
-                        <TableCell>
-                          {getFullJenisKelamin(user.jenisKelamin)}
-                        </TableCell>
-                        <TableCell>{formatDate(user.tanggalLahir)}</TableCell>
-                        <TableCell>{user.alamat}</TableCell>
-                        <TableCell>{user.nomorHP}</TableCell>
-                        <TableCell>{user.namaOrangTua}</TableCell>
-                        <TableCell>{user.pekerjaanOrangTua}</TableCell>
-                        <TableCell>{user.tahunMasuk}</TableCell>
-                      </>
-                    )}
-                    <TableCell className="text-right">
-                      <div className="flex justify-end space-x-2">
-                        <Button
-                          size="sm"
-                          variant="outline"
-                          onClick={() => editUser(user)}
+                  <TableBody>
+                    {loadingUsers ? (
+                      <TableSkeleton />
+                    ) : otherUsers.length > 0 ? (
+                      otherUsers.map((user) => (
+                        <TableRow key={user.id}>
+                          <TableCell className="font-medium">
+                            {user.nama || "-"}
+                          </TableCell>
+                          <TableCell>
+                            {user.nip ? (
+                              <div className="text-sm">NIP: {user.nip}</div>
+                            ) : (
+                              <span className="text-muted-foreground">-</span>
+                            )}
+                          </TableCell>
+                          <TableCell>
+                            {user.username} / {user.password}
+                          </TableCell>
+                          <TableCell>
+                            <Badge variant="outline">
+                              {roles.find((r) => r.value === user.role)?.label ||
+                                user.role}
+                            </Badge>
+                          </TableCell>
+                          <TableCell>{user.email || "-"}</TableCell>
+                          <TableCell>
+                            {user.jenisKelamin
+                              ? getFullJenisKelamin(user.jenisKelamin)
+                              : "-"}
+                          </TableCell>
+                          <TableCell>{user.alamat || "-"}</TableCell>
+                          <TableCell>{user.nomorHP || "-"}</TableCell>
+                          <TableCell className="text-right">
+                            <div className="flex justify-end space-x-2">
+                              <Button
+                                size="sm"
+                                variant="outline"
+                                onClick={() => editUser(user)}
+                              >
+                                <Edit className="h-4 w-4" />
+                              </Button>
+                              <Button
+                                size="sm"
+                                variant="outline"
+                                onClick={() => handleDeleteUser(user.id)}
+                              >
+                                <Trash2 className="h-4 w-4" />
+                              </Button>
+                            </div>
+                          </TableCell>
+                        </TableRow>
+                      ))
+                    ) : (
+                      <TableRow>
+                        <TableCell
+                          colSpan={9}
+                          className="text-center py-8 text-muted-foreground"
                         >
-                          <Edit className="h-4 w-4" />
-                        </Button>
-                        <Button
-                          size="sm"
-                          variant="outline"
-                          onClick={() => handleDeleteUser(user.id)}
-                        >
-                          <Trash2 className="h-4 w-4" />
-                        </Button>
-                      </div>
-                    </TableCell>
-                  </TableRow>
-                ))
-              ) : (
-                <TableRow>
-                  <TableCell
-                    colSpan={7}
-                    className="text-center py-8 text-muted-foreground"
-                  >
-                    Tidak ada data pengguna
-                  </TableCell>
-                </TableRow>
-              )}
-            </TableBody>
-          </Table>
+                          Tidak ada data pengguna
+                        </TableCell>
+                      </TableRow>
+                    )}
+                  </TableBody>
+                </Table>
+              </div>
+            )}
         </div>
       </CardContent>
     </Card>
