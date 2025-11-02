@@ -287,7 +287,6 @@ const WALIKELAS_ID_PATHS = [
   "walikelasTeacherId",
   "walikelas.id",
   "walikelas.teacherId",
-  "walikelas.userId",
   "kelas.walikelasId",
   "kelas.walikelasTeacherId",
   "class.walikelasId",
@@ -295,6 +294,7 @@ const WALIKELAS_ID_PATHS = [
   "teacherSubjectClass.walikelasId",
   "teacher_subject_class.walikelasId",
   "pivot.walikelasId",
+  "walikelas.userId",
 ];
 
 const WALIKELAS_NAME_PATHS = [
