@@ -538,11 +538,14 @@ const buildTeacherSubjectOption = (
     toTextValue(
       getCandidateValue(relation, [
         "subjectNama",
+        "subjectName",
         "mapelNama",
         "subject.nama",
         "subject.name",
+        "subject.subjectName",
         "mapel.nama",
         "mapel.name",
+        "mapel.subjectName",
       ])
     ) || (subjectId && subjectNameMap?.get(subjectId)) || "";
 
@@ -786,6 +789,7 @@ export default function AdminScheduleManagement({
       const name =
         toTextValue(subject?.nama) ||
         toTextValue(subject?.name) ||
+        toTextValue(subject?.subjectName) ||
         toTextValue((subject as Record<string, unknown>)?.subjectNama);
       if (name) {
         map.set(id, name);
@@ -958,10 +962,13 @@ export default function AdminScheduleManagement({
         toTextValue(
           getCandidateValue(schedule, [
             "subjectNama",
+            "subjectName",
             "subject.nama",
             "subject.name",
+            "subject.subjectName",
             "mapel.nama",
             "mapel.name",
+            "mapel.subjectName",
           ])
         ) ||
         (subjectId ? subjectNameMap.get(subjectId) ?? "" : "");
