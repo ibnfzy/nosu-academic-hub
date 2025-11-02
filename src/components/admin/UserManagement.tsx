@@ -84,6 +84,12 @@ export default function UserManagement({
     setJenisKelaminFilter("all");
   }, []);
 
+  const handleResetFilters = useCallback(() => {
+    setSearchTerm("");
+    setRoleFilter("all");
+    resetStudentFilters();
+  }, [resetStudentFilters]);
+
   // Validation functions
   const validateNISN = (nisn: string): boolean => {
     return /^\d{10}$/.test(nisn);
@@ -1082,6 +1088,16 @@ export default function UserManagement({
                 ))}
               </SelectContent>
             </Select>
+          )}
+
+          {shouldShowStudentFilters && (
+            <Button
+              variant="outline"
+              onClick={handleResetFilters}
+              className="w-full md:w-auto"
+            >
+              Reset Filter
+            </Button>
           )}
 
           {shouldShowStudentFilters && (
