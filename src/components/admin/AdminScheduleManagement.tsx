@@ -136,6 +136,12 @@ type OptionEntity = {
   [key: string]: unknown;
 };
 
+type SemesterInfo = {
+  id: string;
+  name?: string;
+  year?: string;
+};
+
 type TeacherSubjectRelation = {
   id?: string | number;
   relationId?: string | number;
@@ -717,6 +723,44 @@ export default function AdminScheduleManagement({
     return map;
   }, [classes]);
 
+  const semesterInfoMap = useMemo(() => {
+    const map = new Map<string, SemesterInfo>();
+
+    semesters.forEach((semester) => {
+      const semesterRecord = (semester || {}) as Record<string, unknown>;
+      const idCandidate =
+        semesterRecord?.id ??
+        semesterRecord?.semesterId ??
+        semesterRecord?.value ??
+        semesterRecord?.kode;
+
+      const id =
+        typeof idCandidate === "string" || typeof idCandidate === "number"
+          ? toStringOrEmpty(idCandidate)
+          : "";
+
+      if (!id) return;
+
+      const name =
+        toTextValue(semesterRecord?.nama) ||
+        toTextValue(semesterRecord?.name) ||
+        toTextValue(semesterRecord?.label) ||
+        toTextValue(semesterRecord?.semesterNama) ||
+        undefined;
+
+      const year =
+        toTextValue(semesterRecord?.tahunAjaran) ||
+        toTextValue(semesterRecord?.academicYear) ||
+        toTextValue(semesterRecord?.tahun) ||
+        toTextValue(semesterRecord?.periode) ||
+        undefined;
+
+      map.set(id, { id, name, year });
+    });
+
+    return map;
+  }, [semesters]);
+
   const teacherSubjectOptions = useMemo(() => {
     return teacherSubjectRelations
       .map((relation) =>
@@ -904,6 +948,53 @@ export default function AdminScheduleManagement({
     ]
   );
 
+  const resolveSemesterInfo = useCallback(
+    (schedule: ScheduleRecord | null | undefined): SemesterInfo => {
+      if (!schedule || typeof schedule !== "object") {
+        return { id: "" };
+      }
+
+      const semesterIdCandidate = getCandidateValue(schedule, [
+        "semesterId",
+        "semester.id",
+        "semester.semesterId",
+      ]);
+
+      const id =
+        typeof semesterIdCandidate === "string" ||
+        typeof semesterIdCandidate === "number"
+          ? toStringOrEmpty(semesterIdCandidate)
+          : "";
+
+      const nameCandidate = getCandidateValue(schedule, [
+        "semesterNama",
+        "semester.nama",
+        "semester.name",
+        "semester.label",
+        "semester",
+      ]);
+      const directName = toTextValue(nameCandidate);
+
+      const yearCandidate = getCandidateValue(schedule, [
+        "semesterTahunAjaran",
+        "semester.tahunAjaran",
+        "semester.tahun",
+        "semester.academicYear",
+        "semester.periode",
+      ]);
+      const directYear = toTextValue(yearCandidate);
+
+      const fallback = id ? semesterInfoMap.get(id) : undefined;
+
+      return {
+        id,
+        name: directName || fallback?.name,
+        year: directYear || fallback?.year,
+      };
+    },
+    [semesterInfoMap]
+  );
+
   const filteredTeacherSubjectOptions = useMemo(() => {
     if (!scheduleForm.kelasId) return teacherSubjectOptions;
     return teacherSubjectOptions.filter(
@@ -967,6 +1058,21 @@ export default function AdminScheduleManagement({
     [detailSchedule, resolveTeacherSubjectInfo]
   );
 
+  const detailSemesterInfo = useMemo(
+    () => resolveSemesterInfo(detailSchedule),
+    [detailSchedule, resolveSemesterInfo]
+  );
+
+  const detailSubjectId =
+    detailTeacherSubjectInfo?.subjectId ||
+    (detailSchedule ? toStringOrEmpty(detailSchedule.subjectId) : "");
+  const detailClassId =
+    detailTeacherSubjectInfo?.kelasId ||
+    (detailSchedule ? toStringOrEmpty(detailSchedule.kelasId) : "");
+  const detailTeacherId =
+    detailTeacherSubjectInfo?.teacherId ||
+    (detailSchedule ? toStringOrEmpty(detailSchedule.teacherId) : "");
+
   const detailWalikelasName = useMemo(() => {
     return (
       resolveWalikelasName(detailSchedule, detailTeacherSubjectInfo, teacherNameMap) ||
@@ -975,13 +1081,22 @@ export default function AdminScheduleManagement({
   }, [detailSchedule, detailTeacherSubjectInfo, teacherNameMap]);
 
   const detailSubjectName = detailSchedule
-    ? detailTeacherSubjectInfo?.subjectName || detailSchedule.subjectNama || "Mata pelajaran"
+    ? detailTeacherSubjectInfo?.subjectName ||
+      detailSchedule.subjectNama ||
+      (detailSubjectId ? subjectNameMap.get(detailSubjectId) ?? "" : "") ||
+      "Mata pelajaran"
     : "Mata pelajaran";
   const detailClassName = detailSchedule
-    ? detailTeacherSubjectInfo?.kelasName || detailSchedule.kelasNama || "Kelas"
+    ? detailTeacherSubjectInfo?.kelasName ||
+      detailSchedule.kelasNama ||
+      (detailClassId ? classNameMap.get(detailClassId) ?? "" : "") ||
+      "Kelas"
     : "Kelas";
   const detailTeacherName = detailSchedule
-    ? detailTeacherSubjectInfo?.teacherName || detailSchedule.teacherNama || "-"
+    ? detailTeacherSubjectInfo?.teacherName ||
+      detailSchedule.teacherNama ||
+      (detailTeacherId ? teacherNameMap.get(detailTeacherId) ?? "" : "") ||
+      "-"
     : "-";
 
   const loadReferenceData = useCallback(async () => {
@@ -1407,12 +1522,28 @@ export default function AdminScheduleManagement({
     return schedules.map((schedule) => {
       const scheduleId = schedule.id ? String(schedule.id) : undefined;
       const relationInfo = resolveTeacherSubjectInfo(schedule);
+      const subjectId =
+        relationInfo?.subjectId || toStringOrEmpty(schedule.subjectId);
+      const classId =
+        relationInfo?.kelasId || toStringOrEmpty(schedule.kelasId);
+      const teacherId =
+        relationInfo?.teacherId || toStringOrEmpty(schedule.teacherId);
+      const semesterInfo = resolveSemesterInfo(schedule);
       const subjectName =
-        relationInfo?.subjectName || schedule.subjectNama || "-";
+        relationInfo?.subjectName ||
+        schedule.subjectNama ||
+        (subjectId ? subjectNameMap.get(subjectId) ?? "" : "") ||
+        "-";
       const className =
-        relationInfo?.kelasName || schedule.kelasNama || "-";
+        relationInfo?.kelasName ||
+        schedule.kelasNama ||
+        (classId ? classNameMap.get(classId) ?? "" : "") ||
+        "-";
       const teacherName =
-        relationInfo?.teacherName || schedule.teacherNama || "-";
+        relationInfo?.teacherName ||
+        schedule.teacherNama ||
+        (teacherId ? teacherNameMap.get(teacherId) ?? "" : "") ||
+        "-";
       const walikelasName =
         resolveWalikelasName(schedule, relationInfo, teacherNameMap) || "-";
       return (
@@ -1437,9 +1568,9 @@ export default function AdminScheduleManagement({
           <TableCell>{walikelasName}</TableCell>
           <TableCell>
             <div className="flex flex-col text-sm">
-              <span>{schedule.semesterNama || "-"}</span>
+              <span>{semesterInfo.name || "-"}</span>
               <span className="text-xs text-muted-foreground">
-                {schedule.semesterTahunAjaran || ""}
+                {semesterInfo.year || ""}
               </span>
             </div>
           </TableCell>
@@ -1903,7 +2034,7 @@ export default function AdminScheduleManagement({
                 <h3 className="text-lg font-semibold">{detailSubjectName}</h3>
                 <p className="text-muted-foreground">
                   {detailClassName} •{" "}
-                  {detailSchedule.semesterTahunAjaran || detailSchedule.semesterNama}
+                  {detailSemesterInfo.year || detailSemesterInfo.name || "-"}
                 </p>
               </div>
               <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
@@ -1944,11 +2075,11 @@ export default function AdminScheduleManagement({
                     Semester
                   </span>
                   <p className="text-base font-medium">
-                    {detailSchedule.semesterNama || "-"}
+                    {detailSemesterInfo.name || "-"}
                   </p>
-                  {detailSchedule.semesterTahunAjaran && (
+                  {detailSemesterInfo.year && (
                     <p className="text-xs text-muted-foreground">
-                      {detailSchedule.semesterTahunAjaran}
+                      {detailSemesterInfo.year}
                     </p>
                   )}
                 </div>
