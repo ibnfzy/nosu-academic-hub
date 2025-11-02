@@ -1,5 +1,5 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
-import { useState, useEffect, useCallback } from "react";
+import { useState, useEffect, useCallback, useMemo } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -49,6 +49,9 @@ export default function UserManagement({
   const [searchTerm, setSearchTerm] = useState("");
   const [roleFilter, setRoleFilter] = useState("all");
   const [classes, setClasses] = useState<any[]>([]);
+  const [kelasFilter, setKelasFilter] = useState("");
+  const [tahunMasukFilter, setTahunMasukFilter] = useState("");
+  const [jenisKelaminFilter, setJenisKelaminFilter] = useState("");
   const [loadingUsers, setLoadingUsers] = useState(true);
   const [loadingClasses, setLoadingClasses] = useState(true);
   const [userForm, setUserForm] = useState({
@@ -74,6 +77,12 @@ export default function UserManagement({
   });
 
   const { toast } = useToast();
+
+  const resetStudentFilters = useCallback(() => {
+    setKelasFilter("");
+    setTahunMasukFilter("");
+    setJenisKelaminFilter("");
+  }, []);
 
   // Validation functions
   const validateNISN = (nisn: string): boolean => {
@@ -106,6 +115,16 @@ export default function UserManagement({
   useEffect(() => {
     loadClasses();
   }, [loadClasses]);
+
+  useEffect(() => {
+    resetStudentFilters();
+  }, [activeSection, resetStudentFilters]);
+
+  useEffect(() => {
+    if (!showUserDialog) {
+      resetStudentFilters();
+    }
+  }, [showUserDialog, resetStudentFilters]);
 
   useEffect(() => {
     if (users && users.length === 0) {
@@ -484,6 +503,40 @@ export default function UserManagement({
     setShowUserDialog(true);
   };
 
+  const allStudentUsers = useMemo(
+    () => users.filter((user) => user.role === "siswa"),
+    [users]
+  );
+
+  const kelasOptions = useMemo(
+    () =>
+      classes.map((kelas) => ({
+        value: String(kelas.id),
+        label: kelas.nama,
+      })),
+    [classes]
+  );
+
+  const tahunMasukOptions = useMemo(() => {
+    const uniqueYears = new Set<string>();
+    allStudentUsers.forEach((student) => {
+      if (student.tahunMasuk) {
+        uniqueYears.add(String(student.tahunMasuk));
+      }
+    });
+    return Array.from(uniqueYears).sort();
+  }, [allStudentUsers]);
+
+  const jenisKelaminOptions = useMemo(() => {
+    const uniqueGender = new Set<string>();
+    allStudentUsers.forEach((student) => {
+      if (student.jenisKelamin) {
+        uniqueGender.add(String(student.jenisKelamin));
+      }
+    });
+    return Array.from(uniqueGender);
+  }, [allStudentUsers]);
+
   const filteredUsers = users.filter((user) => {
     const matchesRole = roleFilter === "all" || user.role === roleFilter;
     const normalizedSearch = searchTerm.toLowerCase();
@@ -495,10 +548,25 @@ export default function UserManagement({
       (user.nis && String(user.nis).toLowerCase().includes(normalizedSearch)) ||
       (user.nisn && String(user.nisn).toLowerCase().includes(normalizedSearch));
 
+    const shouldApplyStudentFilters =
+      (activeSection === "siswa" || activeSection === "semua") &&
+      user.role === "siswa";
+
+    const matchesStudentFilters = shouldApplyStudentFilters
+      ? (!kelasFilter || String(user.kelasId) === kelasFilter) &&
+        (!tahunMasukFilter || String(user.tahunMasuk) === tahunMasukFilter) &&
+        (!jenisKelaminFilter || user.jenisKelamin === jenisKelaminFilter)
+      : true;
+
     if (activeSection !== "semua") {
-      return user.role === activeSection && matchesRole && matchesSearch;
+      return (
+        user.role === activeSection &&
+        matchesRole &&
+        matchesSearch &&
+        matchesStudentFilters
+      );
     }
-    return matchesRole && matchesSearch;
+    return matchesRole && matchesSearch && matchesStudentFilters;
   });
 
   const studentUsers = filteredUsers.filter((user) => user.role === "siswa");
@@ -507,6 +575,11 @@ export default function UserManagement({
     activeSection === "siswa" ||
     (activeSection === "semua" &&
       (roleFilter === "all" || roleFilter === "siswa"));
+  const shouldShowStudentFilters =
+    activeSection === "siswa" || activeSection === "semua";
+
+  const totalStudents = allStudentUsers.length;
+  const filteredStudentCount = studentUsers.length;
 
   const getKelasName = (kelasId: string, classes: any[]) => {
     if (!kelasId) return "-";
@@ -931,8 +1004,8 @@ export default function UserManagement({
       </CardHeader>
 
       <CardContent>
-        <div className="flex flex-col md:flex-row gap-4 mb-6">
-          <div className="relative flex-1">
+        <div className="flex flex-col md:flex-row md:flex-wrap gap-4 mb-6 items-stretch md:items-center">
+          <div className="relative flex-1 min-w-[220px]">
             <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-muted-foreground h-4 w-4" />
             <Input
               placeholder="Cari berdasarkan nama, username, email, NIS, atau NISN..."
@@ -945,7 +1018,7 @@ export default function UserManagement({
           {activeSection === "semua" && (
             <Select value={roleFilter} onValueChange={setRoleFilter}>
               <SelectTrigger className="w-full md:w-48">
-                <SelectValue />
+                <SelectValue placeholder="Semua Role" />
               </SelectTrigger>
               <SelectContent>
                 <SelectItem value="all">Semua Role</SelectItem>
@@ -956,6 +1029,63 @@ export default function UserManagement({
                 ))}
               </SelectContent>
             </Select>
+          )}
+
+          {shouldShowStudentFilters && (
+            <Select value={kelasFilter} onValueChange={setKelasFilter}>
+              <SelectTrigger className="w-full md:w-48">
+                <SelectValue placeholder="Semua Kelas" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="">Semua Kelas</SelectItem>
+                {kelasOptions.map((kelas) => (
+                  <SelectItem key={kelas.value} value={kelas.value}>
+                    {kelas.label}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          )}
+
+          {shouldShowStudentFilters && tahunMasukOptions.length > 0 && (
+            <Select value={tahunMasukFilter} onValueChange={setTahunMasukFilter}>
+              <SelectTrigger className="w-full md:w-40">
+                <SelectValue placeholder="Semua Tahun" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="">Semua Tahun</SelectItem>
+                {tahunMasukOptions.map((tahun) => (
+                  <SelectItem key={tahun} value={tahun}>
+                    {tahun}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          )}
+
+          {shouldShowStudentFilters && jenisKelaminOptions.length > 0 && (
+            <Select
+              value={jenisKelaminFilter}
+              onValueChange={setJenisKelaminFilter}
+            >
+              <SelectTrigger className="w-full md:w-48">
+                <SelectValue placeholder="Semua Kelamin" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="">Semua Kelamin</SelectItem>
+                {jenisKelaminOptions.map((gender) => (
+                  <SelectItem key={gender} value={gender}>
+                    {getFullJenisKelamin(gender)}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          )}
+
+          {shouldShowStudentFilters && (
+            <div className="text-sm text-muted-foreground md:ml-auto md:self-center">
+              Menampilkan {filteredStudentCount} dari {totalStudents} siswa
+            </div>
           )}
         </div>
 
