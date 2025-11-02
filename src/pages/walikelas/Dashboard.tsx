@@ -96,6 +96,9 @@ const WalikelasaDashboard = ({ currentUser, onLogout }) => {
     selectedSemesterMetadata
   );
 
+  const ALL_CLASS_FILTER_VALUE = "__all_classes__";
+  const ALL_DAY_FILTER_VALUE = "__all_days__";
+
   const scheduleMetadataEntries = useMemo(() => {
     if (!walikelasScheduleMetadata) {
       return [] as Array<{ label: string; value: string }>;
@@ -622,16 +625,23 @@ const WalikelasaDashboard = ({ currentUser, onLogout }) => {
                   Filter Kelas
                 </label>
                 <Select
-                  value={walikelasScheduleFilters.kelasId}
+                  value={
+                    walikelasScheduleFilters.kelasId || ALL_CLASS_FILTER_VALUE
+                  }
                   onValueChange={(value) =>
-                    updateWalikelasScheduleFilters({ kelasId: value })
+                    updateWalikelasScheduleFilters({
+                      kelasId:
+                        value === ALL_CLASS_FILTER_VALUE ? "" : value,
+                    })
                   }
                 >
                   <SelectTrigger className="mt-1 w-full">
                     <SelectValue placeholder="Semua kelas" />
                   </SelectTrigger>
                   <SelectContent>
-                    <SelectItem value="">Semua kelas</SelectItem>
+                    <SelectItem value={ALL_CLASS_FILTER_VALUE}>
+                      Semua kelas
+                    </SelectItem>
                     {scheduleClassOptions.map((option) => (
                       <SelectItem key={option.value} value={option.value}>
                         {option.label}
@@ -645,16 +655,20 @@ const WalikelasaDashboard = ({ currentUser, onLogout }) => {
                   Filter Hari
                 </label>
                 <Select
-                  value={walikelasScheduleFilters.hari}
+                  value={walikelasScheduleFilters.hari || ALL_DAY_FILTER_VALUE}
                   onValueChange={(value) =>
-                    updateWalikelasScheduleFilters({ hari: value })
+                    updateWalikelasScheduleFilters({
+                      hari: value === ALL_DAY_FILTER_VALUE ? "" : value,
+                    })
                   }
                 >
                   <SelectTrigger className="mt-1 w-full">
                     <SelectValue placeholder="Semua hari" />
                   </SelectTrigger>
                   <SelectContent>
-                    <SelectItem value="">Semua hari</SelectItem>
+                    <SelectItem value={ALL_DAY_FILTER_VALUE}>
+                      Semua hari
+                    </SelectItem>
                     {scheduleDayOptions.map((day) => (
                       <SelectItem key={day} value={day}>
                         {day}
